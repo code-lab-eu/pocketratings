@@ -250,6 +250,42 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 
 ---
 
+## Backend crates (Rust)
+
+Dependencies for the backend (API + CLI, SQLite). All under the same binary.
+
+| Crate | Purpose |
+|-------|--------|
+| **axum** | HTTP server: routing, JSON extractors, middleware. Fits async and tower ecosystem. |
+| **tower** | Middleware (e.g. auth layer that returns 403 when no valid token). |
+| **tokio** | Async runtime (required by axum). Use `full` or only needed features. |
+| **sqlx** | Async SQLite driver; compile-time checked queries; built-in migrations (`sqlx migrate`). |
+| **argon2** | Password hashing (PHC format). Already specified in design notes. |
+| **jsonwebtoken** | JWT: issue token on login, validate on protected routes. Stateless; no session store. |
+| **serde**, **serde_json** | Serialization for request/response and CLI `--output json`. |
+| **uuid** | UUID type with `serde` feature for IDs. |
+| **rust_decimal** | Decimal for price and rating (no float rounding). Serde support. |
+| **clap** | CLI argument parsing (derive API, subcommands for user/category/location/product/purchase/review). |
+| **tracing**, **tracing-subscriber** | Structured logging; env-based level (e.g. `RUST_LOG` via `EnvFilter`). Preferred over env_logger for async/axum. |
+| **thiserror**, **anyhow** | Error types and context (thiserror for library errors, anyhow in bin). |
+| **dotenv** | Load `.env` into env vars for local dev. Call `dotenv::dotenv().ok()` early in `main`; production sets env directly. |
+
+**Notes**
+
+- **Local env**: Load `.env` at startup so `DB_PATH`, `JWT_SECRET`, etc. can be set in a file (gitignored) for local development.
+- **Auth**: JWT with a secret (env e.g. `JWT_SECRET`). Login returns a token; frontend and CLI send `Authorization: Bearer <token>`. No session table for v1.
+- **Migrations**: SQL files in `backend/migrations/`; run via `sqlx migrate run` at startup or out-of-band. Include in deployment/CLI.
+- **CLI**: Uses same `config` and same DB as API (via `Config::from_env()` and sqlx pool). No HTTP from CLI.
+
+**Rust coding workflow**
+
+- Test-driven development: every feature has a test. In addition to unit tests, require tests for all CLI commands and all REST endpoints.
+- Safe code: no `unwrap()` or unsafe patterns in production code; use `Result` and `?`.
+- Proper error handling: thiserror for library errors, anyhow where appropriate; API and CLI map errors to status codes and messages.
+- Full workflow and checklist are in the project skill [.cursor/skills/rust-backend-workflow/SKILL.md](.cursor/skills/rust-backend-workflow/SKILL.md); the agent applies it when working on the backend.
+
+---
+
 ## Design notes and constraints
 
 **What works well**
