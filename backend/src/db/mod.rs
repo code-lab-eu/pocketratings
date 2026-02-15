@@ -2,6 +2,9 @@
 
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 
+pub mod category;
+pub mod user;
+
 /// Errors that can occur during database operations.
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
@@ -12,6 +15,10 @@ pub enum DbError {
     /// Returned when a migration fails.
     #[error("migration error: {0}")]
     Migrate(#[from] sqlx::migrate::MigrateError),
+
+    /// Returned when a row cannot be mapped to a domain type (e.g. invalid UUID or validation failed).
+    #[error("invalid data: {0}")]
+    InvalidData(String),
 }
 
 /// Create a `SQLite` connection pool.

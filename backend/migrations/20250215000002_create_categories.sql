@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS categories (
     id         TEXT    NOT NULL PRIMARY KEY,
     parent_id  TEXT    REFERENCES categories(id),
     name       TEXT    NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
     deleted_at INTEGER
 );
 

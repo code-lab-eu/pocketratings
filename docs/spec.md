@@ -75,6 +75,8 @@ All primary keys are UUIDs. Timestamp columns are stored as **64-bit integers**
 | id         | UUID              | Primary key                    |
 | parent_id  | UUID              | Optional; self-reference for hierarchy |
 | name       | string            |                                |
+| created_at | integer (UNIX)    | Set on create                  |
+| updated_at | integer (UNIX)    | Set on create and update       |
 | deleted_at | integer (UNIX)?   | Set when soft-deleted; null = active |
 
 ### Product
