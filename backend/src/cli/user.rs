@@ -52,7 +52,7 @@ pub async fn register(
             "id": user.id().to_string(),
             "email": user.email(),
         });
-        writeln!(stdout, "{}", out).map_err(|e| CliError::Other(e.into()))?;
+        writeln!(stdout, "{out}").map_err(|e| CliError::Other(e.into()))?;
     } else {
         writeln!(stdout, "User registered: {}", user.email()).map_err(|e| CliError::Other(e.into()))?;
     }

@@ -62,13 +62,17 @@ pub enum CliError {
 
 impl From<crate::db::DbError> for CliError {
     fn from(e: crate::db::DbError) -> Self {
-        CliError::Other(e.into())
+        Self::Other(e.into())
     }
 }
 
 /// Parse args and dispatch to the appropriate handler.
 ///
 /// When the command is `user register`, `pool` must be `Some`; the caller (e.g. `main`) is responsible for creating the pool and running migrations first.
+///
+/// # Errors
+///
+/// Returns [`CliError`] on parse failure, missing pool for `user register`, register handler errors, or I/O when writing help or output.
 pub async fn run(
     args: impl Iterator<Item = impl Into<std::ffi::OsString> + Clone>,
     pool: Option<&SqlitePool>,

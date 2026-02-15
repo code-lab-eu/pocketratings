@@ -19,13 +19,11 @@ async fn main() {
     let needs_db = args
         .get(1)
         .and_then(|a| a.to_str())
-        .map(|s| s == "user")
-        .unwrap_or(false)
+        .is_some_and(|s| s == "user")
         && args
             .get(2)
             .and_then(|a| a.to_str())
-            .map(|s| s == "register")
-            .unwrap_or(false);
+            .is_some_and(|s| s == "register");
 
     let pool = if needs_db {
         let config =
