@@ -1,0 +1,20 @@
+{
+  "name": "pocketratings-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.15.1",
+    "@nuxt/test-utils": "^4.0.0",
+    "@vitest/ui": "^4.0.18",
+    "nuxt": "^4.0.0",
+    "vitest": "^4.0.18"
+  }
+}

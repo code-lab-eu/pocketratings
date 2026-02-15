@@ -1,0 +1,19 @@
+[package]
+name = "pocketratings"
+version = "0.1.0"
+edition = "2024"
+description = "Product reviews and ratings — backend API and CLI"
+license = "GPL-3.0"
+readme = "../README.md"
+keywords = ["ratings", "reviews", "products", "purchases"]
+categories = ["web-programming", "command-line-utilities"]
+repository = "https://github.com/yourusername/pocketratings"
+
+[dependencies]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "pocketratings"
+path = "src/main.rs"
