@@ -24,7 +24,8 @@ pub enum DbError {
 pub async fn create_pool(database_path: &str) -> Result<SqlitePool, DbError> {
     let options = SqliteConnectOptions::new()
         .filename(database_path)
-        .create_if_missing(true);
+        .create_if_missing(true)
+        .foreign_keys(true);
 
     let pool = SqlitePoolOptions::new()
         .connect_with(options)
