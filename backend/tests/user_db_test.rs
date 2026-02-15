@@ -1,6 +1,7 @@
 //! Integration tests for user DB functions.
 
 use pocketratings::db;
+use pocketratings::domain::user::User;
 use uuid::Uuid;
 
 /// Minimal PHC-style string so User::new accepts it (non-empty). Not used for verification.
@@ -157,4 +158,41 @@ async fn soft_deleted_user_not_returned_by_get_by_id_or_get_by_email() {
         by_email.is_none(),
         "soft-deleted user should not be returned by get_by_email"
     );
+}
+
+#[tokio::test]
+async fn insert_persists_user_and_get_by_email_returns_it() {
+    let dir = tempfile::tempdir().expect("failed to create temp dir");
+    let db_path = dir.path().join("user_insert_test.db");
+    let db_path_str = db_path.to_str().expect("temp path is not valid UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("failed to create pool");
+    db::run_migrations(&pool)
+        .await
+        .expect("failed to run migrations");
+
+    let id = Uuid::new_v4();
+    let now = 5_000_i64;
+    let user = User::new(
+        id,
+        "Carol".to_string(),
+        "carol@example.com".to_string(),
+        PLACEHOLDER_HASH.to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid user");
+
+    db::user::insert(&pool, &user).await.expect("insert");
+
+    let loaded = db::user::get_by_email(&pool, "carol@example.com")
+        .await
+        .expect("get_by_email")
+        .expect("user should exist");
+    assert_eq!(loaded.id(), id);
+    assert_eq!(loaded.name(), "Carol");
+    assert_eq!(loaded.email(), "carol@example.com");
 }

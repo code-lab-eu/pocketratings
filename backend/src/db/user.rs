@@ -1,6 +1,6 @@
 //! User persistence.
 //!
-//! Provides [`get_by_id`] and [`get_by_email`] for loading users from the database.
+//! Provides [`get_by_id`], [`get_by_email`], and [`insert`] for loading and creating users.
 
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
@@ -90,4 +90,25 @@ pub async fn get_by_email(
 
     let user = row_to_user(&id, &name, &email, &password, created_at, updated_at, deleted_at)?;
     Ok(Some(user))
+}
+
+/// Insert a user into the database.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure (e.g. duplicate email).
+pub async fn insert(pool: &SqlitePool, user: &User) -> Result<(), crate::db::DbError> {
+    sqlx::query(
+        "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(user.id().to_string())
+    .bind(user.name())
+    .bind(user.email())
+    .bind(user.password())
+    .bind(user.created_at())
+    .bind(user.updated_at())
+    .bind(user.deleted_at())
+    .execute(pool)
+    .await?;
+    Ok(())
 }
