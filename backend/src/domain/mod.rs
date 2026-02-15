@@ -1,1 +1,3 @@
-// Core types: Product, Review, Rating, etc.
+//! Domain types: validated structs for each entity.
+
+pub mod user;

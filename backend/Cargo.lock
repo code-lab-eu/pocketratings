@@ -1355,6 +1355,7 @@ dependencies = [
  "clap",
  "dotenvy",
  "jsonwebtoken",
+ "rand_core",
  "rust_decimal",
  "serde",
  "serde_json",
