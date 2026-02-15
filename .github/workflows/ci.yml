@@ -19,7 +19,7 @@ jobs:
           components: clippy
 
       - name: Cache cargo
-        uses: Swatinem/rust-cache@2
+        uses: Swatinem/rust-cache@v2
         with:
           workspaces: backend
 
@@ -49,6 +49,10 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: bun install --frozen-lockfile
+
+      - name: Prepare Nuxt
+        working-directory: frontend
+        run: bunx nuxi prepare
 
       - name: Lint
         working-directory: frontend
