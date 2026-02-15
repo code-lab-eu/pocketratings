@@ -53,74 +53,75 @@
 
 ## Data models
 
-All primary keys are UUIDs. Timestamps are stored in UTC.
+All primary keys are UUIDs. Timestamp columns are stored as **64-bit integers**
+(UNIX time: seconds since 1970-01-01 UTC). In SQLite this is `INTEGER`.
 
 ### User
 
-| Field    | Type     | Notes                          |
-|----------|----------|--------------------------------|
-| id       | UUID     | Primary key                    |
-| name     | string   |                                |
-| email    | string   | Unique, used for login         |
-| password | string   | Argon2 hash (PHC format: algorithm, params, salt, hash; one salt per password) |
-| created_at | timestamp | Set on create                |
-| updated_at | timestamp | Set on create and update     |
-| deleted_at | timestamp? | Set when soft-deleted; null = active |
+| Field      | Type              | Notes                          |
+|------------|-------------------|--------------------------------|
+| id         | UUID              | Primary key                    |
+| name       | string            |                                |
+| email      | string            | Unique, used for login         |
+| password   | string            | Argon2 hash (PHC format: algorithm, params, salt, hash; one salt per password) |
+| created_at | integer (UNIX)    | Set on create                  |
+| updated_at | integer (UNIX)    | Set on create and update       |
+| deleted_at | integer (UNIX)?   | Set when soft-deleted; null = active |
 
 ### Category
 
-| Field     | Type     | Notes                          |
-|-----------|----------|--------------------------------|
-| id        | UUID     | Primary key                    |
-| parent_id | UUID     | Optional; self-reference for hierarchy |
-| name      | string   |                                |
-| deleted_at | timestamp? | Set when soft-deleted; null = active |
+| Field      | Type              | Notes                          |
+|------------|-------------------|--------------------------------|
+| id         | UUID              | Primary key                    |
+| parent_id  | UUID              | Optional; self-reference for hierarchy |
+| name       | string            |                                |
+| deleted_at | integer (UNIX)?   | Set when soft-deleted; null = active |
 
 ### Product
 
-| Field       | Type     | Notes                          |
-|-------------|----------|--------------------------------|
-| id          | UUID     | Primary key                    |
-| category_id | UUID     | Foreign key → Category         |
-| brand       | string   |                                |
-| name        | string   |                                |
-| created_at  | timestamp | Set on create                |
-| updated_at  | timestamp | Set on create and update     |
-| deleted_at  | timestamp? | Set when soft-deleted; null = active |
+| Field      | Type              | Notes                          |
+|------------|-------------------|--------------------------------|
+| id         | UUID              | Primary key                    |
+| category_id| UUID              | Foreign key → Category         |
+| brand      | string            |                                |
+| name       | string            |                                |
+| created_at | integer (UNIX)    | Set on create                  |
+| updated_at | integer (UNIX)    | Set on create and update       |
+| deleted_at | integer (UNIX)?   | Set when soft-deleted; null = active |
 
 ### Location (Store)
 
-| Field | Type   | Notes       |
-|-------|--------|-------------|
-| id        | UUID     | Primary key |
-| name      | string   |             |
-| deleted_at | timestamp? | Set when soft-deleted; null = active |
+| Field      | Type              | Notes       |
+|------------|-------------------|-------------|
+| id         | UUID              | Primary key |
+| name       | string            |             |
+| deleted_at | integer (UNIX)?   | Set when soft-deleted; null = active |
 
 ### Review
 
-| Field       | Type     | Notes                          |
-|-------------|----------|--------------------------------|
-| id          | UUID     | Primary key                    |
-| product_id  | UUID     | Foreign key → Product          |
-| user_id     | UUID     | Foreign key → User             |
-| rating      | decimal  | 1–5 stars, decimal subdivisions (e.g. 4.5) |
-| text        | string?  | Optional review text            |
-| created_at  | timestamp | Set on create                |
-| updated_at  | timestamp | Set on create and update     |
-| deleted_at  | timestamp? | Set when soft-deleted; null = active |
+| Field      | Type              | Notes                          |
+|------------|-------------------|--------------------------------|
+| id         | UUID              | Primary key                    |
+| product_id | UUID              | Foreign key → Product          |
+| user_id    | UUID              | Foreign key → User             |
+| rating     | decimal           | 1–5 stars, decimal subdivisions (e.g. 4.5) |
+| text       | string?           | Optional review text            |
+| created_at | integer (UNIX)    | Set on create                  |
+| updated_at | integer (UNIX)    | Set on create and update       |
+| deleted_at | integer (UNIX)?   | Set when soft-deleted; null = active |
 
 ### Purchase
 
-| Field        | Type     | Notes                |
-|--------------|----------|----------------------|
-| id           | UUID     | Primary key          |
-| user_id      | UUID     | Foreign key → User; who made the purchase |
-| product_id   | UUID     | Foreign key → Product |
-| location_id  | UUID     | Foreign key → Location |
-| quantity     | integer  | Number of items; default 1   |
-| price        | decimal  | Unit price (EUR; currency hardcoded) |
-| purchased_at | timestamp | When the purchase occurred |
-| deleted_at   | timestamp? | Set when soft-deleted; null = active |
+| Field        | Type              | Notes                |
+|--------------|-------------------|----------------------|
+| id           | UUID              | Primary key          |
+| user_id      | UUID              | Foreign key → User; who made the purchase |
+| product_id   | UUID              | Foreign key → Product |
+| location_id  | UUID              | Foreign key → Location |
+| quantity     | integer           | Number of items; default 1   |
+| price        | decimal           | Unit price (EUR; currency hardcoded) |
+| purchased_at | integer (UNIX)    | When the purchase occurred |
+| deleted_at   | integer (UNIX)?   | Set when soft-deleted; null = active |
 
 ---
 
@@ -196,7 +197,12 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 
 ## CLI
 
-The CLI is the same binary as the backend (`pocketratings`). It operates on the **same SQLite database** as the API (no HTTP). Use it for registration (v1-only way to create users), admin, and scripting. Database path: configurable via env (e.g. `DB_PATH`); default e.g. `./pocketratings.db` or a standard app data path.
+The CLI is the same binary as the backend (`pocketratings`). It operates on the **same SQLite database** as the API (no HTTP). Use it for registration (v1-only way to create users), admin, scripting, and starting/stopping the API server. Database path: configurable via env (e.g. `DB_PATH`); default e.g. `./pocketratings.db` or a standard app data path.
+
+**Server**
+
+- `pocketratings server start [--bind <addr>] [--daemon]` — Start the API server. Bind address from `--bind` or env (e.g. `BIND`); default `127.0.0.1:3099` (port 3099 to avoid clashes with common dev ports like 8080/3000). Foreground by default; `--daemon` runs in background and writes a PID file (e.g. `./pocketratings.pid` or configurable) so it can be stopped later.
+- `pocketratings server stop` — Stop the server if it was started with `--daemon` (read PID file, send SIGTERM). Exit with error if no PID file or process not running.
 
 **User (account)**
 
@@ -291,7 +297,7 @@ Dependencies for the backend (API + CLI, SQLite). All under the same binary.
 **What works well**
 
 - UUIDs for all primary keys: no sequential leaks, simple and safe for a small app.
-- UTC timestamps everywhere: consistent and portable.
+- Timestamps as 64-bit UNIX time (integer): consistent, portable, and efficient in SQLite.
 - Category hierarchy via optional `parent_id`: standard and flexible.
 - Decimal for rating and price: appropriate for subdivisions and currency.
 
@@ -313,7 +319,7 @@ Dependencies for the backend (API + CLI, SQLite). All under the same binary.
 
 **Soft deletes**
 
-- Every entity has **deleted_at** (nullable timestamp). Null = active; set to UTC timestamp when soft-deleted. List/read queries filter `WHERE deleted_at IS NULL` unless explicitly including deleted records.
+- Every entity has **deleted_at** (nullable integer, UNIX time). Null = active; set to UNIX time (64-bit integer) when soft-deleted. List/read queries filter `WHERE deleted_at IS NULL` unless explicitly including deleted records.
 
 **Other**
 

@@ -26,8 +26,21 @@ you paid.
 - **Bun** (latest)
 - **Node.js** 24 LTS (required by Bun)
 
-The same build/lint/test commands are used in CI and are documented in
-[.cursor/skills/build-and-test/SKILL.md](.cursor/skills/build-and-test/SKILL.md).
+## Configuration
+
+The backend is configured via environment variables. In the `backend`
+directory, copy the example file to `.env` and edit the values:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Edit `.env` to set at least `JWT_SECRET` (required). You can change
+`DB_PATH` and `BIND` if needed. The backend loads `.env` from its current
+working directory, so run the backend from `backend/` (e.g. `cargo run`).
+In production, set the variables in the environment instead of using a
+file.
 
 ## Building
 
@@ -57,8 +70,8 @@ The built site will be in `frontend/.output`.
 ```bash
 cd backend
 cargo build
-cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
-cargo test --release
+cargo clippy -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+cargo test
 ```
 
 ### Frontend
@@ -73,8 +86,6 @@ The dev server will start at `http://localhost:3000`.
 
 ## Lint
 
-Same commands as in CI (see [.github/workflows/ci.yml](.github/workflows/ci.yml)):
-
 ```bash
 # Backend
 cd backend && cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
@@ -85,7 +96,7 @@ cd frontend && bun run lint
 
 ## Tests
 
-Same commands as in CI:
+Run tests for both backend and frontend:
 
 ```bash
 # Backend

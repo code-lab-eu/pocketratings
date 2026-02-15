@@ -1,4 +1,5 @@
 // Library root: API, CLI, config, db, domain
+#![allow(clippy::multiple_crate_versions)]
 
 pub mod api;
 pub mod cli;
