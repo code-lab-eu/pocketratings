@@ -9,18 +9,19 @@ Apply this workflow whenever writing or changing code in `backend/` (Pocket Rati
 
 ## Test-driven development
 
-- **Every feature has a test.** Write or update the test first (or alongside) the implementation; do not add production code without a corresponding test.
+- **Tests are required for all new functionality.** Do not add or change production code without corresponding tests. This includes: new or changed database functions, new CLI commands, new REST endpoints, and new domain logic.
+- **Prefer writing tests first.** When adding a feature, write the test(s) that define the desired behaviour before (or as the first step of) implementing. Then implement until the tests pass. If you implement first, add the tests in the same change and treat missing tests as incomplete work.
 - Run `cargo test` (or use the build-and-test skill) to confirm tests pass before considering the change done.
 
 ## Test coverage
 
 Three layers are required:
 
-1. **Unit tests** — For domain logic, validation, and pure functions. Place in the same module (`#[cfg(test)] mod tests { ... }`) or in `backend/tests/` for integration-style tests.
-2. **CLI tests** — For every CLI command (e.g. `user register`, `category create`, `purchase list`). Test by invoking the binary (or the CLI entry point) with arguments and asserting on exit code and stdout/stderr. Use integration tests in `backend/tests/` that run `cargo run -- ...` or call the CLI API.
+1. **Database / persistence tests** — For every new or changed function in `db/` (e.g. `list_all`, `insert`, `get_by_email`). Use integration tests in `backend/tests/` (e.g. `user_db_test.rs`) that create a temp DB, run migrations, and assert on query results. Cover both success and relevant edge cases (e.g. empty list, filtered vs unfiltered).
+2. **CLI tests** — For every CLI command (e.g. `user register`, `user list`, `category create`). Test by invoking the CLI entry point with arguments and captured stdout/stderr; assert on exit code and output. Use integration tests in `backend/tests/` that call the CLI API with a temp DB. Cover success and error cases (e.g. duplicate email, invalid input, `--output json`).
 3. **REST endpoint tests** — For every API route under `/api/v1/`. Test with HTTP requests (e.g. using the test server or a client). Cover success and error cases (401/403, 400 validation, 404). Use integration tests in `backend/tests/` that start the app or a test router and send requests.
 
-When adding a new CLI command or REST endpoint, add the corresponding test in the same change.
+**Rule:** When adding a new DB function, CLI command, or REST endpoint, add the corresponding test in the same change. New behaviour without a test is not done.
 
 ## Safe code — no unwrap or unsafe
 
@@ -37,8 +38,8 @@ When adding a new CLI command or REST endpoint, add the corresponding test in th
 
 ## Checklist before submitting backend changes
 
-- [ ] New/changed behavior has unit and/or integration tests.
-- [ ] New CLI commands have CLI tests; new REST endpoints have REST tests.
+- [ ] **Tests first or in same change:** New/changed DB functions have tests in `backend/tests/*_db_test.rs`; new CLI commands have tests in `backend/tests/cli_*_test.rs`; new REST endpoints have HTTP tests. Prefer writing tests before implementing.
+- [ ] New/changed behaviour has unit and/or integration tests (no production code without a test).
 - [ ] No `unwrap()`/`expect()` in production code; no `unsafe`.
 - [ ] Errors use `Result` and thiserror/anyhow; API and CLI map errors appropriately.
 - [ ] `cargo test` and `cargo clippy` (with project flags) pass.
