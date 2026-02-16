@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
   pull_request:
-    branches: [master]
 
 jobs:
   backend:
@@ -23,15 +21,22 @@ jobs:
         with:
           workspaces: backend
 
+      - name: Check formatting
+        working-directory: backend
+        run: cargo fmt --check
+
       - name: Build
+        if: always()
         working-directory: backend
         run: cargo build --release
 
       - name: Lint
+        if: always()
         working-directory: backend
         run: cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 
       - name: Test
+        if: always()
         working-directory: backend
         run: cargo test --release
 
@@ -51,17 +56,21 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Prepare Nuxt
+        if: always()
         working-directory: frontend
         run: bunx nuxi prepare
 
       - name: Lint
+        if: always()
         working-directory: frontend
         run: bun run lint
 
       - name: Build
+        if: always()
         working-directory: frontend
         run: bun run build
 
       - name: Test
+        if: always()
         working-directory: frontend
         run: bun run test
