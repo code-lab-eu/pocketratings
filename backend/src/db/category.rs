@@ -1,7 +1,8 @@
 //! Category persistence and tree building.
 //!
 //! Provides the [`Categories`] tree type, a pure [`get_tree`] that builds a tree from a flat list,
-//! and DB functions: [`get_by_id`], [`get_parent`], [`get_children`], [`get_all`].
+//! and DB functions: [`get_by_id`], [`get_parent`], [`get_children`], [`get_all`],
+//! [`get_all_with_deleted`], [`insert`], [`update`], and [`soft_delete`].
 
 use std::collections::HashMap;
 
@@ -204,6 +205,135 @@ pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbEr
         out.push(category);
     }
     Ok(out)
+}
+
+/// Fetch all categories (active and soft-deleted).
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query or row mapping failure.
+pub async fn get_all_with_deleted(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbError> {
+    let rows = sqlx::query(
+        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut out = Vec::with_capacity(rows.len());
+    for row in rows {
+        let id: String = row.get("id");
+        let parent_id: Option<String> = row.get("parent_id");
+        let name: String = row.get("name");
+        let created_at: i64 = row.get("created_at");
+        let updated_at: i64 = row.get("updated_at");
+        let deleted_at: Option<i64> = row.get("deleted_at");
+        let category = row_to_category(
+            &id,
+            parent_id.as_deref(),
+            &name,
+            created_at,
+            updated_at,
+            deleted_at,
+        )?;
+        out.push(category);
+    }
+    Ok(out)
+}
+
+/// Insert a category into the database.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure (e.g. duplicate name under parent).
+pub async fn insert(pool: &SqlitePool, category: &Category) -> Result<(), crate::db::DbError> {
+    sqlx::query(
+        "INSERT INTO categories (id, parent_id, name, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(category.id().to_string())
+    .bind(category.parent_id().map(|id| id.to_string()))
+    .bind(category.name())
+    .bind(category.created_at())
+    .bind(category.updated_at())
+    .bind(category.deleted_at())
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Update an existing category's parent, name, and timestamps.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure (e.g. duplicate name under parent).
+pub async fn update(pool: &SqlitePool, category: &Category) -> Result<(), crate::db::DbError> {
+    sqlx::query(
+        "UPDATE categories SET parent_id = ?, name = ?, created_at = ?, updated_at = ?, deleted_at = ? WHERE id = ?",
+    )
+    .bind(category.parent_id().map(|id| id.to_string()))
+    .bind(category.name())
+    .bind(category.created_at())
+    .bind(category.updated_at())
+    .bind(category.deleted_at())
+    .bind(category.id().to_string())
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Soft-delete a category by id. Sets `deleted_at` and `updated_at` to the current time.
+///
+/// Fails if there are any active child categories or active products belonging to this category.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure, or [`crate::db::DbError::InvalidData`] if
+/// the category has child categories, has products, or no active category exists with the given id.
+pub async fn soft_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::DbError> {
+    let id_str = id.to_string();
+
+    // Check for active child categories.
+    let child_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM categories WHERE parent_id = ? AND deleted_at IS NULL",
+    )
+    .bind(&id_str)
+    .fetch_one(pool)
+    .await?;
+    if child_count > 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "cannot delete category with child categories: {id_str}"
+        )));
+    }
+
+    // Check for active products that reference this category.
+    let product_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM products WHERE category_id = ? AND deleted_at IS NULL",
+    )
+    .bind(&id_str)
+    .fetch_one(pool)
+    .await?;
+    if product_count > 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "cannot delete category with active products: {id_str}"
+        )));
+    }
+
+    let now = chrono::Utc::now().timestamp();
+    let result = sqlx::query(
+        "UPDATE categories SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(now)
+    .bind(now)
+    .bind(&id_str)
+    .execute(pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "category not found or already deleted: {id_str}"
+        )));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

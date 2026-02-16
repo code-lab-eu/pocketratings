@@ -20,7 +20,7 @@
 
 - **Create**: User creates a category (name; optional parent for hierarchy).
 - **List**: User sees categories (tree or flat).
-- **Update / soft-delete**: User can rename a category. Soft-delete is only allowed if the category has no products (move or delete products first).
+- **Update / soft-delete**: User can rename a category. Soft-delete is only allowed if the category has no child categories and no products (move or delete children and products first).
 
 **Locations (stores)**
 
@@ -222,7 +222,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings category list [--parent-id <uuid>]`
 - `pocketratings category show <id>`
 - `pocketratings category update <id> [--name <name>] [--parent-id <uuid>]`
-- `pocketratings category delete <id>` — Soft-delete. Fails with error if category has any products.
+- `pocketratings category delete <id>` — Soft-delete. Fails with error if category has any child categories or products.
 
 **Locations**
 
@@ -259,7 +259,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 
 - IDs are UUIDs. List commands exclude soft-deleted records unless `--include-deleted` (or similar) is set.
 - Output: human-readable by default; optional `--output json` for scripting.
-- Same validation and business rules as the API (e.g. category name unique per parent; category delete only when no products).
+- Same validation and business rules as the API (e.g. category name unique per parent; category delete only when no child categories and no products).
 
 ---
 
