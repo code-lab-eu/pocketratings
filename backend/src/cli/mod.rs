@@ -1,6 +1,7 @@
 //! CLI commands and parsing.
 
 mod category;
+mod location;
 mod product;
 mod user;
 
@@ -10,6 +11,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 use sqlx::SqlitePool;
 
 use crate::cli::category as category_cli;
+use crate::cli::location as location_cli;
 use crate::cli::product as product_cli;
 use crate::cli::user as user_cli;
 
@@ -26,6 +28,7 @@ pub struct Cli {
 pub enum Commands {
     User(UserArgs),
     Category(CategoryArgs),
+    Location(LocationArgs),
     Product(ProductArgs),
 }
 
@@ -135,6 +138,71 @@ pub struct ProductDeleteOpts {
     /// Product UUID to delete (soft-delete unless `--force`).
     pub id: String,
     /// Remove the product row from the database instead of soft-deleting.
+    #[arg(long)]
+    pub force: bool,
+}
+
+/// Location subcommand group.
+#[derive(clap::Args)]
+pub struct LocationArgs {
+    #[command(subcommand)]
+    pub command: LocationCmd,
+}
+
+#[derive(Subcommand)]
+pub enum LocationCmd {
+    /// Create a location.
+    Create(LocationCreateOpts),
+    /// List locations.
+    List(LocationListOpts),
+    /// Show a single location.
+    Show(LocationShowOpts),
+    /// Update a location.
+    Update(LocationUpdateOpts),
+    /// Soft-delete or remove a location.
+    Delete(LocationDeleteOpts),
+}
+
+#[derive(clap::Args)]
+pub struct LocationCreateOpts {
+    #[arg(long)]
+    pub name: String,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct LocationListOpts {
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+    /// Include soft-deleted locations in the list.
+    #[arg(long)]
+    pub include_deleted: bool,
+}
+
+#[derive(clap::Args)]
+pub struct LocationShowOpts {
+    /// Location UUID to show.
+    pub id: String,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct LocationUpdateOpts {
+    /// Location UUID to update.
+    pub id: String,
+    #[arg(long)]
+    pub name: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct LocationDeleteOpts {
+    /// Location UUID to delete (soft-delete unless `--force`).
+    pub id: String,
+    /// Remove the location row from the database instead of soft-deleting.
     #[arg(long)]
     pub force: bool,
 }
@@ -351,6 +419,56 @@ pub async fn run(
                     ))
                 })?;
                 category_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
+            }
+        },
+        Some(Commands::Location(loc_args)) => match loc_args.command {
+            LocationCmd::Create(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for location create"
+                    ))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                location_cli::create(pool, &opts.name, output_json, stdout, stderr).await
+            }
+            LocationCmd::List(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for location list"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                location_cli::list(pool, output_json, opts.include_deleted, stdout, stderr).await
+            }
+            LocationCmd::Show(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for location show"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                location_cli::show(pool, &opts.id, output_json, stdout, stderr).await
+            }
+            LocationCmd::Update(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for location update"
+                    ))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                location_cli::update(
+                    pool,
+                    &opts.id,
+                    opts.name.as_deref(),
+                    output_json,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            LocationCmd::Delete(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for location delete"
+                    ))
+                })?;
+                location_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
             }
         },
         Some(Commands::Product(prod_args)) => match prod_args.command {

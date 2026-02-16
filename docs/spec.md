@@ -15,6 +15,7 @@
 
 - **Register**: In v1, registration is **CLI-only** (not exposed in the REST API). User provides name, email, password → account created (password hashed with Argon2).
 - **Login**: User provides email and password → session/token for API and web app (only unauthenticated API endpoint; all others return 403 if not authenticated).
+- **Delete**: User can be soft-deleted or removed (CLI only). Delete is only allowed if the user has no purchases or reviews.
 
 **Categories**
 
@@ -26,7 +27,7 @@
 
 - **Create**: User adds a location (name).
 - **List**: User sees all locations.
-- **Update / soft-delete**: User can rename or soft-delete a location.
+- **Update / soft-delete**: User can rename or soft-delete a location. Soft-delete is only allowed if the location has no purchases.
 
 **Products**
 
@@ -154,7 +155,7 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 - `GET /api/v1/locations/:id` — Single location.
 - `POST /api/v1/locations` — Body: `{ name }`.
 - `PATCH /api/v1/locations/:id` — Body: `{ name }`.
-- `DELETE /api/v1/locations/:id` — Soft-delete; `?force=true` for hard delete.
+- `DELETE /api/v1/locations/:id` — Soft-delete; `?force=true` for hard delete. 400 if location has purchases.
 
 **Products**
 
@@ -214,7 +215,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 
 - `pocketratings user register --name <name> --email <email> --password <password>` — Create a user (v1: only way to register). Password hashed with Argon2 before store.
 - `pocketratings user list` — List users (e.g. for admin; optional for v1).
-- `pocketratings user delete <id> [--force]` — Soft-delete a user by UUID (default). Use `--force` to remove the user row from the database.
+- `pocketratings user delete <id> [--force]` — Soft-delete a user by UUID (default). Use `--force` to remove the user row from the database. Fails if user has purchases or reviews.
 
 **Categories**
 
@@ -230,7 +231,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings location list`
 - `pocketratings location show <id>`
 - `pocketratings location update <id> --name <name>`
-- `pocketratings location delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row.
+- `pocketratings location delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row. Fails if location has purchases.
 
 **Products**
 

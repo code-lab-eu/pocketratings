@@ -3,6 +3,7 @@
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 
 pub mod category;
+pub mod location;
 pub mod product;
 pub mod user;
 
