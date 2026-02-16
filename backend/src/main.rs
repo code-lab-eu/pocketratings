@@ -18,11 +18,14 @@ async fn main() {
     let args: Vec<std::ffi::OsString> = std::env::args_os().collect();
     let first = args.get(1).and_then(|a| a.to_str());
     let second = args.get(2).and_then(|a| a.to_str());
-    let needs_db = match (first, second) {
-        (Some("user"), Some("register" | "list" | "delete")) => true,
-        (Some("category"), Some("create" | "list" | "show" | "update" | "delete")) => true,
-        _ => false,
-    };
+    let needs_db = matches!(
+        (first, second),
+        (Some("user"), Some("register" | "list" | "delete"))
+            | (
+                Some("category" | "product"),
+                Some("create" | "list" | "show" | "update" | "delete")
+            )
+    );
 
     let pool = if needs_db {
         let config =

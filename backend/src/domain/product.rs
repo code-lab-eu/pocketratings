@@ -1,12 +1,14 @@
-//! Category domain type with field validation.
-
-use std::fmt;
+//! Product domain type with field validation.
 
 use uuid::Uuid;
 
-/// Validation errors for [`Category`] fields.
+/// Validation errors for [`Product`] fields.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ValidationError {
+    /// The brand field is empty.
+    #[error("brand must not be empty")]
+    BrandEmpty,
+
     /// The name field is empty.
     #[error("name must not be empty")]
     NameEmpty,
@@ -30,31 +32,36 @@ pub enum ValidationError {
     },
 }
 
-/// A validated category (optionally under a parent for hierarchy).
+/// A validated product (belongs to a category).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Category {
+pub struct Product {
     id: Uuid,
-    parent_id: Option<Uuid>,
+    category_id: Uuid,
+    brand: String,
     name: String,
     created_at: i64,
     updated_at: i64,
     deleted_at: Option<i64>,
 }
 
-impl Category {
-    /// Create a new `Category` after validating all fields.
+impl Product {
+    /// Create a new `Product` after validating all fields.
     ///
     /// # Errors
     ///
     /// Returns [`ValidationError`] if any field is invalid.
     pub fn new(
         id: Uuid,
-        parent_id: Option<Uuid>,
+        category_id: Uuid,
+        brand: String,
         name: String,
         created_at: i64,
         updated_at: i64,
         deleted_at: Option<i64>,
     ) -> Result<Self, ValidationError> {
+        if brand.trim().is_empty() {
+            return Err(ValidationError::BrandEmpty);
+        }
         if name.trim().is_empty() {
             return Err(ValidationError::NameEmpty);
         }
@@ -77,7 +84,8 @@ impl Category {
 
         Ok(Self {
             id,
-            parent_id,
+            category_id,
+            brand,
             name,
             created_at,
             updated_at,
@@ -85,53 +93,52 @@ impl Category {
         })
     }
 
-    /// Whether the category is active (not soft-deleted).
+    /// Whether the product is active (not soft-deleted).
     #[must_use]
     pub const fn is_active(&self) -> bool {
         self.deleted_at.is_none()
     }
 
-    /// The category's unique identifier.
+    /// The product's unique identifier.
     #[must_use]
     pub const fn id(&self) -> Uuid {
         self.id
     }
 
-    /// Parent category id, if this is a subcategory.
+    /// The category this product belongs to.
     #[must_use]
-    pub const fn parent_id(&self) -> Option<Uuid> {
-        self.parent_id
+    pub const fn category_id(&self) -> Uuid {
+        self.category_id
     }
 
-    /// The category name.
+    /// The product brand.
+    #[must_use]
+    pub fn brand(&self) -> &str {
+        &self.brand
+    }
+
+    /// The product name.
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// UNIX timestamp when the category was created.
+    /// UNIX timestamp when the product was created.
     #[must_use]
     pub const fn created_at(&self) -> i64 {
         self.created_at
     }
 
-    /// UNIX timestamp when the category was last updated.
+    /// UNIX timestamp when the product was last updated.
     #[must_use]
     pub const fn updated_at(&self) -> i64 {
         self.updated_at
     }
 
-    /// UNIX timestamp when the category was soft-deleted, if any.
+    /// UNIX timestamp when the product was soft-deleted, if any.
     #[must_use]
     pub const fn deleted_at(&self) -> Option<i64> {
         self.deleted_at
-    }
-}
-
-impl fmt::Display for Category {
-    /// Format as `uuid (name)` for use in product list and show.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} ({})", self.id(), self.name())
     }
 }
 
@@ -139,14 +146,16 @@ impl fmt::Display for Category {
 mod tests {
     use super::*;
 
-    fn make_category(
+    fn make_product(
+        brand: &str,
         name: &str,
-        parent_id: Option<Uuid>,
+        category_id: Uuid,
         deleted_at: Option<i64>,
-    ) -> Result<Category, ValidationError> {
-        Category::new(
+    ) -> Result<Product, ValidationError> {
+        Product::new(
             Uuid::new_v4(),
-            parent_id,
+            category_id,
+            brand.to_owned(),
             name.to_owned(),
             1_000,
             1_000,
@@ -155,45 +164,61 @@ mod tests {
     }
 
     #[test]
-    fn valid_root_category() {
-        let cat = make_category("Electronics", None, None);
-        assert!(cat.is_ok());
-        let cat = cat.unwrap();
-        assert!(cat.is_active());
-        assert_eq!(cat.name(), "Electronics");
-        assert_eq!(cat.parent_id(), None);
+    fn valid_product() {
+        let cat_id = Uuid::new_v4();
+        let prod = make_product("Acme", "Widget", cat_id, None);
+        assert!(prod.is_ok());
+        let prod = prod.unwrap();
+        assert!(prod.is_active());
+        assert_eq!(prod.brand(), "Acme");
+        assert_eq!(prod.name(), "Widget");
+        assert_eq!(prod.category_id(), cat_id);
     }
 
     #[test]
-    fn valid_subcategory() {
-        let parent_id = Uuid::new_v4();
-        let cat = make_category("Phones", Some(parent_id), None);
-        assert!(cat.is_ok());
-        assert_eq!(cat.as_ref().unwrap().parent_id(), Some(parent_id));
+    fn valid_deleted_product() {
+        let cat_id = Uuid::new_v4();
+        let prod = make_product("Acme", "Widget", cat_id, Some(1_000));
+        assert!(prod.is_ok());
+        assert!(!prod.unwrap().is_active());
     }
 
     #[test]
-    fn valid_deleted_category() {
-        let cat = make_category("Old", None, Some(1_000));
-        assert!(cat.is_ok());
-        assert!(!cat.unwrap().is_active());
+    fn empty_brand_is_rejected() {
+        let err = make_product("", "Widget", Uuid::new_v4(), None).unwrap_err();
+        assert_eq!(err, ValidationError::BrandEmpty);
+    }
+
+    #[test]
+    fn whitespace_only_brand_is_rejected() {
+        let err = make_product("   ", "Widget", Uuid::new_v4(), None).unwrap_err();
+        assert_eq!(err, ValidationError::BrandEmpty);
     }
 
     #[test]
     fn empty_name_is_rejected() {
-        let err = make_category("", None, None).unwrap_err();
+        let err = make_product("Acme", "", Uuid::new_v4(), None).unwrap_err();
         assert_eq!(err, ValidationError::NameEmpty);
     }
 
     #[test]
     fn whitespace_only_name_is_rejected() {
-        let err = make_category("   ", None, None).unwrap_err();
+        let err = make_product("Acme", "   ", Uuid::new_v4(), None).unwrap_err();
         assert_eq!(err, ValidationError::NameEmpty);
     }
 
     #[test]
     fn created_after_updated_is_rejected() {
-        let err = Category::new(Uuid::new_v4(), None, "A".to_owned(), 200, 100, None).unwrap_err();
+        let err = Product::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "A".to_owned(),
+            "B".to_owned(),
+            200,
+            100,
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             err,
             ValidationError::CreatedAfterUpdated {
@@ -205,8 +230,16 @@ mod tests {
 
     #[test]
     fn created_after_deleted_is_rejected() {
-        let err =
-            Category::new(Uuid::new_v4(), None, "A".to_owned(), 200, 300, Some(100)).unwrap_err();
+        let err = Product::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "A".to_owned(),
+            "B".to_owned(),
+            200,
+            300,
+            Some(100),
+        )
+        .unwrap_err();
         assert_eq!(
             err,
             ValidationError::CreatedAfterDeleted {

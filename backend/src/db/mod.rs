@@ -3,6 +3,7 @@
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 
 pub mod category;
+pub mod product;
 pub mod user;
 
 /// Errors that can occur during database operations.

@@ -344,6 +344,56 @@ pub async fn soft_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
     Ok(())
 }
 
+/// Hard-delete a category by id (remove the row).
+///
+/// Fails if there are any active child categories or active products belonging to this category.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure, or [`crate::db::DbError::InvalidData`] if
+/// the category has child categories, has products, or no active category exists with the given id.
+pub async fn hard_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::DbError> {
+    let id_str = id.to_string();
+
+    // Same checks as soft_delete.
+    let child_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM categories WHERE parent_id = ? AND deleted_at IS NULL",
+    )
+    .bind(&id_str)
+    .fetch_one(pool)
+    .await?;
+    if child_count > 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "cannot delete category with child categories: {id_str}"
+        )));
+    }
+
+    let product_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM products WHERE category_id = ? AND deleted_at IS NULL",
+    )
+    .bind(&id_str)
+    .fetch_one(pool)
+    .await?;
+    if product_count > 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "cannot delete category with active products: {id_str}"
+        )));
+    }
+
+    let result = sqlx::query("DELETE FROM categories WHERE id = ?")
+        .bind(&id_str)
+        .execute(pool)
+        .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "category not found: {id_str}"
+        )));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

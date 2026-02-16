@@ -146,7 +146,7 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 - `GET /api/v1/categories/:id` — Single category.
 - `POST /api/v1/categories` — Body: `{ name, parent_id? }`. Name unique per parent.
 - `PATCH /api/v1/categories/:id` — Body: `{ name?, parent_id? }`.
-- `DELETE /api/v1/categories/:id` — Soft-delete. 400 if category has any products.
+- `DELETE /api/v1/categories/:id` — Soft-delete; `?force=true` for hard delete. 400 if category has child categories or products.
 
 **Locations**
 
@@ -154,7 +154,7 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 - `GET /api/v1/locations/:id` — Single location.
 - `POST /api/v1/locations` — Body: `{ name }`.
 - `PATCH /api/v1/locations/:id` — Body: `{ name }`.
-- `DELETE /api/v1/locations/:id` — Soft-delete.
+- `DELETE /api/v1/locations/:id` — Soft-delete; `?force=true` for hard delete.
 
 **Products**
 
@@ -162,14 +162,14 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 - `GET /api/v1/products/:id` — Single product (optionally include purchase/review counts or recent).
 - `POST /api/v1/products` — Body: `{ name, brand, category_id }`.
 - `PATCH /api/v1/products/:id` — Body: `{ name?, brand?, category_id? }`.
-- `DELETE /api/v1/products/:id` — Soft-delete.
+- `DELETE /api/v1/products/:id` — Soft-delete; `?force=true` for hard delete. 400 if product has purchases.
 
 **Purchases**
 
 - `GET /api/v1/purchases` — List purchases. Query: `?user_id=uuid` (default: current user), `?product_id=uuid`, `?location_id=uuid`, `?from=date`, `?to=date`.
 - `GET /api/v1/purchases/:id` — Single purchase.
 - `POST /api/v1/purchases` — Body: `{ product_id, location_id, quantity?, price, purchased_at? }`. `user_id` set to current user; quantity default 1; purchased_at default now.
-- `DELETE /api/v1/purchases/:id` — Soft-delete.
+- `DELETE /api/v1/purchases/:id` — Soft-delete; `?force=true` for hard delete.
 
 **Reviews**
 
@@ -177,7 +177,7 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 - `GET /api/v1/reviews/:id` — Single review.
 - `POST /api/v1/reviews` — Body: `{ product_id, rating, text? }`. `user_id` set to current user.
 - `PATCH /api/v1/reviews/:id` — Body: `{ rating?, text? }`. Only own review.
-- `DELETE /api/v1/reviews/:id` — Soft-delete. Only own review.
+- `DELETE /api/v1/reviews/:id` — Soft-delete; `?force=true` for hard delete. Only own review.
 
 **Conventions**
 
@@ -222,7 +222,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings category list [--parent-id <uuid>]`
 - `pocketratings category show <id>`
 - `pocketratings category update <id> [--name <name>] [--parent-id <uuid>]`
-- `pocketratings category delete <id>` — Soft-delete. Fails with error if category has any child categories or products.
+- `pocketratings category delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row. Fails if category has any child categories or products.
 
 **Locations**
 
@@ -230,7 +230,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings location list`
 - `pocketratings location show <id>`
 - `pocketratings location update <id> --name <name>`
-- `pocketratings location delete <id>` — Soft-delete.
+- `pocketratings location delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row.
 
 **Products**
 
@@ -238,14 +238,14 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings product list [--category-id <uuid>] [--q <search>]`
 - `pocketratings product show <id>`
 - `pocketratings product update <id> [--name <name>] [--brand <brand>] [--category-id <uuid>]`
-- `pocketratings product delete <id>` — Soft-delete.
+- `pocketratings product delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row. Fails if product has purchases.
 
 **Purchases**
 
 - `pocketratings purchase create --product-id <uuid> --location-id <uuid> --price <amount> [--user-id <uuid>] [--quantity <n>] [--at <iso-date>]` — Default quantity 1, `--at` default now. If `--user-id` omitted, require e.g. `--email` to identify the purchaser (v1: one user per family device or explicit flag).
 - `pocketratings purchase list [--user-id <uuid>] [--product-id <uuid>] [--location-id <uuid>] [--from <date>] [--to <date>]`
 - `pocketratings purchase show <id>`
-- `pocketratings purchase delete <id>` — Soft-delete.
+- `pocketratings purchase delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row.
 
 **Reviews**
 
@@ -253,7 +253,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings review list [--product-id <uuid>] [--user-id <uuid>]`
 - `pocketratings review show <id>`
 - `pocketratings review update <id> [--rating <1-5>] [--text <text>]`
-- `pocketratings review delete <id>` — Soft-delete.
+- `pocketratings review delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row.
 
 **Conventions**
 

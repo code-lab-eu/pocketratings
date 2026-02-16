@@ -227,16 +227,22 @@ pub async fn update(
     Ok(())
 }
 
-/// Soft-delete a category by id.
+/// Delete a category by id (soft-delete or hard delete with `--force`).
 pub async fn delete(
     pool: &SqlitePool,
     id_str: &str,
+    force: bool,
     stdout: &mut impl Write,
     _stderr: &mut impl Write,
 ) -> Result<(), CliError> {
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid category id: {id_str}")))?;
-    db::category::soft_delete(pool, id).await?;
-    writeln!(stdout, "Category deleted: {id_str}").map_err(|e| CliError::Other(e.into()))?;
+    if force {
+        db::category::hard_delete(pool, id).await?;
+        writeln!(stdout, "Category removed: {id_str}").map_err(|e| CliError::Other(e.into()))?;
+    } else {
+        db::category::soft_delete(pool, id).await?;
+        writeln!(stdout, "Category deleted: {id_str}").map_err(|e| CliError::Other(e.into()))?;
+    }
     Ok(())
 }

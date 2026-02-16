@@ -229,6 +229,47 @@ async fn category_delete_fails_when_category_has_products() {
 }
 
 #[tokio::test]
+async fn category_delete_force_removes_row() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_delete_force.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (create_result, create_stdout, _) = run_category(
+        &pool,
+        &[
+            "category", "create", "--name", "ToRemove", "--output", "json",
+        ],
+    )
+    .await;
+    assert!(create_result.is_ok());
+    let json: serde_json::Value =
+        serde_json::from_str(create_stdout.lines().next().expect("line")).expect("json");
+    let id = json
+        .get("id")
+        .and_then(|v| v.as_str())
+        .expect("id in response");
+
+    let (del_result, _del_stdout, del_stderr) =
+        run_category(&pool, &["category", "delete", id, "--force"]).await;
+    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+
+    let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"))
+        .await
+        .expect("get_by_id");
+    assert!(cat.is_none());
+    let with_deleted = db::category::get_all_with_deleted(&pool)
+        .await
+        .expect("get_all_with_deleted");
+    assert!(
+        !with_deleted.iter().any(|c| c.id().to_string() == id),
+        "hard-deleted category should not appear in get_all_with_deleted"
+    );
+}
+
+#[tokio::test]
 async fn category_delete_fails_when_category_has_children() {
     let dir = tempfile::tempdir().expect("temp dir");
     let db_path = dir.path().join("cli_category_delete_children.db");

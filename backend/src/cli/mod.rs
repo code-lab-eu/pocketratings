@@ -1,6 +1,7 @@
 //! CLI commands and parsing.
 
 mod category;
+mod product;
 mod user;
 
 use std::io::Write;
@@ -9,6 +10,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 use sqlx::SqlitePool;
 
 use crate::cli::category as category_cli;
+use crate::cli::product as product_cli;
 use crate::cli::user as user_cli;
 
 /// Pocket Ratings — product reviews and ratings.
@@ -24,6 +26,7 @@ pub struct Cli {
 pub enum Commands {
     User(UserArgs),
     Category(CategoryArgs),
+    Product(ProductArgs),
 }
 
 /// User subcommand group.
@@ -59,6 +62,81 @@ pub enum CategoryCmd {
     Update(CategoryUpdateOpts),
     /// Soft-delete a category.
     Delete(CategoryDeleteOpts),
+}
+
+/// Product subcommand group.
+#[derive(clap::Args)]
+pub struct ProductArgs {
+    #[command(subcommand)]
+    pub command: ProductCmd,
+}
+
+#[derive(Subcommand)]
+pub enum ProductCmd {
+    /// Create a product.
+    Create(ProductCreateOpts),
+    /// List products.
+    List(ProductListOpts),
+    /// Show a single product.
+    Show(ProductShowOpts),
+    /// Update a product.
+    Update(ProductUpdateOpts),
+    /// Soft-delete or remove a product.
+    Delete(ProductDeleteOpts),
+}
+
+#[derive(clap::Args)]
+pub struct ProductCreateOpts {
+    #[arg(long)]
+    pub name: String,
+    #[arg(long)]
+    pub brand: String,
+    #[arg(long)]
+    pub category_id: String,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct ProductListOpts {
+    #[arg(long)]
+    pub category_id: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+    /// Include soft-deleted products in the list.
+    #[arg(long)]
+    pub include_deleted: bool,
+}
+
+#[derive(clap::Args)]
+pub struct ProductShowOpts {
+    /// Product UUID to show.
+    pub id: String,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct ProductUpdateOpts {
+    /// Product UUID to update.
+    pub id: String,
+    #[arg(long)]
+    pub name: Option<String>,
+    #[arg(long)]
+    pub brand: Option<String>,
+    #[arg(long)]
+    pub category_id: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct ProductDeleteOpts {
+    /// Product UUID to delete (soft-delete unless `--force`).
+    pub id: String,
+    /// Remove the product row from the database instead of soft-deleting.
+    #[arg(long)]
+    pub force: bool,
 }
 
 #[derive(clap::Args)]
@@ -134,8 +212,11 @@ pub struct CategoryUpdateOpts {
 
 #[derive(clap::Args)]
 pub struct CategoryDeleteOpts {
-    /// Category UUID to delete (soft-delete).
+    /// Category UUID to delete (soft-delete unless `--force`).
     pub id: String,
+    /// Remove the category row from the database instead of soft-deleting.
+    #[arg(long)]
+    pub force: bool,
 }
 
 /// CLI-specific errors for user-facing messages and exit codes.
@@ -164,6 +245,7 @@ impl From<crate::db::DbError> for CliError {
 /// # Errors
 ///
 /// Returns [`CliError`] on parse failure, missing pool for `user register`, register handler errors, or I/O when writing help or output.
+#[allow(clippy::too_many_lines)]
 pub async fn run(
     args: impl Iterator<Item = impl Into<std::ffi::OsString> + Clone>,
     pool: Option<&SqlitePool>,
@@ -268,7 +350,70 @@ pub async fn run(
                         "database pool required for category delete"
                     ))
                 })?;
-                category_cli::delete(pool, &opts.id, stdout, stderr).await
+                category_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
+            }
+        },
+        Some(Commands::Product(prod_args)) => match prod_args.command {
+            ProductCmd::Create(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for product create"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                product_cli::create(
+                    pool,
+                    &opts.name,
+                    &opts.brand,
+                    &opts.category_id,
+                    output_json,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            ProductCmd::List(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for product list"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                product_cli::list(
+                    pool,
+                    opts.category_id.as_deref(),
+                    output_json,
+                    opts.include_deleted,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            ProductCmd::Show(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for product show"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                product_cli::show(pool, &opts.id, output_json, stdout, stderr).await
+            }
+            ProductCmd::Update(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for product update"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                product_cli::update(
+                    pool,
+                    &opts.id,
+                    opts.name.as_deref(),
+                    opts.brand.as_deref(),
+                    opts.category_id.as_deref(),
+                    output_json,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            ProductCmd::Delete(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for product delete"))
+                })?;
+                product_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
             }
         },
         None => {
