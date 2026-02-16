@@ -4,13 +4,12 @@ use pocketratings::db;
 
 /// Helper: count how many tables with the given name exist in sqlite_master.
 async fn table_exists(pool: &sqlx::SqlitePool, table_name: &str) -> bool {
-    let row: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
-    )
-    .bind(table_name)
-    .fetch_one(pool)
-    .await
-    .expect("failed to query sqlite_master");
+    let row: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?")
+            .bind(table_name)
+            .fetch_one(pool)
+            .await
+            .expect("failed to query sqlite_master");
 
     row.0 == 1
 }
@@ -20,9 +19,7 @@ async fn table_exists(pool: &sqlx::SqlitePool, table_name: &str) -> bool {
 async fn migrations_create_all_tables() {
     let dir = tempfile::tempdir().expect("failed to create temp dir");
     let db_path = dir.path().join("test.db");
-    let db_path_str = db_path
-        .to_str()
-        .expect("temp path is not valid UTF-8");
+    let db_path_str = db_path.to_str().expect("temp path is not valid UTF-8");
 
     let pool = db::create_pool(db_path_str)
         .await
@@ -54,9 +51,7 @@ async fn migrations_create_all_tables() {
 async fn foreign_keys_are_enabled() {
     let dir = tempfile::tempdir().expect("failed to create temp dir");
     let db_path = dir.path().join("test_fk.db");
-    let db_path_str = db_path
-        .to_str()
-        .expect("temp path is not valid UTF-8");
+    let db_path_str = db_path.to_str().expect("temp path is not valid UTF-8");
 
     let pool = db::create_pool(db_path_str)
         .await

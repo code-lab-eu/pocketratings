@@ -1,15 +1,15 @@
 //! CLI commands and parsing.
 
-mod user;
 mod category;
+mod user;
 
 use std::io::Write;
 
 use clap::{CommandFactory, Parser, Subcommand};
 use sqlx::SqlitePool;
 
-use crate::cli::user as user_cli;
 use crate::cli::category as category_cli;
+use crate::cli::user as user_cli;
 
 /// Pocket Ratings — product reviews and ratings.
 #[derive(Parser)]
@@ -195,14 +195,7 @@ pub async fn run(
                     CliError::Other(anyhow::anyhow!("database pool required for user list"))
                 })?;
                 let output_json = opts.output.as_str() == "json";
-                user_cli::list(
-                    pool,
-                    output_json,
-                    opts.include_deleted,
-                    stdout,
-                    stderr,
-                )
-                .await
+                user_cli::list(pool, output_json, opts.include_deleted, stdout, stderr).await
             }
             UserCmd::Delete(opts) => {
                 let pool = pool.ok_or_else(|| {
@@ -253,7 +246,9 @@ pub async fn run(
             }
             CategoryCmd::Update(opts) => {
                 let pool = pool.ok_or_else(|| {
-                    CliError::Other(anyhow::anyhow!("database pool required for category update"))
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for category update"
+                    ))
                 })?;
                 let output_json = opts.output.as_str() == "json";
                 category_cli::update(
@@ -269,15 +264,21 @@ pub async fn run(
             }
             CategoryCmd::Delete(opts) => {
                 let pool = pool.ok_or_else(|| {
-                    CliError::Other(anyhow::anyhow!("database pool required for category delete"))
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for category delete"
+                    ))
                 })?;
                 category_cli::delete(pool, &opts.id, stdout, stderr).await
             }
         },
         None => {
             let mut out = Vec::new();
-            Cli::command().write_help(&mut out).map_err(|e: std::io::Error| CliError::Other(e.into()))?;
-            stdout.write_all(&out).map_err(|e| CliError::Other(e.into()))?;
+            Cli::command()
+                .write_help(&mut out)
+                .map_err(|e: std::io::Error| CliError::Other(e.into()))?;
+            stdout
+                .write_all(&out)
+                .map_err(|e| CliError::Other(e.into()))?;
             Ok(())
         }
     }

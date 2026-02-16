@@ -26,14 +26,12 @@ impl Config {
     ///
     /// Returns [`ConfigError::Missing`] if a required variable is not set.
     pub fn from_env() -> Result<Self, ConfigError> {
-        let database_path = env::var("DB_PATH")
-            .unwrap_or_else(|_| String::from("./pocketratings.db"));
+        let database_path =
+            env::var("DB_PATH").unwrap_or_else(|_| String::from("./pocketratings.db"));
 
-        let jwt_secret = env::var("JWT_SECRET")
-            .map_err(|_| ConfigError::Missing("JWT_SECRET"))?;
+        let jwt_secret = env::var("JWT_SECRET").map_err(|_| ConfigError::Missing("JWT_SECRET"))?;
 
-        let bind = env::var("BIND")
-            .unwrap_or_else(|_| String::from("127.0.0.1:3099"));
+        let bind = env::var("BIND").unwrap_or_else(|_| String::from("127.0.0.1:3099"));
 
         Ok(Self {
             database_path,

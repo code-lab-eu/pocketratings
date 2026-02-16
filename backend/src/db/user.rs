@@ -56,7 +56,9 @@ pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Option<User>, crat
     let updated_at: i64 = row.get("updated_at");
     let deleted_at: Option<i64> = row.get("deleted_at");
 
-    let user = row_to_user(&id, &name, &email, &password, created_at, updated_at, deleted_at)?;
+    let user = row_to_user(
+        &id, &name, &email, &password, created_at, updated_at, deleted_at,
+    )?;
     Ok(Some(user))
 }
 
@@ -88,7 +90,9 @@ pub async fn get_by_email(
     let updated_at: i64 = row.get("updated_at");
     let deleted_at: Option<i64> = row.get("deleted_at");
 
-    let user = row_to_user(&id, &name, &email, &password, created_at, updated_at, deleted_at)?;
+    let user = row_to_user(
+        &id, &name, &email, &password, created_at, updated_at, deleted_at,
+    )?;
     Ok(Some(user))
 }
 
@@ -127,7 +131,9 @@ pub async fn list_all(
         let created_at: i64 = row.get("created_at");
         let updated_at: i64 = row.get("updated_at");
         let deleted_at: Option<i64> = row.get("deleted_at");
-        let user = row_to_user(&id, &name, &email, &password, created_at, updated_at, deleted_at)?;
+        let user = row_to_user(
+            &id, &name, &email, &password, created_at, updated_at, deleted_at,
+        )?;
         users.push(user);
     }
     Ok(users)

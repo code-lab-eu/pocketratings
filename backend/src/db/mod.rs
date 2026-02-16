@@ -34,9 +34,7 @@ pub async fn create_pool(database_path: &str) -> Result<SqlitePool, DbError> {
         .create_if_missing(true)
         .foreign_keys(true);
 
-    let pool = SqlitePoolOptions::new()
-        .connect_with(options)
-        .await?;
+    let pool = SqlitePoolOptions::new().connect_with(options).await?;
 
     Ok(pool)
 }

@@ -49,8 +49,13 @@ pub async fn create(
         });
         writeln!(stdout, "{out}").map_err(|e| CliError::Other(e.into()))?;
     } else {
-        writeln!(stdout, "Category created: {} ({})", category.name(), category.id())
-            .map_err(|e| CliError::Other(e.into()))?;
+        writeln!(
+            stdout,
+            "Category created: {} ({})",
+            category.name(),
+            category.id()
+        )
+        .map_err(|e| CliError::Other(e.into()))?;
     }
 
     Ok(())
@@ -235,4 +240,3 @@ pub async fn delete(
     writeln!(stdout, "Category deleted: {id_str}").map_err(|e| CliError::Other(e.into()))?;
     Ok(())
 }
-

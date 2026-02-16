@@ -149,7 +149,10 @@ async fn soft_deleted_user_not_returned_by_get_by_id_or_get_by_email() {
     .expect("insert user");
 
     let by_id = db::user::get_by_id(&pool, id).await.expect("get_by_id");
-    assert!(by_id.is_none(), "soft-deleted user should not be returned by get_by_id");
+    assert!(
+        by_id.is_none(),
+        "soft-deleted user should not be returned by get_by_id"
+    );
 
     let by_email = db::user::get_by_email(&pool, "deleted@example.com")
         .await
@@ -203,9 +206,7 @@ async fn list_all_returns_only_active_users_by_default() {
     let db_path = dir.path().join("user_list_active.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id_active = Uuid::new_v4();
@@ -248,9 +249,7 @@ async fn list_all_with_include_deleted_returns_soft_deleted_users() {
     let db_path = dir.path().join("user_list_include_deleted.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id_deleted = Uuid::new_v4();
@@ -280,9 +279,7 @@ async fn list_all_ordered_by_email() {
     let db_path = dir.path().join("user_list_order.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     for (name, email) in [("Alice", "alice@example.com"), ("Bob", "bob@example.com")] {
@@ -314,9 +311,7 @@ async fn soft_delete_sets_deleted_at_and_user_not_returned_by_get_by_id() {
     let db_path = dir.path().join("user_soft_delete.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id = Uuid::new_v4();
@@ -337,7 +332,10 @@ async fn soft_delete_sets_deleted_at_and_user_not_returned_by_get_by_id() {
     db::user::soft_delete(&pool, id).await.expect("soft_delete");
 
     let got = db::user::get_by_id(&pool, id).await.expect("get_by_id");
-    assert!(got.is_none(), "soft-deleted user should not be returned by get_by_id");
+    assert!(
+        got.is_none(),
+        "soft-deleted user should not be returned by get_by_id"
+    );
 
     let with_deleted = db::user::list_all(&pool, true).await.expect("list_all");
     assert_eq!(with_deleted.len(), 1);
@@ -350,9 +348,7 @@ async fn soft_delete_returns_error_for_unknown_id() {
     let db_path = dir.path().join("user_soft_delete_unknown.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let result = db::user::soft_delete(&pool, Uuid::new_v4()).await;
@@ -365,9 +361,7 @@ async fn soft_delete_returns_error_for_already_deleted_user() {
     let db_path = dir.path().join("user_soft_delete_twice.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id = Uuid::new_v4();
@@ -385,9 +379,14 @@ async fn soft_delete_returns_error_for_already_deleted_user() {
     .await
     .expect("insert");
 
-    db::user::soft_delete(&pool, id).await.expect("first soft_delete");
+    db::user::soft_delete(&pool, id)
+        .await
+        .expect("first soft_delete");
     let second = db::user::soft_delete(&pool, id).await;
-    assert!(second.is_err(), "second soft_delete should fail (already deleted)");
+    assert!(
+        second.is_err(),
+        "second soft_delete should fail (already deleted)"
+    );
 }
 
 #[tokio::test]
@@ -396,9 +395,7 @@ async fn hard_delete_removes_row_from_database() {
     let db_path = dir.path().join("user_hard_delete.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id = Uuid::new_v4();
@@ -430,9 +427,7 @@ async fn hard_delete_returns_error_for_unknown_id() {
     let db_path = dir.path().join("user_hard_delete_unknown.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let result = db::user::hard_delete(&pool, Uuid::new_v4()).await;

@@ -45,9 +45,7 @@ async fn register_success_exit_0_and_stdout_contains_email() {
     let db_path = dir.path().join("cli_register.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let (result, stdout, stderr) =
@@ -64,9 +62,7 @@ async fn register_then_get_by_email_and_verify_password() {
     let db_path = dir.path().join("cli_register_verify.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let (result, _, _) = run_register(&pool, "Bob", "bob@example.com", "mypassword", false).await;
@@ -86,9 +82,7 @@ async fn duplicate_email_returns_error_and_stderr_contains_already_registered() 
     let db_path = dir.path().join("cli_dup.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let (r1, _, _) = run_register(&pool, "First", "same@example.com", "pass", false).await;
@@ -112,13 +106,10 @@ async fn invalid_email_returns_error_and_stderr_contains_error() {
     let db_path = dir.path().join("cli_invalid_email.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let (result, _stdout, _stderr) =
-        run_register(&pool, "X", "notanemail", "pass", false).await;
+    let (result, _stdout, _stderr) = run_register(&pool, "X", "notanemail", "pass", false).await;
 
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -131,9 +122,7 @@ async fn output_json_produces_valid_json_with_id_and_email() {
     let db_path = dir.path().join("cli_json.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let (result, stdout, stderr) =
@@ -142,8 +131,10 @@ async fn output_json_produces_valid_json_with_id_and_email() {
     assert!(result.is_ok(), "stderr: {}", stderr);
     assert!(stderr.is_empty());
     let line = stdout.lines().next().expect("at least one line");
-    let json: serde_json::Value =
-        serde_json::from_str(line).expect("valid JSON");
+    let json: serde_json::Value = serde_json::from_str(line).expect("valid JSON");
     assert!(json.get("id").and_then(|v| v.as_str()).is_some());
-    assert_eq!(json.get("email").and_then(|v| v.as_str()), Some("carol@example.com"));
+    assert_eq!(
+        json.get("email").and_then(|v| v.as_str()),
+        Some("carol@example.com")
+    );
 }

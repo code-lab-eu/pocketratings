@@ -29,9 +29,7 @@ async fn category_create_and_show_roundtrip() {
     let db_path = dir.path().join("cli_category_create_show.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let (create_result, create_stdout, create_stderr) = run_category(
@@ -53,16 +51,10 @@ async fn category_create_and_show_roundtrip() {
         .get("id")
         .and_then(|v| v.as_str())
         .expect("id in response");
-    assert_eq!(
-        json.get("name").and_then(|v| v.as_str()),
-        Some("Groceries")
-    );
+    assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("Groceries"));
 
-    let (show_result, show_stdout, show_stderr) = run_category(
-        &pool,
-        &["category", "show", id, "--output", "json"],
-    )
-    .await;
+    let (show_result, show_stdout, show_stderr) =
+        run_category(&pool, &["category", "show", id, "--output", "json"]).await;
     assert!(show_result.is_ok(), "stderr: {}", show_stderr);
     let line = show_stdout.lines().next().expect("show line");
     let show_json: serde_json::Value = serde_json::from_str(line).expect("json");
@@ -78,29 +70,18 @@ async fn category_list_filters_by_parent_id() {
     let db_path = dir.path().join("cli_category_list.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     // Create root category.
     let (root_res, root_stdout, _) = run_category(
         &pool,
-        &[
-            "category",
-            "create",
-            "--name",
-            "Root",
-            "--output",
-            "json",
-        ],
+        &["category", "create", "--name", "Root", "--output", "json"],
     )
     .await;
     assert!(root_res.is_ok());
-    let root_json: serde_json::Value = serde_json::from_str(
-        root_stdout.lines().next().expect("root line"),
-    )
-    .expect("json");
+    let root_json: serde_json::Value =
+        serde_json::from_str(root_stdout.lines().next().expect("root line")).expect("json");
     let root_id = root_json
         .get("id")
         .and_then(|v| v.as_str())
@@ -138,10 +119,7 @@ async fn category_list_filters_by_parent_id() {
     let line = list_stdout.lines().next().expect("list line");
     let arr: Vec<serde_json::Value> = serde_json::from_str(line).expect("json array");
     assert_eq!(arr.len(), 1);
-    assert_eq!(
-        arr[0].get("name").and_then(|v| v.as_str()),
-        Some("Child")
-    );
+    assert_eq!(arr[0].get("name").and_then(|v| v.as_str()), Some("Child"));
 }
 
 #[tokio::test]
@@ -150,20 +128,13 @@ async fn category_delete_soft_deletes_category() {
     let db_path = dir.path().join("cli_category_delete.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let (create_result, create_stdout, _) = run_category(
         &pool,
         &[
-            "category",
-            "create",
-            "--name",
-            "ToDelete",
-            "--output",
-            "json",
+            "category", "create", "--name", "ToDelete", "--output", "json",
         ],
     )
     .await;
@@ -176,7 +147,7 @@ async fn category_delete_soft_deletes_category() {
         .expect("id in response");
 
     let (del_result, _del_stdout, del_stderr) =
-        run_category(&pool, &["category", "delete", id],).await;
+        run_category(&pool, &["category", "delete", id]).await;
     assert!(del_result.is_ok(), "stderr: {}", del_stderr);
 
     let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"))
@@ -195,7 +166,9 @@ async fn category_delete_soft_deletes_category() {
         .await
         .expect("get_all_with_deleted");
     assert!(
-        with_deleted.iter().any(|c| c.name() == "ToDelete" && !c.is_active()),
+        with_deleted
+            .iter()
+            .any(|c| c.name() == "ToDelete" && !c.is_active()),
         "deleted category should appear in get_all_with_deleted and be inactive"
     );
 }
@@ -206,9 +179,7 @@ async fn category_delete_fails_when_category_has_products() {
     let db_path = dir.path().join("cli_category_delete_products.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     // Create category.
@@ -263,22 +234,13 @@ async fn category_delete_fails_when_category_has_children() {
     let db_path = dir.path().join("cli_category_delete_children.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     // Create parent category.
     let (create_result, create_stdout, _) = run_category(
         &pool,
-        &[
-            "category",
-            "create",
-            "--name",
-            "Parent",
-            "--output",
-            "json",
-        ],
+        &["category", "create", "--name", "Parent", "--output", "json"],
     )
     .await;
     assert!(create_result.is_ok());
@@ -313,4 +275,3 @@ async fn category_delete_fails_when_category_has_children() {
         "delete should fail when category has child categories"
     );
 }
-

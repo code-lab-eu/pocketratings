@@ -42,13 +42,11 @@ fn children_for(
 /// and children = root categories). If `root` is `Some(r)`, returns the subtree rooted at `r`.
 #[must_use]
 pub fn get_tree(flat_list: Vec<Category>, root: Option<Category>) -> Categories {
-    let map: HashMap<Option<Uuid>, Vec<Category>> = flat_list.into_iter().fold(
-        HashMap::new(),
-        |mut acc, c| {
+    let map: HashMap<Option<Uuid>, Vec<Category>> =
+        flat_list.into_iter().fold(HashMap::new(), |mut acc, c| {
             acc.entry(c.parent_id()).or_default().push(c);
             acc
-        },
-    );
+        });
 
     root.map_or_else(
         || Categories {
@@ -73,13 +71,20 @@ fn row_to_category(
 ) -> Result<Category, crate::db::DbError> {
     let id = Uuid::parse_str(id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let parent_id = match parent_id {
-        Some(s) => Some(
-            Uuid::parse_str(s).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?,
-        ),
+        Some(s) => {
+            Some(Uuid::parse_str(s).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?)
+        }
         None => None,
     };
-    Category::new(id, parent_id, name.to_owned(), created_at, updated_at, deleted_at)
-        .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
+    Category::new(
+        id,
+        parent_id,
+        name.to_owned(),
+        created_at,
+        updated_at,
+        deleted_at,
+    )
+    .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
 
 /// Fetch a category by id (active only).
@@ -87,7 +92,10 @@ fn row_to_category(
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Option<Category>, crate::db::DbError> {
+pub async fn get_by_id(
+    pool: &SqlitePool,
+    id: Uuid,
+) -> Result<Option<Category>, crate::db::DbError> {
     let id_str = id.to_string();
     let row = sqlx::query(
         "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE id = ? AND deleted_at IS NULL",
@@ -355,15 +363,18 @@ mod tests {
     fn get_tree_two_roots_root_none() {
         let id1 = Uuid::new_v4();
         let id2 = Uuid::new_v4();
-        let flat = vec![
-            make_category(id1, None, "A"),
-            make_category(id2, None, "B"),
-        ];
+        let flat = vec![make_category(id1, None, "A"), make_category(id2, None, "B")];
         let tree = get_tree(flat, None);
         assert!(tree.category.is_none());
         assert_eq!(tree.children.len(), 2);
-        assert_eq!(tree.children[0].category.as_ref().map(|c| c.name()), Some("A"));
-        assert_eq!(tree.children[1].category.as_ref().map(|c| c.name()), Some("B"));
+        assert_eq!(
+            tree.children[0].category.as_ref().map(|c| c.name()),
+            Some("A")
+        );
+        assert_eq!(
+            tree.children[1].category.as_ref().map(|c| c.name()),
+            Some("B")
+        );
         assert!(tree.children[0].children.is_empty());
         assert!(tree.children[1].children.is_empty());
     }
@@ -379,10 +390,16 @@ mod tests {
         let tree = get_tree(flat, None);
         assert!(tree.category.is_none());
         assert_eq!(tree.children.len(), 1);
-        assert_eq!(tree.children[0].category.as_ref().map(|c| c.name()), Some("Root"));
+        assert_eq!(
+            tree.children[0].category.as_ref().map(|c| c.name()),
+            Some("Root")
+        );
         assert_eq!(tree.children[0].children.len(), 1);
         assert_eq!(
-            tree.children[0].children[0].category.as_ref().map(|c| c.name()),
+            tree.children[0].children[0]
+                .category
+                .as_ref()
+                .map(|c| c.name()),
             Some("Child")
         );
         assert!(tree.children[0].children[0].children.is_empty());
@@ -400,7 +417,10 @@ mod tests {
         let tree = get_tree(flat, Some(root_cat));
         assert_eq!(tree.category.as_ref().map(|c| c.name()), Some("Root"));
         assert_eq!(tree.children.len(), 1);
-        assert_eq!(tree.children[0].category.as_ref().map(|c| c.name()), Some("Child"));
+        assert_eq!(
+            tree.children[0].category.as_ref().map(|c| c.name()),
+            Some("Child")
+        );
         assert!(tree.children[0].children.is_empty());
     }
 

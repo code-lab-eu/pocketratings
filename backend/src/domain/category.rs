@@ -184,15 +184,7 @@ mod tests {
 
     #[test]
     fn created_after_updated_is_rejected() {
-        let err = Category::new(
-            Uuid::new_v4(),
-            None,
-            "A".to_owned(),
-            200,
-            100,
-            None,
-        )
-        .unwrap_err();
+        let err = Category::new(Uuid::new_v4(), None, "A".to_owned(), 200, 100, None).unwrap_err();
         assert_eq!(
             err,
             ValidationError::CreatedAfterUpdated {
@@ -204,15 +196,8 @@ mod tests {
 
     #[test]
     fn created_after_deleted_is_rejected() {
-        let err = Category::new(
-            Uuid::new_v4(),
-            None,
-            "A".to_owned(),
-            200,
-            300,
-            Some(100),
-        )
-        .unwrap_err();
+        let err =
+            Category::new(Uuid::new_v4(), None, "A".to_owned(), 200, 300, Some(100)).unwrap_err();
         assert_eq!(
             err,
             ValidationError::CreatedAfterDeleted {

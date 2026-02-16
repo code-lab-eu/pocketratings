@@ -8,9 +8,7 @@ use uuid::Uuid;
 async fn category_get_by_id_get_parent_get_children_get_all_and_get_tree() {
     let dir = tempfile::tempdir().expect("failed to create temp dir");
     let db_path = dir.path().join("category_test.db");
-    let db_path_str = db_path
-        .to_str()
-        .expect("temp path is not valid UTF-8");
+    let db_path_str = db_path.to_str().expect("temp path is not valid UTF-8");
 
     let pool = db::create_pool(db_path_str)
         .await
@@ -81,10 +79,16 @@ async fn category_get_by_id_get_parent_get_children_get_all_and_get_tree() {
     let tree = db::category::get_tree(all, None);
     assert!(tree.category.is_none());
     assert_eq!(tree.children.len(), 1);
-    assert_eq!(tree.children[0].category.as_ref().map(|c| c.name()), Some("Root"));
+    assert_eq!(
+        tree.children[0].category.as_ref().map(|c| c.name()),
+        Some("Root")
+    );
     assert_eq!(tree.children[0].children.len(), 1);
     assert_eq!(
-        tree.children[0].children[0].category.as_ref().map(|c| c.name()),
+        tree.children[0].children[0]
+            .category
+            .as_ref()
+            .map(|c| c.name()),
         Some("Child")
     );
 }
@@ -95,15 +99,13 @@ async fn category_insert_and_get_by_id_roundtrip() {
     let db_path = dir.path().join("category_insert.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id = Uuid::new_v4();
     let now = 1_000_i64;
-    let category = Category::new(id, None, "Groceries".to_string(), now, now, None)
-        .expect("valid category");
+    let category =
+        Category::new(id, None, "Groceries".to_string(), now, now, None).expect("valid category");
 
     db::category::insert(&pool, &category)
         .await
@@ -124,9 +126,7 @@ async fn category_update_changes_name() {
     let db_path = dir.path().join("category_update.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id = Uuid::new_v4();
@@ -139,9 +139,7 @@ async fn category_update_changes_name() {
 
     let updated = Category::new(id, None, "NewName".to_string(), now, now + 10, None)
         .expect("valid updated category");
-    db::category::update(&pool, &updated)
-        .await
-        .expect("update");
+    db::category::update(&pool, &updated).await.expect("update");
 
     let loaded = db::category::get_by_id(&pool, id)
         .await
@@ -156,9 +154,7 @@ async fn category_soft_delete_sets_deleted_at_and_excludes_from_get_all() {
     let db_path = dir.path().join("category_soft_delete.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let id = Uuid::new_v4();
@@ -173,13 +169,14 @@ async fn category_soft_delete_sets_deleted_at_and_excludes_from_get_all() {
         .await
         .expect("soft_delete");
 
-    let by_id = db::category::get_by_id(&pool, id)
-        .await
-        .expect("get_by_id");
+    let by_id = db::category::get_by_id(&pool, id).await.expect("get_by_id");
     assert!(by_id.is_none());
 
     let active = db::category::get_all(&pool).await.expect("get_all");
-    assert!(active.is_empty(), "soft-deleted category should not be in get_all");
+    assert!(
+        active.is_empty(),
+        "soft-deleted category should not be in get_all"
+    );
 
     let with_deleted = db::category::get_all_with_deleted(&pool)
         .await
@@ -194,9 +191,7 @@ async fn category_soft_delete_fails_when_category_has_products() {
     let db_path = dir.path().join("category_soft_delete_products.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let cat_id = Uuid::new_v4();
@@ -236,9 +231,7 @@ async fn category_soft_delete_fails_when_category_has_children() {
     let db_path = dir.path().join("category_soft_delete_children.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let parent_id = Uuid::new_v4();
@@ -246,10 +239,21 @@ async fn category_soft_delete_fails_when_category_has_children() {
     let now = 1_000_i64;
     let parent =
         Category::new(parent_id, None, "Parent".to_string(), now, now, None).expect("valid");
-    let child = Category::new(child_id, Some(parent_id), "Child".to_string(), now + 1, now + 1, None)
-        .expect("valid");
-    db::category::insert(&pool, &parent).await.expect("insert parent");
-    db::category::insert(&pool, &child).await.expect("insert child");
+    let child = Category::new(
+        child_id,
+        Some(parent_id),
+        "Child".to_string(),
+        now + 1,
+        now + 1,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &parent)
+        .await
+        .expect("insert parent");
+    db::category::insert(&pool, &child)
+        .await
+        .expect("insert child");
 
     let result = db::category::soft_delete(&pool, parent_id).await;
     assert!(

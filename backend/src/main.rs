@@ -28,29 +28,27 @@ async fn main() {
         let config =
             pocketratings::config::Config::from_env().context("failed to load configuration");
         match config {
-            Ok(c) => {
-                match pocketratings::db::create_pool(&c.database_path).await {
-                    Ok(p) => match pocketratings::db::run_migrations(&p).await {
-                        Ok(()) => Some(p),
-                        Err(e) => {
-                            let _ = writeln!(
-                                std::io::stderr(),
-                                "{}",
-                                anyhow::anyhow!(e).context("failed to run database migrations")
-                            );
-                            std::process::exit(1);
-                        }
-                    },
+            Ok(c) => match pocketratings::db::create_pool(&c.database_path).await {
+                Ok(p) => match pocketratings::db::run_migrations(&p).await {
+                    Ok(()) => Some(p),
                     Err(e) => {
                         let _ = writeln!(
                             std::io::stderr(),
                             "{}",
-                            anyhow::anyhow!(e).context("failed to create database pool")
+                            anyhow::anyhow!(e).context("failed to run database migrations")
                         );
                         std::process::exit(1);
                     }
+                },
+                Err(e) => {
+                    let _ = writeln!(
+                        std::io::stderr(),
+                        "{}",
+                        anyhow::anyhow!(e).context("failed to create database pool")
+                    );
+                    std::process::exit(1);
                 }
-            }
+            },
             Err(e) => {
                 let _ = writeln!(std::io::stderr(), "{e}");
                 std::process::exit(1);
@@ -62,19 +60,15 @@ async fn main() {
 
     let mut stdout = std::io::stdout().lock();
     let mut stderr = std::io::stderr().lock();
-    let exit_code = match pocketratings::cli::run(
-        args.into_iter(),
-        pool.as_ref(),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await
-    {
-        Ok(()) => 0,
-        Err(e) => {
-            let _ = writeln!(stderr, "{e}");
-            1
-        }
-    };
+    let exit_code =
+        match pocketratings::cli::run(args.into_iter(), pool.as_ref(), &mut stdout, &mut stderr)
+            .await
+        {
+            Ok(()) => 0,
+            Err(e) => {
+                let _ = writeln!(stderr, "{e}");
+                1
+            }
+        };
     std::process::exit(exit_code);
 }

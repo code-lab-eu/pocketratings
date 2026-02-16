@@ -38,16 +38,18 @@ async fn list_success_empty_when_no_users() {
     let db_path = dir.path().join("cli_list_empty.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let (result, stdout, stderr) = run_list(&pool, false, false).await;
 
     assert!(result.is_ok(), "stderr: {}", stderr);
     assert!(stderr.is_empty());
-    assert!(stdout.trim().is_empty(), "stdout should be empty: {:?}", stdout);
+    assert!(
+        stdout.trim().is_empty(),
+        "stdout should be empty: {:?}",
+        stdout
+    );
 }
 
 #[tokio::test]
@@ -56,9 +58,7 @@ async fn list_shows_registered_users() {
     let db_path = dir.path().join("cli_list_show.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     cli::run(
@@ -95,9 +95,7 @@ async fn list_output_json_produces_valid_json_array() {
     let db_path = dir.path().join("cli_list_json.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     cli::run(
@@ -127,7 +125,10 @@ async fn list_output_json_produces_valid_json_array() {
     let line = stdout.lines().next().expect("at least one line");
     let arr: Vec<serde_json::Value> = serde_json::from_str(line).expect("valid JSON array");
     assert_eq!(arr.len(), 1);
-    assert_eq!(arr[0].get("email").and_then(|v| v.as_str()), Some("bob@example.com"));
+    assert_eq!(
+        arr[0].get("email").and_then(|v| v.as_str()),
+        Some("bob@example.com")
+    );
     assert_eq!(arr[0].get("name").and_then(|v| v.as_str()), Some("Bob"));
     assert!(arr[0].get("id").and_then(|v| v.as_str()).is_some());
 }
@@ -138,9 +139,7 @@ async fn list_include_deleted_includes_soft_deleted_user() {
     let db_path = dir.path().join("cli_list_include_deleted.db");
     let db_path_str = db_path.to_str().expect("path UTF-8");
 
-    let pool = db::create_pool(db_path_str)
-        .await
-        .expect("create pool");
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
     let deleted_id = uuid::Uuid::new_v4();
