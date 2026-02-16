@@ -1,0 +1,227 @@
+# Pocket Ratings API — runnable examples
+#
+# Prerequisites:
+# - Server running (e.g. pocketratings server start; default http://127.0.0.1:3099)
+# - User registered via CLI (pocketratings user register --name ... --email ... --password ...)
+# - For protected routes: run the Login request below, then set @token to the token from the response
+#
+# Use with the REST Client extension (humao.rest-client) in Cursor/VS Code: click "Send Request" above each request.
+
+@baseUrl = http://127.0.0.1:3099
+@token = 
+
+# Placeholder IDs: replace with real IDs from create/list responses when testing
+@categoryId = 00000000-0000-0000-0000-000000000001
+@locationId = 00000000-0000-0000-0000-000000000002
+@productId = 00000000-0000-0000-0000-000000000003
+@purchaseId = 00000000-0000-0000-0000-000000000004
+@reviewId = 00000000-0000-0000-0000-000000000005
+
+### Auth
+
+# POST /api/v1/auth/login — Body: { email, password }. Returns token. Only unauthenticated endpoint.
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "secret"
+}
+
+### Categories
+
+# GET /api/v1/categories — List (omit parent_id for root/flat; ?parent_id=uuid for children)
+GET {{baseUrl}}/api/v1/categories
+Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/categories/:id
+GET {{baseUrl}}/api/v1/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+
+###
+
+# POST /api/v1/categories — Body: { name, parent_id? }
+POST {{baseUrl}}/api/v1/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Groceries"
+}
+
+###
+
+# PATCH /api/v1/categories/:id — Body: { name?, parent_id? }
+PATCH {{baseUrl}}/api/v1/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Groceries (renamed)"
+}
+
+###
+
+# DELETE /api/v1/categories/:id — Soft-delete. 400 if category has any products.
+DELETE {{baseUrl}}/api/v1/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+
+### Locations
+
+# GET /api/v1/locations
+GET {{baseUrl}}/api/v1/locations
+Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/locations/:id
+GET {{baseUrl}}/api/v1/locations/{{locationId}}
+Authorization: Bearer {{token}}
+
+###
+
+# POST /api/v1/locations — Body: { name }
+POST {{baseUrl}}/api/v1/locations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Local supermarket"
+}
+
+###
+
+# PATCH /api/v1/locations/:id — Body: { name }
+PATCH {{baseUrl}}/api/v1/locations/{{locationId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Corner store"
+}
+
+###
+
+# DELETE /api/v1/locations/:id — Soft-delete
+DELETE {{baseUrl}}/api/v1/locations/{{locationId}}
+Authorization: Bearer {{token}}
+
+### Products
+
+# GET /api/v1/products — Query: ?category_id=uuid, ?q=search
+GET {{baseUrl}}/api/v1/products
+Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/products/:id
+GET {{baseUrl}}/api/v1/products/{{productId}}
+Authorization: Bearer {{token}}
+
+###
+
+# POST /api/v1/products — Body: { name, brand, category_id }
+POST {{baseUrl}}/api/v1/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Organic milk",
+  "brand": "Dairy Co",
+  "category_id": "{{categoryId}}"
+}
+
+###
+
+# PATCH /api/v1/products/:id — Body: { name?, brand?, category_id? }
+PATCH {{baseUrl}}/api/v1/products/{{productId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Organic milk 1L"
+}
+
+###
+
+# DELETE /api/v1/products/:id — Soft-delete
+DELETE {{baseUrl}}/api/v1/products/{{productId}}
+Authorization: Bearer {{token}}
+
+### Purchases
+
+# GET /api/v1/purchases — Query: ?user_id=uuid, ?product_id=uuid, ?location_id=uuid, ?from=date, ?to=date
+GET {{baseUrl}}/api/v1/purchases
+Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/purchases/:id
+GET {{baseUrl}}/api/v1/purchases/{{purchaseId}}
+Authorization: Bearer {{token}}
+
+###
+
+# POST /api/v1/purchases — Body: { product_id, location_id, quantity?, price, purchased_at? }
+POST {{baseUrl}}/api/v1/purchases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product_id": "{{productId}}",
+  "location_id": "{{locationId}}",
+  "quantity": 1,
+  "price": "2.99",
+  "purchased_at": "2025-02-15T12:00:00Z"
+}
+
+###
+
+# DELETE /api/v1/purchases/:id — Soft-delete
+DELETE {{baseUrl}}/api/v1/purchases/{{purchaseId}}
+Authorization: Bearer {{token}}
+
+### Reviews
+
+# GET /api/v1/reviews — Query: ?product_id=uuid, ?user_id=uuid
+GET {{baseUrl}}/api/v1/reviews
+Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/reviews/:id
+GET {{baseUrl}}/api/v1/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+
+###
+
+# POST /api/v1/reviews — Body: { product_id, rating, text? }
+POST {{baseUrl}}/api/v1/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "product_id": "{{productId}}",
+  "rating": 4.5,
+  "text": "Good value."
+}
+
+###
+
+# PATCH /api/v1/reviews/:id — Body: { rating?, text? }. Only own review.
+PATCH {{baseUrl}}/api/v1/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rating": 5,
+  "text": "Excellent."
+}
+
+###
+
+# DELETE /api/v1/reviews/:id — Soft-delete. Only own review.
+DELETE {{baseUrl}}/api/v1/reviews/{{reviewId}}
+Authorization: Bearer {{token}}

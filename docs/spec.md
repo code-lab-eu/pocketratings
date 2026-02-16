@@ -184,6 +184,10 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 - IDs in path and query are UUIDs. Dates in query/body as ISO 8601. Monetary amounts as decimal (e.g. string or number for EUR).
 - 4xx/5xx with JSON body `{ error, message? }`. 404 for missing resource; 400 for validation or business rule (e.g. category has products); **403 for unauthenticated** (all endpoints except login); 403 for forbidden (e.g. editing another user’s review).
 
+**Runnable examples**
+
+- Runnable HTTP examples live in [docs/api.http](api.http). They assume the server is running (default `http://127.0.0.1:3099`) and, for protected routes, a JWT from `POST /api/v1/auth/login`. Replace the `@token` variable with the token returned by login; use IDs from create/list responses for path and body placeholders. The REST Client extension in Cursor/VS Code (`humao.rest-client`) can run each request via the “Send Request” link above it.
+
 ---
 
 ## Deployment
