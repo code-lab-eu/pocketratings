@@ -23,7 +23,7 @@ async fn main() {
         && args
             .get(2)
             .and_then(|a| a.to_str())
-            .is_some_and(|s| s == "register");
+            .is_some_and(|s| s == "register" || s == "list" || s == "delete");
 
     let pool = if needs_db {
         let config =

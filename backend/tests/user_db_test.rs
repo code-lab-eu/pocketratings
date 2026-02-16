@@ -196,3 +196,245 @@ async fn insert_persists_user_and_get_by_email_returns_it() {
     assert_eq!(loaded.name(), "Carol");
     assert_eq!(loaded.email(), "carol@example.com");
 }
+
+#[tokio::test]
+async fn list_all_returns_only_active_users_by_default() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_list_active.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let id_active = Uuid::new_v4();
+    let id_deleted = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(id_active.to_string())
+    .bind("Active")
+    .bind("active@example.com")
+    .bind(PLACEHOLDER_HASH)
+    .bind(1_000_i64)
+    .bind(1_000_i64)
+    .bind::<Option<i64>>(None)
+    .execute(&pool)
+    .await
+    .expect("insert active");
+    sqlx::query(
+        "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(id_deleted.to_string())
+    .bind("Deleted")
+    .bind("deleted@example.com")
+    .bind(PLACEHOLDER_HASH)
+    .bind(2_000_i64)
+    .bind(2_000_i64)
+    .bind(3_000_i64)
+    .execute(&pool)
+    .await
+    .expect("insert deleted");
+
+    let users = db::user::list_all(&pool, false).await.expect("list_all");
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].email(), "active@example.com");
+}
+
+#[tokio::test]
+async fn list_all_with_include_deleted_returns_soft_deleted_users() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_list_include_deleted.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let id_deleted = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(id_deleted.to_string())
+    .bind("Deleted")
+    .bind("deleted@example.com")
+    .bind(PLACEHOLDER_HASH)
+    .bind(1_000_i64)
+    .bind(2_000_i64)
+    .bind(3_000_i64)
+    .execute(&pool)
+    .await
+    .expect("insert deleted");
+
+    let users = db::user::list_all(&pool, true).await.expect("list_all");
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].email(), "deleted@example.com");
+    assert!(!users[0].is_active());
+}
+
+#[tokio::test]
+async fn list_all_ordered_by_email() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_list_order.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    for (name, email) in [("Alice", "alice@example.com"), ("Bob", "bob@example.com")] {
+        let id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(id.to_string())
+        .bind(name)
+        .bind(email)
+        .bind(PLACEHOLDER_HASH)
+        .bind(1_000_i64)
+        .bind(1_000_i64)
+        .bind::<Option<i64>>(None)
+        .execute(&pool)
+        .await
+        .expect("insert");
+    }
+
+    let users = db::user::list_all(&pool, false).await.expect("list_all");
+    assert_eq!(users.len(), 2);
+    assert_eq!(users[0].email(), "alice@example.com");
+    assert_eq!(users[1].email(), "bob@example.com");
+}
+
+#[tokio::test]
+async fn soft_delete_sets_deleted_at_and_user_not_returned_by_get_by_id() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_soft_delete.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(id.to_string())
+    .bind("ToDelete")
+    .bind("delete@example.com")
+    .bind(PLACEHOLDER_HASH)
+    .bind(1_000_i64)
+    .bind(1_000_i64)
+    .bind::<Option<i64>>(None)
+    .execute(&pool)
+    .await
+    .expect("insert");
+
+    db::user::soft_delete(&pool, id).await.expect("soft_delete");
+
+    let got = db::user::get_by_id(&pool, id).await.expect("get_by_id");
+    assert!(got.is_none(), "soft-deleted user should not be returned by get_by_id");
+
+    let with_deleted = db::user::list_all(&pool, true).await.expect("list_all");
+    assert_eq!(with_deleted.len(), 1);
+    assert!(!with_deleted[0].is_active());
+}
+
+#[tokio::test]
+async fn soft_delete_returns_error_for_unknown_id() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_soft_delete_unknown.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let result = db::user::soft_delete(&pool, Uuid::new_v4()).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn soft_delete_returns_error_for_already_deleted_user() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_soft_delete_twice.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(id.to_string())
+    .bind("ToDelete")
+    .bind("twice@example.com")
+    .bind(PLACEHOLDER_HASH)
+    .bind(1_000_i64)
+    .bind(1_000_i64)
+    .bind::<Option<i64>>(None)
+    .execute(&pool)
+    .await
+    .expect("insert");
+
+    db::user::soft_delete(&pool, id).await.expect("first soft_delete");
+    let second = db::user::soft_delete(&pool, id).await;
+    assert!(second.is_err(), "second soft_delete should fail (already deleted)");
+}
+
+#[tokio::test]
+async fn hard_delete_removes_row_from_database() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_hard_delete.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(id.to_string())
+    .bind("ToRemove")
+    .bind("remove@example.com")
+    .bind(PLACEHOLDER_HASH)
+    .bind(1_000_i64)
+    .bind(1_000_i64)
+    .bind::<Option<i64>>(None)
+    .execute(&pool)
+    .await
+    .expect("insert");
+
+    db::user::hard_delete(&pool, id).await.expect("hard_delete");
+
+    let got = db::user::get_by_id(&pool, id).await.expect("get_by_id");
+    assert!(got.is_none());
+    let all = db::user::list_all(&pool, true).await.expect("list_all");
+    assert!(!all.iter().any(|u| u.id() == id));
+}
+
+#[tokio::test]
+async fn hard_delete_returns_error_for_unknown_id() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("user_hard_delete_unknown.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str)
+        .await
+        .expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let result = db::user::hard_delete(&pool, Uuid::new_v4()).await;
+    assert!(result.is_err());
+}

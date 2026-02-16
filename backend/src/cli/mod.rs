@@ -7,7 +7,7 @@ use std::io::Write;
 use clap::{CommandFactory, Parser, Subcommand};
 use sqlx::SqlitePool;
 
-use crate::cli::user::register;
+use crate::cli::user::{delete, list, register};
 
 /// Pocket Ratings — product reviews and ratings.
 #[derive(Parser)]
@@ -33,6 +33,8 @@ pub struct UserArgs {
 #[derive(Subcommand)]
 pub enum UserCmd {
     Register(RegisterOpts),
+    List(ListOpts),
+    Delete(DeleteOpts),
 }
 
 #[derive(clap::Args)]
@@ -45,6 +47,24 @@ pub struct RegisterOpts {
     pub password: String,
     #[arg(long, default_value = "human", value_parser = ["human", "json"])]
     pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct ListOpts {
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+    /// Include soft-deleted users in the list.
+    #[arg(long)]
+    pub include_deleted: bool,
+}
+
+#[derive(clap::Args)]
+pub struct DeleteOpts {
+    /// User UUID to delete (soft-delete unless `--force`).
+    pub id: String,
+    /// Remove the user row from the database instead of soft-deleting.
+    #[arg(long)]
+    pub force: bool,
 }
 
 /// CLI-specific errors for user-facing messages and exit codes.
@@ -98,6 +118,26 @@ pub async fn run(
                     stderr,
                 )
                 .await
+            }
+            UserCmd::List(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for user list"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                list(
+                    pool,
+                    output_json,
+                    opts.include_deleted,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            UserCmd::Delete(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for user delete"))
+                })?;
+                delete(pool, &opts.id, opts.force, stdout, stderr).await
             }
         },
         None => {

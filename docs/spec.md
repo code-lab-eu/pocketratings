@@ -214,6 +214,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 
 - `pocketratings user register --name <name> --email <email> --password <password>` — Create a user (v1: only way to register). Password hashed with Argon2 before store.
 - `pocketratings user list` — List users (e.g. for admin; optional for v1).
+- `pocketratings user delete <id> [--force]` — Soft-delete a user by UUID (default). Use `--force` to remove the user row from the database.
 
 **Categories**
 
