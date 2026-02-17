@@ -1,0 +1,16 @@
+---
+description: When adding or changing env vars, update the relevant .env.example
+globs: backend/src/config/**/*.rs,**/.env.example
+alwaysApply: false
+---
+
+# Environment variables and .env.example
+
+When you add or change an environment variable that the application reads (e.g. in `backend/src/config/` or similar config code):
+
+1. **Update the corresponding `.env.example`** in the same area (e.g. `backend/.env.example` for backend config):
+   - Add a line for the new variable with a comment describing it and the default (if any).
+   - For optional variables with defaults, you can comment out the line and document the default in the comment (e.g. `# JWT_EXPIRATION_SECONDS=2592000  # default: 30 days`).
+   - Keep the same style as existing entries (comment above or inline, consistent formatting).
+
+Do this in the same change that introduces or modifies the env variable usage.

@@ -134,6 +134,8 @@ async fn server_stop_no_pid_file_returns_error() {
     let config = Config {
         database_path: "./pocketratings.db".to_string(),
         jwt_secret: "test".to_string(),
+        jwt_expiration_seconds: 3600,
+        jwt_refresh_threshold_seconds: 600,
         bind: "127.0.0.1:3099".to_string(),
         pid_file: pid_path.to_string_lossy().into_owned(),
     };

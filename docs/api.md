@@ -118,6 +118,22 @@ Authenticate and receive a JWT token.
 - `400 Bad Request`: Invalid request body
 - `401 Unauthorized`: Invalid email or password
 
+#### `GET /api/v1/me`
+
+Returns the current authenticated user's id and name (e.g. for display in the frontend). Requires a valid Bearer token.
+
+**Response:** `200 OK`
+```json
+{
+  "user_id": "uuid",
+  "name": "Alice"
+}
+```
+
+**Errors:**
+- `403 Forbidden`: Missing or invalid authorization token
+- `404 Not Found`: User not found (e.g. deleted)
+
 ---
 
 ### Categories

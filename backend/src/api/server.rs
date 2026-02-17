@@ -7,6 +7,7 @@ use sqlx::SqlitePool;
 use tokio::net::TcpListener;
 use tokio::signal;
 
+use crate::api::AppState;
 use crate::api::router;
 use crate::config::Config;
 
@@ -37,16 +38,17 @@ fn wait_for_sigterm() -> Pin<Box<dyn Future<Output = ()> + Send>> {
 /// # Errors
 ///
 /// Returns an error if binding to `bind_addr` fails or if the server exits with an error.
-pub async fn start(
-    _config: &Config,
-    _pool: &SqlitePool,
-    bind_addr: &str,
-) -> Result<(), ServerError> {
+pub async fn start(config: &Config, pool: &SqlitePool, bind_addr: &str) -> Result<(), ServerError> {
     let listener = TcpListener::bind(bind_addr)
         .await
         .map_err(ServerError::Bind)?;
     let addr = listener.local_addr().map_err(ServerError::Bind)?;
     tracing::info!("listening on {}", addr);
+
+    let state = AppState {
+        config: config.clone(),
+        pool: pool.clone(),
+    };
 
     let shutdown = async {
         tokio::select! {
@@ -55,7 +57,7 @@ pub async fn start(
         }
     };
 
-    axum::serve(listener, router::router())
+    axum::serve(listener, router::router(state))
         .with_graceful_shutdown(shutdown)
         .await
         .map_err(ServerError::Serve)?;
