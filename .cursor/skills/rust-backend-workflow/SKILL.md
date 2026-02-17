@@ -11,8 +11,7 @@ Apply this workflow whenever writing or changing code in `backend/` (Pocket Rati
 
 - **Tests are required for all new functionality.** Do not add or change production code without corresponding tests. This includes: new or changed database functions, new CLI commands, new REST endpoints, and new domain logic.
 - **Prefer writing tests first.** When adding a feature, write the test(s) that define the desired behaviour before (or as the first step of) implementing. Then implement until the tests pass. If you implement first, add the tests in the same change and treat missing tests as incomplete work.
-- Run `cargo test` (or use the build-and-test skill) to confirm tests pass before considering the change done.
-- **Run `cargo fmt`** in `backend/` after completing a code editing task so the codebase stays consistently formatted.
+- Before considering the change done, run **backend quality control** (use the backend-quality-control skill: format, then Clippy in strict pedantic mode, then tests).
 
 ## Test coverage
 
@@ -43,5 +42,4 @@ Three layers are required:
 - [ ] New/changed behaviour has unit and/or integration tests (no production code without a test).
 - [ ] No `unwrap()`/`expect()` in production code; no `unsafe` (strictly forbidden).
 - [ ] Errors use `Result` and thiserror/anyhow; API and CLI map errors appropriately.
-- [ ] `cargo test` and `cargo clippy` (with project flags) pass.
-- [ ] `cargo fmt` has been run in `backend/` (formatting is up to date).
+- [ ] **Backend quality control** has been run and passes (use the backend-quality-control skill: format, Clippy in strict pedantic mode, then tests).

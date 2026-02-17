@@ -7,6 +7,8 @@ description: Run build, lint, and test commands for Pocket Ratings backend (Rust
 
 ## Backend (Rust)
 
+**For full quality control** (format, then lint, then test with strict Clippy), use the **backend-quality-control** skill.
+
 **If `cargo` fails with "rustup could not choose a version" / "no default is configured":** run `rustup default stable` (with network permission) first, then retry the cargo command. Do not report the failure as a code issue or ask the user to run locally—apply the fix and re-run.
 
 ### Build

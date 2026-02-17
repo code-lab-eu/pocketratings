@@ -1,0 +1,23 @@
+---
+description: When adding REST endpoints, update api.md and api.http
+globs: backend/src/api/**/*.rs,docs/api.md,docs/api.http
+alwaysApply: false
+---
+
+# API endpoint documentation
+
+When you add or change a REST endpoint that is not yet described in the project docs:
+
+1. **docs/api.md** — Add or update the endpoint in the correct section (Auth, Categories, etc.):
+   - Path and method (e.g. `GET /api/v1/me`)
+   - Short description, auth requirement
+   - Request body (if any), query params (if any)
+   - Response: status and JSON example
+   - Errors: list of status codes and when they occur
+
+2. **docs/api.http** — Add or update a runnable example:
+   - Comment with path and purpose
+   - Request with method, URL, and headers (e.g. `Authorization: Bearer {{token}}` for protected routes)
+   - Body for POST/PATCH if applicable
+
+Use the same style as existing endpoints in those files.
