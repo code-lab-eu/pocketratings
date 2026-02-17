@@ -1,14 +1,35 @@
+#![forbid(unsafe_code)]
 #![allow(clippy::multiple_crate_versions)]
 
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 
 use anyhow::Context;
+
+/// When stderr is not a TTY (e.g. piped in tests), flush after each write so log lines
+/// are visible to the reader without waiting for a full buffer.
+struct StderrWriter;
+
+impl Write for StderrWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let mut w = std::io::stderr();
+        let n = w.write(buf)?;
+        if !w.is_terminal() {
+            w.flush()?;
+        }
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        std::io::stderr().flush()
+    }
+}
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()
+        .with_writer(|| StderrWriter)
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
@@ -25,6 +46,7 @@ async fn main() {
                 Some("category" | "location" | "product" | "purchase" | "review"),
                 Some("create" | "list" | "show" | "update" | "delete")
             )
+            | (Some("server"), Some("start"))
     );
 
     let pool = if needs_db {
@@ -63,15 +85,20 @@ async fn main() {
 
     let mut stdout = std::io::stdout().lock();
     let mut stderr = std::io::stderr().lock();
-    let exit_code =
-        match pocketratings::cli::run(args.into_iter(), pool.as_ref(), &mut stdout, &mut stderr)
-            .await
-        {
-            Ok(()) => 0,
-            Err(e) => {
-                let _ = writeln!(stderr, "{e}");
-                1
-            }
-        };
+    let exit_code = match pocketratings::cli::run(
+        args.into_iter(),
+        pool.as_ref(),
+        None,
+        &mut stdout,
+        &mut stderr,
+    )
+    .await
+    {
+        Ok(()) => 0,
+        Err(e) => {
+            let _ = writeln!(stderr, "{e}");
+            1
+        }
+    };
     std::process::exit(exit_code);
 }

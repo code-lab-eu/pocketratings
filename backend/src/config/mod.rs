@@ -13,6 +13,9 @@ pub struct Config {
 
     /// Address the API server binds to (e.g. `127.0.0.1:3099`).
     pub bind: String,
+
+    /// Path to the PID file for daemon mode (e.g. `/tmp/pocketratings.pid` on Unix).
+    pub pid_file: String,
 }
 
 impl Config {
@@ -21,6 +24,7 @@ impl Config {
     /// - `DB_PATH` — database path (default: `./pocketratings.db`)
     /// - `JWT_SECRET` — JWT signing secret (**required**)
     /// - `BIND` — server bind address (default: `127.0.0.1:3099`)
+    /// - `PID_FILE` — path to PID file for daemon mode (default: temp dir + `pocketratings.pid`)
     ///
     /// # Errors
     ///
@@ -33,10 +37,18 @@ impl Config {
 
         let bind = env::var("BIND").unwrap_or_else(|_| String::from("127.0.0.1:3099"));
 
+        let pid_file = env::var("PID_FILE").unwrap_or_else(|_| {
+            env::temp_dir()
+                .join("pocketratings.pid")
+                .to_string_lossy()
+                .into_owned()
+        });
+
         Ok(Self {
             database_path,
             jwt_secret,
             bind,
+            pid_file,
         })
     }
 }

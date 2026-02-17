@@ -20,14 +20,14 @@ Three layers are required:
 
 1. **Database / persistence tests** — For every new or changed function in `db/` (e.g. `list_all`, `insert`, `get_by_email`). Use integration tests in `backend/tests/` (e.g. `user_db_test.rs`) that create a temp DB, run migrations, and assert on query results. Cover both success and relevant edge cases (e.g. empty list, filtered vs unfiltered).
 2. **CLI tests** — For every CLI command (e.g. `user register`, `user list`, `category create`). Test by invoking the CLI entry point with arguments and captured stdout/stderr; assert on exit code and output. Use integration tests in `backend/tests/` that call the CLI API with a temp DB. Cover success and error cases (e.g. duplicate email, invalid input, `--output json`).
-3. **REST endpoint tests** — For every API route under `/api/v1/`. Test with HTTP requests (e.g. using the test server or a client). Cover success and error cases (401/403, 400 validation, 404). Use integration tests in `backend/tests/` that start the app or a test router and send requests.
+3. **REST endpoint tests** — For every API route under `/api/v1/`. Put **one endpoint per file** in `backend/src/api/` (e.g. `version.rs`). In that file: define the handler, response types, and a `route()` that returns a `Router` for this endpoint; add a `#[cfg(test)] mod tests` with in-process tests (e.g. `tower::ServiceExt::oneshot` on `route()`; assert status and response body). Do not start a real server or use TCP. The main `api/router.rs` composes the API by merging each endpoint’s `route()`. Cover success and error cases (401/403, 400 validation, 404).
 
 **Rule:** When adding a new DB function, CLI command, or REST endpoint, add the corresponding test in the same change. New behaviour without a test is not done.
 
 ## Safe code — no unwrap or unsafe
 
 - **Do not use `unwrap()`, `expect()`, `unwrap_or_else()` on `Result`/`Option` in production code.** Use `?` to propagate errors or handle with `match`/`if let` and return a proper error.
-- **Do not use `unsafe`** unless there is a documented, justified exception (none expected for this project).
+- **`unsafe` is strictly forbidden** in this project. Do not use `unsafe` in production code or in tests.
 - In tests, `unwrap()` or `expect()` is acceptable only to assert invariants (e.g. "this must be Some in this test"); prefer asserting on the `Result`/`Option` when possible.
 
 ## Proper error handling
@@ -39,9 +39,9 @@ Three layers are required:
 
 ## Checklist before submitting backend changes
 
-- [ ] **Tests first or in same change:** New/changed DB functions have tests in `backend/tests/*_db_test.rs`; new CLI commands have tests in `backend/tests/cli_*_test.rs`; new REST endpoints have HTTP tests. Prefer writing tests before implementing.
+- [ ] **Tests first or in same change:** New/changed DB functions have tests in `backend/tests/*_db_test.rs`; new CLI commands have tests in `backend/tests/cli_*_test.rs`; new REST endpoints have tests in the same file as the handler (e.g. `api/version.rs` with a `#[cfg(test)] mod tests`). Prefer writing tests before implementing.
 - [ ] New/changed behaviour has unit and/or integration tests (no production code without a test).
-- [ ] No `unwrap()`/`expect()` in production code; no `unsafe`.
+- [ ] No `unwrap()`/`expect()` in production code; no `unsafe` (strictly forbidden).
 - [ ] Errors use `Result` and thiserror/anyhow; API and CLI map errors appropriately.
 - [ ] `cargo test` and `cargo clippy` (with project flags) pass.
 - [ ] `cargo fmt` has been run in `backend/` (formatting is up to date).

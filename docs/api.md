@@ -11,8 +11,8 @@ free for the frontend.
 - **Login**: `POST /api/v1/auth/login` returns a JWT token
 - **Protected endpoints**: Include `Authorization: Bearer <token>` header in all requests
 - **Stateless**: No session store needed; token is signed with `JWT_SECRET` environment variable
-- **Unauthenticated access**: Only `POST /api/v1/auth/login` is unauthenticated. All other endpoints return `403
-  Forbidden` if authentication is missing or invalid
+- **Unauthenticated access**: Only `POST /api/v1/auth/login` and `GET /api/v1/version` are unauthenticated. All other
+  endpoints return `403 Forbidden` if authentication is missing or invalid
 - **Registration**: In v1, user registration is **CLI-only** (no `POST /api/v1/auth/register` endpoint)
 
 ### Token Expiration and Refresh
@@ -77,6 +77,21 @@ All error responses (4xx/5xx) return JSON with the following format:
 - Soft-deleted records are excluded from list endpoints unless explicitly included
 
 ## Endpoints
+
+### Version
+
+#### `GET /api/v1/version`
+
+Returns the current API (server) version. No authentication required.
+
+**Response:** `200 OK`
+```json
+{
+  "version": "0.1.0"
+}
+```
+
+---
 
 ### Auth
 

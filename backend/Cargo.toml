@@ -28,9 +28,12 @@ thiserror = "2"
 anyhow = "1"
 dotenvy = "0.15"
 chrono = { version = "0.4", features = ["serde"] }
+nix = { version = "0.29", features = ["process", "signal"] }
 
 [dev-dependencies]
+serial_test = "3"
 tempfile = "3"
+http-body-util = "0.1"
 
 [lib]
 path = "src/lib.rs"

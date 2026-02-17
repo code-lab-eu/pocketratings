@@ -5,6 +5,7 @@ mod location;
 mod product;
 mod purchase;
 mod review;
+mod server;
 mod user;
 
 use std::io::Write;
@@ -17,6 +18,7 @@ use crate::cli::location as location_cli;
 use crate::cli::product as product_cli;
 use crate::cli::purchase as purchase_cli;
 use crate::cli::review as review_cli;
+use crate::cli::server as server_cli;
 use crate::cli::user as user_cli;
 
 /// Pocket Ratings — product reviews and ratings.
@@ -36,7 +38,33 @@ pub enum Commands {
     Product(ProductArgs),
     Purchase(PurchaseArgs),
     Review(ReviewArgs),
+    Server(ServerArgs),
 }
+
+/// Start or stop the API server.
+#[derive(clap::Args)]
+pub struct ServerArgs {
+    #[command(subcommand)]
+    pub command: ServerCmd,
+}
+
+#[derive(Subcommand)]
+pub enum ServerCmd {
+    /// Start the API server.
+    Start(ServerStartOpts),
+    /// Stop the server (sends SIGTERM to the PID in the PID file).
+    Stop(ServerStopOpts),
+}
+
+#[derive(clap::Args)]
+pub struct ServerStartOpts {
+    /// Bind address (e.g. 127.0.0.1:3099). Overrides BIND env.
+    #[arg(long)]
+    pub bind: Option<String>,
+}
+
+#[derive(clap::Args)]
+pub struct ServerStopOpts {}
 
 /// Manage user accounts: register, list, and delete users.
 #[derive(clap::Args)]
@@ -468,6 +496,7 @@ impl From<crate::db::DbError> for CliError {
 pub async fn run(
     args: impl Iterator<Item = impl Into<std::ffi::OsString> + Clone>,
     pool: Option<&SqlitePool>,
+    config_override: Option<&crate::config::Config>,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> Result<(), CliError> {
@@ -807,6 +836,15 @@ pub async fn run(
                 })?;
                 review_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
             }
+        },
+        Some(Commands::Server(server_args)) => match server_args.command {
+            ServerCmd::Start(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for server start"))
+                })?;
+                server_cli::start(pool, &opts, config_override, stdout, stderr).await
+            }
+            ServerCmd::Stop(_opts) => server_cli::stop(config_override, stdout, stderr),
         },
         None => {
             let mut out = Vec::new();

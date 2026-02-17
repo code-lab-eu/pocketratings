@@ -17,7 +17,7 @@ async fn run_category(
 
     let mut stdout = Cursor::new(Vec::new());
     let mut stderr = Cursor::new(Vec::new());
-    let result = cli::run(full.into_iter(), Some(pool), &mut stdout, &mut stderr).await;
+    let result = cli::run(full.into_iter(), Some(pool), None, &mut stdout, &mut stderr).await;
     let stdout_str = String::from_utf8(stdout.into_inner()).expect("stdout UTF-8");
     let stderr_str = String::from_utf8(stderr.into_inner()).expect("stderr UTF-8");
     (result, stdout_str, stderr_str)
