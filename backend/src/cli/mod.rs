@@ -3,6 +3,8 @@
 mod category;
 mod location;
 mod product;
+mod purchase;
+mod review;
 mod user;
 
 use std::io::Write;
@@ -13,6 +15,8 @@ use sqlx::SqlitePool;
 use crate::cli::category as category_cli;
 use crate::cli::location as location_cli;
 use crate::cli::product as product_cli;
+use crate::cli::purchase as purchase_cli;
+use crate::cli::review as review_cli;
 use crate::cli::user as user_cli;
 
 /// Pocket Ratings — product reviews and ratings.
@@ -30,6 +34,8 @@ pub enum Commands {
     Category(CategoryArgs),
     Location(LocationArgs),
     Product(ProductArgs),
+    Purchase(PurchaseArgs),
+    Review(ReviewArgs),
 }
 
 /// User subcommand group.
@@ -203,6 +209,151 @@ pub struct LocationDeleteOpts {
     /// Location UUID to delete (soft-delete unless `--force`).
     pub id: String,
     /// Remove the location row from the database instead of soft-deleting.
+    #[arg(long)]
+    pub force: bool,
+}
+
+/// Review subcommand group.
+#[derive(clap::Args)]
+pub struct ReviewArgs {
+    #[command(subcommand)]
+    pub command: ReviewCmd,
+}
+
+#[derive(Subcommand)]
+pub enum ReviewCmd {
+    /// Create a review.
+    Create(ReviewCreateOpts),
+    /// List reviews.
+    List(ReviewListOpts),
+    /// Show a single review.
+    Show(ReviewShowOpts),
+    /// Update a review.
+    Update(ReviewUpdateOpts),
+    /// Soft-delete or remove a review.
+    Delete(ReviewDeleteOpts),
+}
+
+#[derive(clap::Args)]
+pub struct ReviewCreateOpts {
+    #[arg(long)]
+    pub product_id: String,
+    #[arg(long)]
+    pub rating: String,
+    #[arg(long)]
+    pub user_id: Option<String>,
+    #[arg(long)]
+    pub email: Option<String>,
+    #[arg(long)]
+    pub text: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct ReviewListOpts {
+    #[arg(long)]
+    pub product_id: Option<String>,
+    #[arg(long)]
+    pub user_id: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+    #[arg(long)]
+    pub include_deleted: bool,
+}
+
+#[derive(clap::Args)]
+pub struct ReviewShowOpts {
+    pub id: String,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct ReviewUpdateOpts {
+    pub id: String,
+    #[arg(long)]
+    pub rating: Option<String>,
+    #[arg(long)]
+    pub text: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct ReviewDeleteOpts {
+    pub id: String,
+    #[arg(long)]
+    pub force: bool,
+}
+
+/// Purchase subcommand group.
+#[derive(clap::Args)]
+pub struct PurchaseArgs {
+    #[command(subcommand)]
+    pub command: PurchaseCmd,
+}
+
+#[derive(Subcommand)]
+pub enum PurchaseCmd {
+    /// Create a purchase.
+    Create(PurchaseCreateOpts),
+    /// List purchases.
+    List(PurchaseListOpts),
+    /// Show a single purchase.
+    Show(PurchaseShowOpts),
+    /// Soft-delete or remove a purchase.
+    Delete(PurchaseDeleteOpts),
+}
+
+#[derive(clap::Args)]
+pub struct PurchaseCreateOpts {
+    #[arg(long)]
+    pub product_id: String,
+    #[arg(long)]
+    pub location_id: String,
+    #[arg(long)]
+    pub price: String,
+    #[arg(long)]
+    pub user_id: Option<String>,
+    #[arg(long)]
+    pub email: Option<String>,
+    #[arg(long, default_value = "1")]
+    pub quantity: i32,
+    #[arg(long)]
+    pub at: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct PurchaseListOpts {
+    #[arg(long)]
+    pub user_id: Option<String>,
+    #[arg(long)]
+    pub product_id: Option<String>,
+    #[arg(long)]
+    pub location_id: Option<String>,
+    #[arg(long)]
+    pub from: Option<String>,
+    #[arg(long)]
+    pub to: Option<String>,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+    #[arg(long)]
+    pub include_deleted: bool,
+}
+
+#[derive(clap::Args)]
+pub struct PurchaseShowOpts {
+    pub id: String,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
+pub struct PurchaseDeleteOpts {
+    pub id: String,
     #[arg(long)]
     pub force: bool,
 }
@@ -532,6 +683,129 @@ pub async fn run(
                     CliError::Other(anyhow::anyhow!("database pool required for product delete"))
                 })?;
                 product_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
+            }
+        },
+        Some(Commands::Purchase(pur_args)) => match pur_args.command {
+            PurchaseCmd::Create(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for purchase create"
+                    ))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                purchase_cli::create(
+                    pool,
+                    &opts.product_id,
+                    &opts.location_id,
+                    &opts.price,
+                    opts.user_id.as_deref(),
+                    opts.email.as_deref(),
+                    opts.quantity,
+                    opts.at.as_deref(),
+                    output_json,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            PurchaseCmd::List(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for purchase list"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                purchase_cli::list(
+                    pool,
+                    opts.user_id.as_deref(),
+                    opts.product_id.as_deref(),
+                    opts.location_id.as_deref(),
+                    opts.from.as_deref(),
+                    opts.to.as_deref(),
+                    output_json,
+                    opts.include_deleted,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            PurchaseCmd::Show(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for purchase show"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                purchase_cli::show(pool, &opts.id, output_json, stdout, stderr).await
+            }
+            PurchaseCmd::Delete(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for purchase delete"
+                    ))
+                })?;
+                purchase_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
+            }
+        },
+        Some(Commands::Review(rev_args)) => match rev_args.command {
+            ReviewCmd::Create(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for review create"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                review_cli::create(
+                    pool,
+                    &opts.product_id,
+                    &opts.rating,
+                    opts.user_id.as_deref(),
+                    opts.email.as_deref(),
+                    opts.text.as_deref(),
+                    output_json,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            ReviewCmd::List(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for review list"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                review_cli::list(
+                    pool,
+                    opts.product_id.as_deref(),
+                    opts.user_id.as_deref(),
+                    output_json,
+                    opts.include_deleted,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            ReviewCmd::Show(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for review show"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                review_cli::show(pool, &opts.id, output_json, stdout, stderr).await
+            }
+            ReviewCmd::Update(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for review update"))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                review_cli::update(
+                    pool,
+                    &opts.id,
+                    opts.rating.as_deref(),
+                    opts.text.as_deref(),
+                    output_json,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
+            ReviewCmd::Delete(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!("database pool required for review delete"))
+                })?;
+                review_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
             }
         },
         None => {

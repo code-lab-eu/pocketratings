@@ -22,7 +22,7 @@ async fn main() {
         (first, second),
         (Some("user"), Some("register" | "list" | "delete"))
             | (
-                Some("category" | "location" | "product"),
+                Some("category" | "location" | "product" | "purchase" | "review"),
                 Some("create" | "list" | "show" | "update" | "delete")
             )
     );
