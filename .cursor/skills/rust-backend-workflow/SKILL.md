@@ -27,7 +27,7 @@ Three layers are required:
 ## Safe code — no unwrap or unsafe
 
 - **Do not use `unwrap()`, `expect()`, `unwrap_or_else()` on `Result`/`Option` in production code.** Use `?` to propagate errors or handle with `match`/`if let` and return a proper error.
-- **`unsafe` is strictly forbidden** in this project. Do not use `unsafe` in production code or in tests.
+- **`unsafe` is strictly forbidden** in this project. The crate enforces this with `#![forbid(unsafe_code)]` in `lib.rs` and `main.rs`, so the build fails if anyone adds `unsafe`. Do not use `unsafe` in production code or in tests.
 - In tests, `unwrap()` or `expect()` is acceptable only to assert invariants (e.g. "this must be Some in this test"); prefer asserting on the `Result`/`Option` when possible.
 
 ## Proper error handling

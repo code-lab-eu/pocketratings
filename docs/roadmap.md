@@ -116,3 +116,5 @@ This document tracks planned features and improvements for Pocket Ratings.
 - Authentication (JWT) — basic implementation
 - Soft-delete functionality
 - Protected fields enforcement in API documentation
+- Version endpoint: `GET /api/v1/version` (unauthenticated; returns server version)
+- No-unsafe enforcement: `#![forbid(unsafe_code)]` in backend crate roots so the build fails if `unsafe` is introduced
