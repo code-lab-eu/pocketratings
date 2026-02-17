@@ -38,36 +38,36 @@ pub enum ApiError {
 }
 
 impl ApiError {
-    fn status(&self) -> StatusCode {
+    const fn status(&self) -> StatusCode {
         match self {
-            ApiError::BadRequest(_) => StatusCode::BAD_REQUEST,
-            ApiError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
-            ApiError::Forbidden(_) => StatusCode::FORBIDDEN,
-            ApiError::NotFound(_) => StatusCode::NOT_FOUND,
-            ApiError::Conflict(_) => StatusCode::CONFLICT,
-            ApiError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::BadRequest(_) => StatusCode::BAD_REQUEST,
+            Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            Self::Forbidden(_) => StatusCode::FORBIDDEN,
+            Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::Conflict(_) => StatusCode::CONFLICT,
+            Self::Internal => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
-    fn error_code(&self) -> &'static str {
+    const fn error_code(&self) -> &'static str {
         match self {
-            ApiError::BadRequest(_) => "bad_request",
-            ApiError::Unauthorized(_) => "unauthorized",
-            ApiError::Forbidden(_) => "forbidden",
-            ApiError::NotFound(_) => "not_found",
-            ApiError::Conflict(_) => "conflict",
-            ApiError::Internal => "internal_server_error",
+            Self::BadRequest(_) => "bad_request",
+            Self::Unauthorized(_) => "unauthorized",
+            Self::Forbidden(_) => "forbidden",
+            Self::NotFound(_) => "not_found",
+            Self::Conflict(_) => "conflict",
+            Self::Internal => "internal_server_error",
         }
     }
 
     fn message(&self) -> Option<String> {
         match self {
-            ApiError::BadRequest(msg)
-            | ApiError::Unauthorized(msg)
-            | ApiError::Forbidden(msg)
-            | ApiError::NotFound(msg)
-            | ApiError::Conflict(msg) => Some(msg.clone()),
-            ApiError::Internal => None,
+            Self::BadRequest(msg)
+            | Self::Unauthorized(msg)
+            | Self::Forbidden(msg)
+            | Self::NotFound(msg)
+            | Self::Conflict(msg) => Some(msg.clone()),
+            Self::Internal => None,
         }
     }
 }

@@ -27,31 +27,21 @@ pub async fn auth_middleware(
     mut request: Request,
     next: Next,
 ) -> Response {
-    let auth_header = match request.headers().get(header::AUTHORIZATION) {
-        Some(h) => h,
-        None => {
-            return ApiError::Forbidden("missing authorization header".to_string()).into_response();
-        }
+    let Some(auth_header) = request.headers().get(header::AUTHORIZATION) else {
+        return ApiError::Forbidden("missing authorization header".to_string()).into_response();
     };
-    let auth_str = match auth_header.to_str() {
-        Ok(s) => s,
-        Err(_) => {
-            return ApiError::Forbidden("invalid authorization header".to_string()).into_response();
-        }
+    let Ok(auth_str) = auth_header.to_str() else {
+        return ApiError::Forbidden("invalid authorization header".to_string()).into_response();
     };
     let token = auth_str.strip_prefix("Bearer ").unwrap_or(auth_str);
     if token.is_empty() || token == auth_str {
         return ApiError::Forbidden("missing or invalid bearer token".to_string()).into_response();
     }
-    let claims = match jwt::verify_token(&state.config.jwt_secret, token) {
-        Ok(c) => c,
-        Err(_) => {
-            return ApiError::Forbidden("invalid or expired token".to_string()).into_response();
-        }
+    let Ok(claims) = jwt::verify_token(&state.config.jwt_secret, token) else {
+        return ApiError::Forbidden("invalid or expired token".to_string()).into_response();
     };
-    let user_id = match Uuid::parse_str(&claims.sub) {
-        Ok(u) => u,
-        Err(_) => return ApiError::Forbidden("invalid token subject".to_string()).into_response(),
+    let Ok(user_id) = Uuid::parse_str(&claims.sub) else {
+        return ApiError::Forbidden("invalid token subject".to_string()).into_response();
     };
     request.extensions_mut().insert(CurrentUserId(user_id));
 
