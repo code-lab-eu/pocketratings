@@ -128,66 +128,17 @@ All primary keys are UUIDs. Timestamp columns are stored as **64-bit integers**
 
 ---
 
-## API summary
+## API
 
-REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this path so the rest of the URI space stays free for the frontend.
 
-**Authentication**
+The REST API documentation is available in [docs/api.md](api.md). It includes:
 
-- In v1, **only** `POST /api/v1/auth/login` is unauthenticated. All other endpoints must receive a valid token/session; otherwise return **403** (no public data; family/private use only). Registration in v1 is **CLI-only** (no `POST /auth/register` in the API).
-- List endpoints exclude soft-deleted records unless a query param requests them.
+- Authentication (JWT token-based)
+- Best practices (HTTP status codes, protected fields, error handling)
+- Complete endpoint documentation for all resources
+- Request/response formats and examples
 
-**Auth**
-
-- `POST /api/v1/auth/login` — Body: `{ email, password }`. Returns token or session. (Only unauthenticated endpoint.)
-
-**Categories**
-
-- `GET /api/v1/categories` — List categories (query: `?parent_id=uuid` for children; omit for root or flat list).
-- `GET /api/v1/categories/:id` — Single category.
-- `POST /api/v1/categories` — Body: `{ name, parent_id? }`. Name unique per parent.
-- `PATCH /api/v1/categories/:id` — Body: `{ name?, parent_id? }`.
-- `DELETE /api/v1/categories/:id` — Soft-delete; `?force=true` for hard delete. 400 if category has child categories or products.
-
-**Locations**
-
-- `GET /api/v1/locations` — List locations.
-- `GET /api/v1/locations/:id` — Single location.
-- `POST /api/v1/locations` — Body: `{ name }`.
-- `PATCH /api/v1/locations/:id` — Body: `{ name }`.
-- `DELETE /api/v1/locations/:id` — Soft-delete; `?force=true` for hard delete. 400 if location has purchases.
-
-**Products**
-
-- `GET /api/v1/products` — List products. Query: `?category_id=uuid`, `?q=search` (name/brand).
-- `GET /api/v1/products/:id` — Single product (optionally include purchase/review counts or recent).
-- `POST /api/v1/products` — Body: `{ name, brand, category_id }`.
-- `PATCH /api/v1/products/:id` — Body: `{ name?, brand?, category_id? }`.
-- `DELETE /api/v1/products/:id` — Soft-delete; `?force=true` for hard delete. 400 if product has purchases.
-
-**Purchases**
-
-- `GET /api/v1/purchases` — List purchases. Query: `?user_id=uuid` (default: current user), `?product_id=uuid`, `?location_id=uuid`, `?from=date`, `?to=date`.
-- `GET /api/v1/purchases/:id` — Single purchase.
-- `POST /api/v1/purchases` — Body: `{ product_id, location_id, quantity?, price, purchased_at? }`. `user_id` set to current user; quantity default 1; purchased_at default now.
-- `DELETE /api/v1/purchases/:id` — Soft-delete; `?force=true` for hard delete.
-
-**Reviews**
-
-- `GET /api/v1/reviews` — List reviews. Query: `?product_id=uuid`, `?user_id=uuid` (default: current user for “my reviews”).
-- `GET /api/v1/reviews/:id` — Single review.
-- `POST /api/v1/reviews` — Body: `{ product_id, rating, text? }`. `user_id` set to current user.
-- `PATCH /api/v1/reviews/:id` — Body: `{ rating?, text? }`. Only own review.
-- `DELETE /api/v1/reviews/:id` — Soft-delete; `?force=true` for hard delete. Only own review.
-
-**Conventions**
-
-- IDs in path and query are UUIDs. Dates in query/body as ISO 8601. Monetary amounts as decimal (e.g. string or number for EUR).
-- 4xx/5xx with JSON body `{ error, message? }`. 404 for missing resource; 400 for validation or business rule (e.g. category has products); **403 for unauthenticated** (all endpoints except login); 403 for forbidden (e.g. editing another user’s review).
-
-**Runnable examples**
-
-- Runnable HTTP examples live in [docs/api.http](api.http). They assume the server is running (default `http://127.0.0.1:3099`) and, for protected routes, a JWT from `POST /api/v1/auth/login`. Replace the `@token` variable with the token returned by login; use IDs from create/list responses for path and body placeholders. The REST Client extension in Cursor/VS Code (`humao.rest-client`) can run each request via the “Send Request” link above it.
+Runnable HTTP examples are available in [docs/api.http](api.http).
 
 ---
 
@@ -198,7 +149,14 @@ REST over HTTP/JSON. **Base path**: `/api/v1/`. All endpoints live under this pa
 
 **Configuration**
 
-- App configuration is read from **environment variables**. The backend exposes a `config` module (`config/mod.rs`) that loads them (e.g. `DB_PATH` for the database path). No config file is required; env vars are the single source of truth.
+- App configuration is read from **environment variables**. The backend exposes a `config` module (`config/mod.rs`) that loads them. No config file is required; env vars are the single source of truth.
+
+**Environment variables:**
+
+- `DB_PATH` — Database path (default: `./pocketratings.db`)
+- `JWT_SECRET` — JWT signing secret (**required**)
+- `BIND` — Server bind address (default: `127.0.0.1:3099`)
+- `PID_FILE` — Path to PID file for daemon mode (default: temporary directory, e.g., `/tmp/pocketratings.pid` on Unix, `%TEMP%\pocketratings.pid` on Windows)
 
 ---
 
@@ -208,7 +166,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 
 **Server**
 
-- `pocketratings server start [--bind <addr>] [--daemon]` — Start the API server. Bind address from `--bind` or env (e.g. `BIND`); default `127.0.0.1:3099` (port 3099 to avoid clashes with common dev ports like 8080/3000). Foreground by default; `--daemon` runs in background and writes a PID file (e.g. `./pocketratings.pid` or configurable) so it can be stopped later.
+- `pocketratings server start [--bind <addr>] [--daemon]` — Start the API server. Bind address from `--bind` or env (e.g. `BIND`); default `127.0.0.1:3099` (port 3099 to avoid clashes with common dev ports like 8080/3000). Foreground by default; `--daemon` runs in background and writes a PID file so it can be stopped later. PID file location is configurable via `PID_FILE` environment variable; defaults to a temporary directory (e.g., `/tmp/pocketratings.pid` on Unix, `%TEMP%\pocketratings.pid` on Windows).
 - `pocketratings server stop` — Stop the server if it was started with `--daemon` (read PID file, send SIGTERM). Exit with error if no PID file or process not running.
 
 **User (account)**

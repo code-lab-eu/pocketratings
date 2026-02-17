@@ -5,6 +5,18 @@
 # - User registered via CLI (pocketratings user register --name ... --email ... --password ...)
 # - For protected routes: run the Login request below, then set @token to the token from the response
 #
+# HTTP Status Codes:
+# - 200 OK: Successful GET, PUT, PATCH, DELETE requests
+# - 201 Created: Successful POST request that creates a resource
+# - 400 Bad Request: Validation errors, malformed requests
+# - 403 Forbidden: Missing/invalid authentication token or authorization failure
+# - 404 Not Found: Resource not found
+# - 405 Method Not Allowed: Unsupported HTTP method for an endpoint
+# - 409 Conflict: Business rule violations (e.g., deleting category with products)
+#
+# Protected Fields: id, created_at, updated_at, deleted_at cannot be set or modified by clients.
+# These fields are managed automatically by the server.
+#
 # Use with the REST Client extension (humao.rest-client) in Cursor/VS Code: click "Send Request" above each request.
 
 @baseUrl = http://127.0.0.1:3099
@@ -43,6 +55,7 @@ Authorization: Bearer {{token}}
 ###
 
 # POST /api/v1/categories — Body: { name, parent_id? }
+# Note: id, created_at, updated_at, deleted_at are protected fields (cannot be set)
 POST {{baseUrl}}/api/v1/categories
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -54,6 +67,7 @@ Content-Type: application/json
 ###
 
 # PATCH /api/v1/categories/:id — Body: { name?, parent_id? }
+# Note: id, created_at, updated_at, deleted_at are protected fields (cannot be modified)
 PATCH {{baseUrl}}/api/v1/categories/{{categoryId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -64,7 +78,7 @@ Content-Type: application/json
 
 ###
 
-# DELETE /api/v1/categories/:id — Soft-delete. 400 if category has any products.
+# DELETE /api/v1/categories/:id — Soft-delete. 409 Conflict if category has child categories or products.
 DELETE {{baseUrl}}/api/v1/categories/{{categoryId}}
 Authorization: Bearer {{token}}
 
@@ -83,6 +97,7 @@ Authorization: Bearer {{token}}
 ###
 
 # POST /api/v1/locations — Body: { name }
+# Note: id, deleted_at are protected fields (cannot be set)
 POST {{baseUrl}}/api/v1/locations
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -94,6 +109,7 @@ Content-Type: application/json
 ###
 
 # PATCH /api/v1/locations/:id — Body: { name }
+# Note: id, deleted_at are protected fields (cannot be modified)
 PATCH {{baseUrl}}/api/v1/locations/{{locationId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -104,7 +120,7 @@ Content-Type: application/json
 
 ###
 
-# DELETE /api/v1/locations/:id — Soft-delete
+# DELETE /api/v1/locations/:id — Soft-delete. 409 Conflict if location has purchases.
 DELETE {{baseUrl}}/api/v1/locations/{{locationId}}
 Authorization: Bearer {{token}}
 
@@ -123,6 +139,7 @@ Authorization: Bearer {{token}}
 ###
 
 # POST /api/v1/products — Body: { name, brand, category_id }
+# Note: id, created_at, updated_at, deleted_at are protected fields (cannot be set)
 POST {{baseUrl}}/api/v1/products
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -136,6 +153,7 @@ Content-Type: application/json
 ###
 
 # PATCH /api/v1/products/:id — Body: { name?, brand?, category_id? }
+# Note: id, created_at, updated_at, deleted_at are protected fields (cannot be modified)
 PATCH {{baseUrl}}/api/v1/products/{{productId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -146,7 +164,7 @@ Content-Type: application/json
 
 ###
 
-# DELETE /api/v1/products/:id — Soft-delete
+# DELETE /api/v1/products/:id — Soft-delete. 409 Conflict if product has purchases.
 DELETE {{baseUrl}}/api/v1/products/{{productId}}
 Authorization: Bearer {{token}}
 
@@ -165,6 +183,7 @@ Authorization: Bearer {{token}}
 ###
 
 # POST /api/v1/purchases — Body: { product_id, location_id, quantity?, price, purchased_at? }
+# Note: id, user_id, deleted_at are protected fields (cannot be set; user_id is set automatically)
 POST {{baseUrl}}/api/v1/purchases
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -198,6 +217,7 @@ Authorization: Bearer {{token}}
 ###
 
 # POST /api/v1/reviews — Body: { product_id, rating, text? }
+# Note: id, user_id, created_at, updated_at, deleted_at are protected fields (cannot be set; user_id is set automatically)
 POST {{baseUrl}}/api/v1/reviews
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -211,6 +231,7 @@ Content-Type: application/json
 ###
 
 # PATCH /api/v1/reviews/:id — Body: { rating?, text? }. Only own review.
+# Note: id, user_id, created_at, updated_at, deleted_at are protected fields (cannot be modified)
 PATCH {{baseUrl}}/api/v1/reviews/{{reviewId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json
