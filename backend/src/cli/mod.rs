@@ -38,7 +38,7 @@ pub enum Commands {
     Review(ReviewArgs),
 }
 
-/// User subcommand group.
+/// Manage user accounts: register, list, and delete users.
 #[derive(clap::Args)]
 pub struct UserArgs {
     #[command(subcommand)]
@@ -52,7 +52,7 @@ pub enum UserCmd {
     Delete(DeleteOpts),
 }
 
-/// Category subcommand group.
+/// Manage product categories: create, list, show, update, and delete.
 #[derive(clap::Args)]
 pub struct CategoryArgs {
     #[command(subcommand)]
@@ -73,7 +73,7 @@ pub enum CategoryCmd {
     Delete(CategoryDeleteOpts),
 }
 
-/// Product subcommand group.
+/// Manage products: create, list, show, update, and delete (by category/brand/name).
 #[derive(clap::Args)]
 pub struct ProductArgs {
     #[command(subcommand)]
@@ -148,7 +148,7 @@ pub struct ProductDeleteOpts {
     pub force: bool,
 }
 
-/// Location subcommand group.
+/// Manage locations (stores): create, list, show, update, and delete.
 #[derive(clap::Args)]
 pub struct LocationArgs {
     #[command(subcommand)]
@@ -213,7 +213,7 @@ pub struct LocationDeleteOpts {
     pub force: bool,
 }
 
-/// Review subcommand group.
+/// Manage reviews: create, list, show, update, and delete.
 #[derive(clap::Args)]
 pub struct ReviewArgs {
     #[command(subcommand)]
@@ -287,7 +287,7 @@ pub struct ReviewDeleteOpts {
     pub force: bool,
 }
 
-/// Purchase subcommand group.
+/// Manage purchases: create, list, show, and delete.
 #[derive(clap::Args)]
 pub struct PurchaseArgs {
     #[command(subcommand)]
