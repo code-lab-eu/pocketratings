@@ -4,6 +4,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	resolve: {
+		conditions: process.env.VITEST ? ['browser'] : []
+	},
 	server: {
 		proxy: {
 			// In dev, proxy /api to the backend (default 3099)
@@ -12,5 +15,11 @@ export default defineConfig({
 				changeOrigin: true
 			}
 		}
+	},
+	test: {
+		environment: 'jsdom',
+		globals: true,
+		setupFiles: ['tests/setup.ts'],
+		include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}']
 	}
 });

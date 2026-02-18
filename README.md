@@ -102,7 +102,7 @@ Run tests for both backend and frontend:
 # Backend
 cd backend && cargo test --release
 
-# Frontend
+# Frontend (Vitest: unit and component tests)
 cd frontend && bun run test
 ```
 

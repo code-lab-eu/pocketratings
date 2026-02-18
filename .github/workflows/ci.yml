@@ -60,6 +60,11 @@ jobs:
         working-directory: frontend
         run: bun run lint
 
+      - name: Test
+        if: always()
+        working-directory: frontend
+        run: bun run test
+
       - name: Build
         if: always()
         working-directory: frontend
