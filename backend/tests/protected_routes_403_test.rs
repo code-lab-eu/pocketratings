@@ -18,6 +18,7 @@ fn protected_routes() -> Vec<(Method, String)> {
     let id_path_cat = format!("/api/v1/categories/{}", PLACEHOLDER_ID);
     let id_path_loc = format!("/api/v1/locations/{}", PLACEHOLDER_ID);
     let id_path_prod = format!("/api/v1/products/{}", PLACEHOLDER_ID);
+    let id_path_rev = format!("/api/v1/reviews/{}", PLACEHOLDER_ID);
     vec![
         (Method::GET, "/api/v1/me".to_string()),
         (Method::GET, "/api/v1/categories".to_string()),
@@ -35,6 +36,11 @@ fn protected_routes() -> Vec<(Method, String)> {
         (Method::POST, "/api/v1/products".to_string()),
         (Method::PATCH, id_path_prod.clone()),
         (Method::DELETE, id_path_prod),
+        (Method::GET, "/api/v1/reviews".to_string()),
+        (Method::GET, id_path_rev.clone()),
+        (Method::POST, "/api/v1/reviews".to_string()),
+        (Method::PATCH, id_path_rev.clone()),
+        (Method::DELETE, id_path_rev),
     ]
 }
 
@@ -111,8 +117,14 @@ async fn all_protected_routes_return_403_without_auth() {
     let app = router(state);
 
     for (method, path) in protected_routes() {
-        let body_bytes = if method == Method::POST || method == Method::PATCH {
-            r#"{"name":"x"}"#.as_bytes().to_vec()
+        let body_bytes: Vec<u8> = if method == Method::POST || method == Method::PATCH {
+            if path.contains("/reviews") {
+                r#"{"product_id":"00000000-0000-0000-0000-000000000003","rating":3}"#
+                    .as_bytes()
+                    .to_vec()
+            } else {
+                r#"{"name":"x"}"#.as_bytes().to_vec()
+            }
         } else {
             Vec::new()
         };

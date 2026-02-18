@@ -5,4 +5,4 @@ mod login;
 mod middleware;
 
 pub use login::route as login_route;
-pub use middleware::{auth_middleware, me_route};
+pub use middleware::{CurrentUserId, auth_middleware, me_route};

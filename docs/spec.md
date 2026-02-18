@@ -40,6 +40,8 @@
 - **Record**: User records a purchase: product, location, quantity, unit price (EUR), date. In v1 the current user is always recorded as the purchaser.
 - **List**: User sees purchases (e.g. by product, by location, by date range, or “my purchases”).
 
+- **Update / soft-delete**: User can edit a purchase (product, location, quantity, price, date) or soft-delete it. Edit and delete only for their own purchases.
+
 **Reviews**
 
 - **Write**: User adds a review for a product (rating 1–5, optional text). Multiple reviews per (user, product) allowed over time.

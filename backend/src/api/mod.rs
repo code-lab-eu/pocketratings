@@ -5,6 +5,7 @@ mod category;
 mod error;
 mod location;
 mod product;
+mod review;
 mod router;
 mod server;
 mod state;

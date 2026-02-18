@@ -456,6 +456,30 @@ Create a new purchase.
 - `400 Bad Request`: Validation error
 - `404 Not Found`: Product or location not found
 
+#### `PATCH /api/v1/purchases/:id`
+
+Update a purchase. Only the owner (purchase's `user_id` equals current user) may update; otherwise 403.
+
+**Request body:**
+```json
+{
+  "product_id": "uuid",
+  "location_id": "uuid",
+  "quantity": 2,
+  "price": "3.49",
+  "purchased_at": "2025-02-15T12:00:00Z"
+}
+```
+
+All fields are optional. Only provided fields are updated.
+
+**Response:** `200 OK` (updated purchase object)
+
+**Errors:**
+- `400 Bad Request`: Validation error (e.g. quantity < 1, negative price)
+- `403 Forbidden`: Purchase belongs to another user
+- `404 Not Found`: Purchase not found, or product/location not found (if provided)
+
 #### `DELETE /api/v1/purchases/:id`
 
 Soft-delete a purchase.

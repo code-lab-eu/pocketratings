@@ -247,15 +247,39 @@ Content-Type: application/json
 
 ###
 
+# PATCH /api/v1/purchases/:id — Body: { product_id?, location_id?, quantity?, price?, purchased_at? }. Only own purchase.
+PATCH {{baseUrl}}/api/v1/purchases/{{purchaseId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "quantity": 2,
+  "price": "3.49"
+}
+
+###
+
 # DELETE /api/v1/purchases/:id — Soft-delete
 DELETE {{baseUrl}}/api/v1/purchases/{{purchaseId}}
 Authorization: Bearer {{token}}
 
 ### Reviews
 
-# GET /api/v1/reviews — Query: ?product_id=uuid, ?user_id=uuid
+# GET /api/v1/reviews — No params = "my reviews" (current user). Optional: ?product_id=uuid, ?user_id=uuid
 GET {{baseUrl}}/api/v1/reviews
 Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/reviews?product_id=uuid — List reviews for a product
+# GET {{baseUrl}}/api/v1/reviews?product_id={{productId}}
+# Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/reviews?user_id=uuid — List reviews by a specific user
+# GET {{baseUrl}}/api/v1/reviews?user_id=00000000-0000-0000-0000-000000000001
+# Authorization: Bearer {{token}}
 
 ###
 
@@ -295,3 +319,9 @@ Content-Type: application/json
 # DELETE /api/v1/reviews/:id — Soft-delete. Only own review.
 DELETE {{baseUrl}}/api/v1/reviews/{{reviewId}}
 Authorization: Bearer {{token}}
+
+###
+
+# DELETE /api/v1/reviews/:id?force=true — Hard delete (permanent)
+# DELETE {{baseUrl}}/api/v1/reviews/{{reviewId}}?force=true
+# Authorization: Bearer {{token}}
