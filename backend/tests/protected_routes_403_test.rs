@@ -17,6 +17,7 @@ const PLACEHOLDER_ID: &str = "00000000-0000-0000-0000-000000000001";
 fn protected_routes() -> Vec<(Method, String)> {
     let id_path_cat = format!("/api/v1/categories/{}", PLACEHOLDER_ID);
     let id_path_loc = format!("/api/v1/locations/{}", PLACEHOLDER_ID);
+    let id_path_prod = format!("/api/v1/products/{}", PLACEHOLDER_ID);
     vec![
         (Method::GET, "/api/v1/me".to_string()),
         (Method::GET, "/api/v1/categories".to_string()),
@@ -29,6 +30,11 @@ fn protected_routes() -> Vec<(Method, String)> {
         (Method::POST, "/api/v1/locations".to_string()),
         (Method::PATCH, id_path_loc.clone()),
         (Method::DELETE, id_path_loc),
+        (Method::GET, "/api/v1/products".to_string()),
+        (Method::GET, id_path_prod.clone()),
+        (Method::POST, "/api/v1/products".to_string()),
+        (Method::PATCH, id_path_prod.clone()),
+        (Method::DELETE, id_path_prod),
     ]
 }
 

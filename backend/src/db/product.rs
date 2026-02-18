@@ -1,8 +1,8 @@
 //! Product persistence.
 //!
 //! Provides DB functions: [`get_by_id`], [`get_all`], [`get_all_with_deleted`],
-//! [`get_all_by_category_id`], [`get_all_by_category_id_with_deleted`], [`insert`],
-//! [`update`], [`soft_delete`], and [`hard_delete`].
+//! [`get_all_by_category_id`], [`get_all_by_category_id_with_deleted`],
+//! [`get_all_filtered`], [`insert`], [`update`], [`soft_delete`], and [`hard_delete`].
 
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
@@ -199,6 +199,78 @@ pub async fn get_all_by_category_id_with_deleted(
     .fetch_all(pool)
     .await?;
 
+    let mut out = Vec::with_capacity(rows.len());
+    for row in rows {
+        let id: String = row.get("id");
+        let category_id: String = row.get("category_id");
+        let brand: String = row.get("brand");
+        let name: String = row.get("name");
+        let created_at: i64 = row.get("created_at");
+        let updated_at: i64 = row.get("updated_at");
+        let deleted_at: Option<i64> = row.get("deleted_at");
+        let product = row_to_product(
+            &id,
+            &category_id,
+            &brand,
+            &name,
+            created_at,
+            updated_at,
+            deleted_at,
+        )?;
+        out.push(product);
+    }
+    Ok(out)
+}
+
+/// Fetch all active products, optionally filtered by category and/or search on name/brand.
+///
+/// - `category_id`: if `Some`, only products in that category.
+/// - `q`: if non-empty after trim, only products where `name` or `brand` contains the string (case-sensitive LIKE).
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query or row mapping failure.
+pub async fn get_all_filtered(
+    pool: &SqlitePool,
+    category_id: Option<Uuid>,
+    q: Option<&str>,
+) -> Result<Vec<Product>, crate::db::DbError> {
+    let search = q.map(str::trim).filter(|s| !s.is_empty());
+    match (category_id, search) {
+        (None, None) => return get_all(pool).await,
+        (Some(cid), None) => return get_all_by_category_id(pool, cid).await,
+        (None, Some(term)) => {
+            let pattern = format!("%{term}%");
+            let rows = sqlx::query(
+                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products \
+                 WHERE deleted_at IS NULL AND (name LIKE ? OR brand LIKE ?)",
+            )
+            .bind(&pattern)
+            .bind(&pattern)
+            .fetch_all(pool)
+            .await?;
+            rows_to_products(rows)
+        }
+        (Some(cid), Some(term)) => {
+            let cat_str = cid.to_string();
+            let pattern = format!("%{term}%");
+            let rows = sqlx::query(
+                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products \
+                 WHERE category_id = ? AND deleted_at IS NULL AND (name LIKE ? OR brand LIKE ?)",
+            )
+            .bind(&cat_str)
+            .bind(&pattern)
+            .bind(&pattern)
+            .fetch_all(pool)
+            .await?;
+            rows_to_products(rows)
+        }
+    }
+}
+
+fn rows_to_products(
+    rows: Vec<sqlx::sqlite::SqliteRow>,
+) -> Result<Vec<Product>, crate::db::DbError> {
     let mut out = Vec::with_capacity(rows.len());
     for row in rows {
         let id: String = row.get("id");

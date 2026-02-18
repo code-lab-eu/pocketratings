@@ -157,9 +157,21 @@ Authorization: Bearer {{token}}
 
 ### Products
 
-# GET /api/v1/products — Query: ?category_id=uuid, ?q=search
+# GET /api/v1/products — List all. Optional: ?category_id=uuid, ?q=search (name/brand)
 GET {{baseUrl}}/api/v1/products
 Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/products?category_id=uuid — List by category (replace uuid with real category id)
+# GET {{baseUrl}}/api/v1/products?category_id={{categoryId}}
+# Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/products?q=search — Search by name or brand
+# GET {{baseUrl}}/api/v1/products?q=Milk
+# Authorization: Bearer {{token}}
 
 ###
 
@@ -198,6 +210,12 @@ Content-Type: application/json
 # DELETE /api/v1/products/:id — Soft-delete. 409 Conflict if product has purchases.
 DELETE {{baseUrl}}/api/v1/products/{{productId}}
 Authorization: Bearer {{token}}
+
+###
+
+# DELETE /api/v1/products/:id?force=true — Hard delete (permanent)
+# DELETE {{baseUrl}}/api/v1/products/{{productId}}?force=true
+# Authorization: Bearer {{token}}
 
 ### Purchases
 

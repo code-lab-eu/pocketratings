@@ -4,6 +4,7 @@ mod auth;
 mod category;
 mod error;
 mod location;
+mod product;
 mod router;
 mod server;
 mod state;

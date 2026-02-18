@@ -132,6 +132,114 @@ async fn product_get_all_and_get_all_by_category_id() {
 }
 
 #[tokio::test]
+async fn product_get_all_filtered() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_filtered.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat1 = Uuid::new_v4();
+    let cat2 = Uuid::new_v4();
+    let now = 1_000_i64;
+    let c1 = pocketratings::domain::category::Category::new(
+        cat1,
+        None,
+        "Cat1".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    let c2 = pocketratings::domain::category::Category::new(
+        cat2,
+        None,
+        "Cat2".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &c1).await.expect("insert");
+    db::category::insert(&pool, &c2).await.expect("insert");
+
+    // B1/P1 in cat1, B2/Milk in cat1, DairyCo/Milk in cat2
+    let p1 = Product::new(
+        Uuid::new_v4(),
+        cat1,
+        "B1".to_string(),
+        "P1".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    let p2 = Product::new(
+        Uuid::new_v4(),
+        cat1,
+        "B2".to_string(),
+        "Milk".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    let p3 = Product::new(
+        Uuid::new_v4(),
+        cat2,
+        "DairyCo".to_string(),
+        "Milk".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &p1).await.expect("insert");
+    db::product::insert(&pool, &p2).await.expect("insert");
+    db::product::insert(&pool, &p3).await.expect("insert");
+
+    let no_filter = db::product::get_all_filtered(&pool, None, None)
+        .await
+        .expect("get_all_filtered");
+    assert_eq!(no_filter.len(), 3);
+
+    let by_cat = db::product::get_all_filtered(&pool, Some(cat1), None)
+        .await
+        .expect("get_all_filtered");
+    assert_eq!(by_cat.len(), 2);
+
+    let by_q_name = db::product::get_all_filtered(&pool, None, Some("Milk"))
+        .await
+        .expect("get_all_filtered");
+    assert_eq!(by_q_name.len(), 2);
+    assert!(by_q_name.iter().any(|p| p.name() == "Milk"));
+
+    let by_q_brand = db::product::get_all_filtered(&pool, None, Some("DairyCo"))
+        .await
+        .expect("get_all_filtered");
+    assert_eq!(by_q_brand.len(), 1);
+    assert_eq!(by_q_brand[0].brand(), "DairyCo");
+
+    let both = db::product::get_all_filtered(&pool, Some(cat1), Some("Milk"))
+        .await
+        .expect("get_all_filtered");
+    assert_eq!(both.len(), 1);
+    assert_eq!(both[0].name(), "Milk");
+    assert_eq!(both[0].brand(), "B2");
+
+    let no_match = db::product::get_all_filtered(&pool, None, Some("nomatch"))
+        .await
+        .expect("get_all_filtered");
+    assert!(no_match.is_empty());
+
+    let empty_q = db::product::get_all_filtered(&pool, None, Some("  "))
+        .await
+        .expect("get_all_filtered");
+    assert_eq!(empty_q.len(), 3);
+}
+
+#[tokio::test]
 async fn product_get_all_with_deleted() {
     let dir = tempfile::tempdir().expect("temp dir");
     let db_path = dir.path().join("product_get_all_deleted.db");
