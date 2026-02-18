@@ -55,9 +55,15 @@ Authorization: Bearer {{token}}
 
 ### Categories
 
-# GET /api/v1/categories — List (omit parent_id for root/flat; ?parent_id=uuid for children)
+# GET /api/v1/categories — List all (root/flat). Optional: ?parent_id=uuid for children of a category.
 GET {{baseUrl}}/api/v1/categories
 Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/categories?parent_id=uuid — List children of a category (replace uuid with real category id)
+# GET {{baseUrl}}/api/v1/categories?parent_id={{categoryId}}
+# Authorization: Bearer {{token}}
 
 ###
 
@@ -91,9 +97,15 @@ Content-Type: application/json
 
 ###
 
-# DELETE /api/v1/categories/:id — Soft-delete. 409 Conflict if category has child categories or products.
+# DELETE /api/v1/categories/:id — Soft-delete. Add ?force=true for hard delete. 409 if category has children or products.
 DELETE {{baseUrl}}/api/v1/categories/{{categoryId}}
 Authorization: Bearer {{token}}
+
+###
+
+# DELETE /api/v1/categories/:id?force=true — Hard delete (permanent)
+# DELETE {{baseUrl}}/api/v1/categories/{{categoryId}}?force=true
+# Authorization: Bearer {{token}}
 
 ### Locations
 
@@ -133,9 +145,15 @@ Content-Type: application/json
 
 ###
 
-# DELETE /api/v1/locations/:id — Soft-delete. 409 Conflict if location has purchases.
+# DELETE /api/v1/locations/:id — Soft-delete. Add ?force=true for hard delete. 409 if location has purchases.
 DELETE {{baseUrl}}/api/v1/locations/{{locationId}}
 Authorization: Bearer {{token}}
+
+###
+
+# DELETE /api/v1/locations/:id?force=true — Hard delete (permanent)
+# DELETE {{baseUrl}}/api/v1/locations/{{locationId}}?force=true
+# Authorization: Bearer {{token}}
 
 ### Products
 

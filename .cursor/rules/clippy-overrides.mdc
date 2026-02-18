@@ -1,0 +1,29 @@
+---
+description: Rules for clippy overrides and allow attributes (Rust)
+globs: backend/**/*.rs
+alwaysApply: false
+---
+
+# Clippy overrides / `allow(...)` policy
+
+## Default rule
+
+- Do **not** silence compiler or Clippy diagnostics with `#[allow(...)]`, `#![allow(...)]`, or `#[allow(clippy::...)]`.
+- Fix the underlying code instead (imports, ownership, lifetimes, error handling, etc.).
+
+## Approval requirement (strict)
+
+- **Not allowed without explicit developer approval:** adding or expanding any `allow(...)` to bypass warnings or lint rules.
+- If an override seems necessary, stop and ask the developer for approval **before** making the change.
+
+## If approval is granted
+
+- Keep the override **as narrow as possible** (single item/single module; avoid crate-level `#![allow]`).
+- Prefer `#[expect(...)]` when appropriate so new occurrences still fail CI.
+- Include a short, specific rationale next to the override (what warning, why it’s acceptable here, and the approval reference).
+
+## Common cases to fix instead of overriding
+
+- **`unused_imports`**: remove unused imports, import only what is needed, or use fully-qualified paths.
+- **`doc_markdown`**: fix doc formatting (wrap identifiers in backticks).
+- **`needless_pass_by_value`**: pass by reference if the value isn’t consumed.

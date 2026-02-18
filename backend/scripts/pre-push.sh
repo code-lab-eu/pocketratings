@@ -14,7 +14,10 @@ set -e
 cd "$(git rev-parse --show-toplevel)/backend" || exit 1
 
 echo "Running cargo fmt --check..."
-cargo fmt --check
+if ! cargo fmt --check; then
+  cargo fmt
+  exit 1
+fi
 
 echo "Running cargo clippy (pedantic)..."
 cargo clippy -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings

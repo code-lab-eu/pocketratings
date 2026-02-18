@@ -1,7 +1,9 @@
 //! REST routes and handlers.
 
 mod auth;
+mod category;
 mod error;
+mod location;
 mod router;
 mod server;
 mod state;
