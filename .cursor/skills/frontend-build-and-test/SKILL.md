@@ -23,7 +23,7 @@ bun run build
 
 ## Lint
 
-Runs `svelte-kit sync` and `svelte-check` (type checking):
+Runs SvelteKit sync, `svelte-check` (type checking), and ESLint:
 
 ```bash
 cd frontend

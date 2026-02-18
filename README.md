@@ -106,6 +106,14 @@ cd backend && cargo test --release
 cd frontend && bun run test
 ```
 
+## Pre-push hook
+
+From the repo root, run `./scripts/pre-push.sh` to run backend (format, clippy, test) and frontend (lint, test) checks. To install as a git hook so it runs before every push:
+
+```bash
+ln -sf ../../scripts/pre-push.sh .git/hooks/pre-push
+```
+
 ## License
 
 GPL-3.0 — copyleft; derivatives and forks must remain open source. See

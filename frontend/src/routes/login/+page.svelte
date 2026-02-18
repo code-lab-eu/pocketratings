@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { getToken, setToken } from '$lib/auth';
 	import { login } from '$lib/api';
 
@@ -11,7 +12,7 @@
 	// If already logged in, go home (client-only)
 	$effect(() => {
 		if (typeof window !== 'undefined' && getToken()) {
-			goto('/');
+			goto(resolve('/'));
 		}
 	});
 
@@ -22,7 +23,7 @@
 		try {
 			const { token } = await login(email, password);
 			setToken(token);
-			goto('/');
+			goto(resolve('/'));
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Login failed';
 		} finally {
