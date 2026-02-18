@@ -1,6 +1,6 @@
 ---
 name: build-and-test
-description: Run build, lint, and test commands for Pocket Ratings backend (Rust) and frontend (Nuxt). Use when the user asks to build, lint, test, or check code quality for either the backend or frontend.
+description: Run build, lint, and test commands for Pocket Ratings backend (Rust) and frontend (Svelte). Use when the user asks to build, lint, test, or check code quality for either the backend or frontend.
 ---
 
 # Build and Test Commands
@@ -38,7 +38,7 @@ cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::carg
 cargo test --release
 ```
 
-## Frontend (Nuxt)
+## Frontend (Svelte)
 
 ### Install dependencies
 ```bash
@@ -57,12 +57,10 @@ bun run build
 cd frontend
 bun run lint
 ```
+Runs `svelte-kit sync` and `svelte-check` (type checking).
 
 ### Test
-```bash
-cd frontend
-bun run test
-```
+Frontend tests can be added later; CI currently runs lint and build only.
 
 ### Dev server
 ```bash

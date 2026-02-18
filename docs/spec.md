@@ -54,6 +54,50 @@
 
 ---
 
+## Frontend (web app)
+
+The main use case for the web app is **in-store decision making**: the user is in a shop (e.g. supermarket) facing a large selection (wines, coffees, cheeses, sausages). They take out their phone, open the app, and want to quickly see which products in a category they already tried and how they rated them, so they can decide what to buy (or avoid).
+
+**Implications:**
+
+- **Lookup-first, not data-entry-first** — Browsing categories and searching products, plus at-a-glance ratings, must be the default. Adding/editing categories, products, purchases, and reviews is secondary and lives behind a menu.
+- **Mobile-first** — One-handed use, large touch targets, minimal chrome, fast load and interaction.
+- **Fast and simple** — Few taps to "category → list of products with my rating"; search with quick feedback.
+
+**Information architecture**
+
+| Priority     | Area                    | Description |
+|-------------|-------------------------|-------------|
+| **Primary** | Category browse         | List categories (flat or tree from `GET /api/v1/categories` with optional `parent_id`). Tap category → products in that category. |
+| **Primary** | Search                  | Full-text product search by name/brand (`GET /api/v1/products?q=...`). Results show the user's rating when available. |
+| **Primary** | Product list with ratings | For a chosen category (or search), show products with **my** rating and optional one-line review. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` (my reviews) in the frontend; key by `product_id`. |
+| **Primary** | Product detail          | Tap product → full review(s), optional purchase history. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`. |
+| **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
+| **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
+
+The home screen is **category list + search**. No dashboard or "recent activity" on the main screen for v1.
+
+**Screens**
+
+- **Home:** Categories (list or tree) + prominent search. If unauthenticated → redirect to Login.
+- **Category products:** Products in category with inline rating (and optional short review). Products + "my reviews" merged client-side.
+- **Search results:** Same product+rating list, driven by `products?q=...` + my reviews.
+- **Product detail:** Full review(s), purchase history; optional quick "rate again" or "log purchase" actions.
+- **Login:** Email + password; store token; redirect to Home.
+- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews).
+
+**Data flow (current API, no backend changes)**
+
+- **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree). Cache after first load for speed.
+- **Products in category:** `GET /api/v1/products?category_id=<uuid>`.
+- **Product search:** `GET /api/v1/products?q=<string>` (name/brand).
+- **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id`; show latest or best rating per product (e.g. most recent review).
+- **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`. Purchases: `GET /api/v1/purchases?product_id=:id` if needed.
+
+Two-call pattern for list views (products + my reviews) is sufficient; no new backend endpoint required.
+
+---
+
 ## Data models
 
 All primary keys are UUIDs. Timestamp columns are stored as **64-bit integers**
@@ -146,8 +190,8 @@ Runnable HTTP examples are available in [docs/api.http](api.http).
 
 ## Deployment
 
-- **Same domain**: Backend and frontend are served from the **same domain** (e.g. `https://pocketratings.example.com`). The API is under `/api/v1/`; all other paths are handled by the frontend (Nuxt).
-- **Nginx**: The monorepo includes an **nginx** configuration that splits traffic: requests to `/api/v1/` are proxied to the backend (Rust API); all other requests are proxied to the frontend (Nuxt/Nitro). This allows a single entry point and avoids CORS for same-origin requests.
+- **Same domain**: Backend and frontend are served from the **same domain** (e.g. `https://pocketratings.example.com`). The API is under `/api/v1/`; all other paths are handled by the frontend (Svelte).
+- **Nginx**: The monorepo includes an **nginx** configuration that splits traffic: requests to `/api/v1/` are proxied to the backend (Rust API); all other requests are proxied to the frontend (Svelte). This allows a single entry point and avoids CORS for same-origin requests.
 
 **Configuration**
 

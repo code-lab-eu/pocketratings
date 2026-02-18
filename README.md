@@ -5,7 +5,7 @@ purchases: rate and review what you buy, where you bought it, and what
 you paid.
 
 - **Backend:** Rust (REST API + CLI), SQLite
-- **Frontend:** Nuxt 4
+- **Frontend:** Svelte
 
 ## What it does
 
@@ -17,7 +17,7 @@ you paid.
 ## Structure
 
 - `backend/` — Rust API and CLI
-- `frontend/` — Nuxt 4 app
+- `frontend/` — Svelte app
 - `docs/` — Specification and API docs
 
 ## Prerequisites
@@ -61,7 +61,7 @@ bun install
 bun run build
 ```
 
-The built site will be in `frontend/.output`.
+The built site output location depends on the Svelte setup (e.g. `frontend/build` for SvelteKit static build).
 
 ## Development
 

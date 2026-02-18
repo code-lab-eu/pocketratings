@@ -53,36 +53,41 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 ## Frontend
 
-### Nuxt 4 Web Application
+### Svelte Web Application
 
 **Status:** Planned
 
+**Primary use case:** In-store decision making — user in a shop (e.g. supermarket) looks up products by category or search and sees their own ratings at a glance to decide what to buy. See [spec: Frontend (web app)](spec.md#frontend-web-app) for information architecture, screens, and data flow.
+
 **Scope:**
-- User authentication (login with JWT token)
-- Dashboard/homepage showing recent purchases and reviews
-- Category management (create, list, update, delete)
-- Location management (create, list, update, delete)
-- Product management (create, list, update, delete, search)
-- Purchase recording and management (create, list, filter by date/product/location)
-- Review management (create, list, update, delete)
-- Product detail pages showing purchase history and reviews
+- **Primary (home):** Category list + prominent search; category → products with my rating; search results with ratings; product detail (reviews, purchase history).
+- **Auth:** Login with JWT; token in localStorage; handle `X-New-Token` refresh. Registration remains CLI-only.
+- **Management (menu):** Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews — all behind a single entry point (e.g. hamburger or "More" menu).
 
 **Technical Requirements:**
-- Nuxt 4 with TypeScript
-- Responsive design (mobile-friendly)
-- Dark mode support (optional)
+- Svelte with TypeScript
+- Mobile-first, responsive (single column, thumb-friendly)
 - Client-side routing
-- API integration with REST endpoints
-- Token storage and management (localStorage or httpOnly cookies)
-- Form validation
-- Error handling and user feedback
+- API integration with REST endpoints; two-call pattern for list views (products + my reviews merged in frontend)
+- Token storage and refresh handling
+- Form validation, error handling, user feedback
+- Dark mode support (optional)
 
 **Design Considerations:**
-- Simple, clean UI suitable for personal/family use
-- Fast and lightweight
-- Works offline (optional, future enhancement)
+- Lookup-first, not data-entry-first; management tucked away in menu
+- Fast and lightweight; debounced search; consider caching category list
+- Accessibility: semantic HTML, focus order, sufficient contrast
 
 ## Future Enhancements
+
+### Frontend (beyond current data models)
+
+**Status:** Future consideration
+
+- **Favorite / pinned categories** — Quick access to e.g. "Wines", "Cheeses" on home. Requires either a frontend-only preference (e.g. pinned category IDs in localStorage) or a backend "favorites" or "order" field. v1 can implement frontend-only pins (localStorage) without backend changes.
+- **Recently viewed or recently added products** — "Recently added" or "Last viewed" section on home. Requires either client-side history (e.g. last N product IDs in sessionStorage/localStorage) or backend support (e.g. `last_viewed_at`, `created_at` ordering and limit). v1 can implement frontend-only "recently viewed" (localStorage) without backend changes.
+- **Offline / PWA** — Cache categories and recent product/rating data for use without network; sync when back online. Requires service worker and possibly API extensions.
+- **Barcode scanning** — See Barcode Scanning below; would drive "look up product by barcode" from home or search.
 
 ### Data Export
 

@@ -41,7 +41,7 @@ jobs:
         run: cargo test --release
 
   frontend:
-    name: Frontend (Nuxt)
+    name: Frontend (Svelte)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,11 +55,6 @@ jobs:
         working-directory: frontend
         run: bun install --frozen-lockfile
 
-      - name: Prepare Nuxt
-        if: always()
-        working-directory: frontend
-        run: bunx nuxi prepare
-
       - name: Lint
         if: always()
         working-directory: frontend
@@ -69,8 +64,3 @@ jobs:
         if: always()
         working-directory: frontend
         run: bun run build
-
-      - name: Test
-        if: always()
-        working-directory: frontend
-        run: bun run test

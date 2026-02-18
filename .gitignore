@@ -9,12 +9,9 @@ frontend/.pnp.js
 frontend/package-lock.json
 frontend/yarn.lock
 
-# Nuxt
-frontend/.nuxt
-frontend/.output
-frontend/.nitro
-frontend/.cache
-frontend/dist/
+# SvelteKit
+frontend/.svelte-kit
+frontend/build
 
 # Environment
 .env
