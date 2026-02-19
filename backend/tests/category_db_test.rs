@@ -80,7 +80,10 @@ async fn category_get_by_id_get_parent_get_children_get_all_and_get_tree() {
     assert!(tree.category.is_none());
     assert_eq!(tree.children.len(), 1);
     assert_eq!(
-        tree.children[0].category.as_ref().map(|c| c.name()),
+        tree.children[0]
+            .category
+            .as_ref()
+            .map(pocketratings::domain::category::Category::name),
         Some("Root")
     );
     assert_eq!(tree.children[0].children.len(), 1);
@@ -88,7 +91,7 @@ async fn category_get_by_id_get_parent_get_children_get_all_and_get_tree() {
         tree.children[0].children[0]
             .category
             .as_ref()
-            .map(|c| c.name()),
+            .map(pocketratings::domain::category::Category::name),
         Some("Child")
     );
 }

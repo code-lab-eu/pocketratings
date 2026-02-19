@@ -88,7 +88,7 @@ async fn login_then_get_me_returns_current_user_id() {
         .oneshot(
             Request::builder()
                 .uri("/api/v1/me")
-                .header("authorization", format!("Bearer {}", token))
+                .header("authorization", format!("Bearer {token}"))
                 .body(Body::empty())
                 .expect("request"),
         )

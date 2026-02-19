@@ -13,7 +13,7 @@ use uuid::Uuid;
 /// Placeholder UUID for path params (resource need not exist; we only assert 403).
 const PLACEHOLDER_ID: &str = "00000000-0000-0000-0000-000000000001";
 
-/// Protected routes: (method, path). Paths with `:id` use PLACEHOLDER_ID.
+/// Protected routes: (method, path). Paths with `:id` use `PLACEHOLDER_ID`.
 fn protected_routes() -> Vec<(Method, String)> {
     let id_path_cat = format!("/api/v1/categories/{PLACEHOLDER_ID}");
     let id_path_loc = format!("/api/v1/locations/{PLACEHOLDER_ID}");

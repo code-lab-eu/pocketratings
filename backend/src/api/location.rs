@@ -279,7 +279,10 @@ mod tests {
         );
         let id_str = json.get("id").and_then(|v| v.as_str()).expect("id");
         assert!(Uuid::parse_str(id_str).is_ok());
-        assert!(json.get("deleted_at").map(|v| v.is_null()).unwrap_or(true));
+        assert!(
+            json.get("deleted_at")
+                .is_none_or(serde_json::Value::is_null)
+        );
         let id = Uuid::parse_str(id_str).expect("uuid");
         let persisted = db::location::get_by_id(&state.pool, id).await.expect("db");
         let persisted = persisted.expect("location in db");
@@ -315,7 +318,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -352,7 +355,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -371,7 +374,10 @@ mod tests {
             json.get("name").and_then(|v| v.as_str()),
             Some("Corner store")
         );
-        assert!(json.get("deleted_at").map(|v| v.is_null()).unwrap_or(true));
+        assert!(
+            json.get("deleted_at")
+                .is_none_or(serde_json::Value::is_null)
+        );
     }
 
     #[tokio::test]
@@ -404,7 +410,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -452,7 +458,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -489,7 +495,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -529,7 +535,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -569,7 +575,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -626,7 +632,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(format!("/api/v1/locations/{}?force=true", id))
+                    .uri(format!("/api/v1/locations/{id}?force=true"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -655,7 +661,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(format!("/api/v1/locations/{}", id))
+                    .uri(format!("/api/v1/locations/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )

@@ -84,7 +84,7 @@ mod tests {
     }
 
     /// Create a pool backed by a temp file (so migrations and connections share the same DB).
-    /// Returns (pool, db_path_string); keep _dir alive for the test so the file is not removed.
+    /// Returns (pool, `db_path_string`); keep _dir alive for the test so the file is not removed.
     async fn test_pool() -> (SqlitePool, String, tempfile::TempDir) {
         let dir = tempfile::tempdir().expect("temp dir");
         let db_path = dir.path().join("login_test.db");

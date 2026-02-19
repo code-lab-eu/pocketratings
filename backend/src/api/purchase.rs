@@ -339,7 +339,6 @@ mod tests {
     use crate::config::Config;
     use crate::db;
     use crate::test_support::{insert_category, insert_location, insert_product, insert_user};
-    use sqlx::SqlitePool;
 
     /// Build the purchase route with a fixed current user (no auth header needed).
     fn app_with_user(state: AppState, user_id: Uuid) -> axum::Router {
@@ -472,7 +471,10 @@ mod tests {
             got.get("location_id").and_then(|v| v.as_str()),
             Some(location_id.to_string().as_str())
         );
-        assert_eq!(got.get("quantity").and_then(|v| v.as_i64()), Some(2));
+        assert_eq!(
+            got.get("quantity").and_then(serde_json::Value::as_i64),
+            Some(2)
+        );
     }
 
     #[tokio::test]

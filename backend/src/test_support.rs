@@ -2,7 +2,6 @@
 //!
 //! This module is only compiled when running tests.
 
-#![cfg(test)]
 #![allow(clippy::missing_panics_doc)]
 
 use sqlx::SqlitePool;

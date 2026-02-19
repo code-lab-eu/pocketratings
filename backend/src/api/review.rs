@@ -286,7 +286,6 @@ mod tests {
     use crate::config::Config;
     use crate::db;
     use crate::test_support::{insert_category, insert_product, insert_user};
-    use sqlx::SqlitePool;
 
     /// Build the review route with a fixed current user (no auth header needed). Same pattern as category/location/product tests.
     fn app_with_user(state: AppState, user_id: Uuid) -> axum::Router {
@@ -370,7 +369,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri(format!("/api/v1/reviews?product_id={}", product_id))
+                    .uri(format!("/api/v1/reviews?product_id={product_id}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -390,7 +389,10 @@ mod tests {
             arr[0].get("product_id").and_then(|v| v.as_str()),
             Some(product_id.to_string().as_str())
         );
-        assert_eq!(arr[0].get("rating").and_then(|v| v.as_f64()), Some(4.0));
+        assert_eq!(
+            arr[0].get("rating").and_then(serde_json::Value::as_f64),
+            Some(4.0)
+        );
     }
 
     #[tokio::test]
@@ -481,7 +483,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri(format!("/api/v1/reviews?user_id={}", user_b))
+                    .uri(format!("/api/v1/reviews?user_id={user_b}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -706,8 +708,7 @@ mod tests {
             assert_eq!(
                 response.status(),
                 StatusCode::BAD_REQUEST,
-                "rating {} should be rejected",
-                rating
+                "rating {rating} should be rejected",
             );
         }
     }
@@ -874,7 +875,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -983,7 +984,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )

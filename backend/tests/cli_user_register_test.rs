@@ -51,7 +51,7 @@ async fn register_success_exit_0_and_stdout_contains_email() {
     let (result, stdout, stderr) =
         run_register(&pool, "Alice", "alice@example.com", "secret", false).await;
 
-    assert!(result.is_ok(), "expected Ok, stderr: {}", stderr);
+    assert!(result.is_ok(), "expected Ok, stderr: {stderr}");
     assert!(stdout.contains("registered") || stdout.contains("alice@example.com"));
     assert!(stderr.is_empty());
 }
@@ -95,8 +95,7 @@ async fn duplicate_email_returns_error_and_stderr_contains_already_registered() 
     let err_msg = r2.unwrap_err().to_string();
     assert!(
         err_msg.contains("already registered"),
-        "error should mention already registered: {}",
-        err_msg
+        "error should mention already registered: {err_msg}",
     );
 }
 

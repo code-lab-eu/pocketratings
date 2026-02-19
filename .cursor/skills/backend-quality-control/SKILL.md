@@ -29,7 +29,19 @@ Run Clippy on **all targets** (lib, bin, tests, examples):
 cd backend && cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 ```
 
-All warnings are treated as errors. Fix any reported issues before proceeding.
+All warnings are treated as errors.
+
+If Clippy reports fixable issues, you can use `--fix` to apply suggestions automatically, then re-run without `--fix` to confirm a clean run:
+
+```bash
+cd backend
+
+# Apply automatic fixes (may need multiple iterations)
+cargo clippy --all-targets --fix -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+
+# When fixes are applied, verify lint is clean
+cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+```
 
 ### 3. Test
 

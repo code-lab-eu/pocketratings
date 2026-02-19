@@ -4,7 +4,7 @@ use pocketratings::db;
 use pocketratings::domain::user::User;
 use uuid::Uuid;
 
-/// Minimal PHC-style string so User::new accepts it (non-empty). Not used for verification.
+/// Minimal PHC-style string so `User::new` accepts it (non-empty). Not used for verification.
 const PLACEHOLDER_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$x$x";
 
 #[tokio::test]

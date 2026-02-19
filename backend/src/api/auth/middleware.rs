@@ -184,7 +184,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .uri("/api/v1/me")
-                    .header("authorization", format!("Bearer {}", token))
+                    .header("authorization", format!("Bearer {token}"))
                     .body(Body::empty())
                     .expect("request"),
             )
