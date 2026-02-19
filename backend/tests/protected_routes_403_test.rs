@@ -15,10 +15,10 @@ const PLACEHOLDER_ID: &str = "00000000-0000-0000-0000-000000000001";
 
 /// Protected routes: (method, path). Paths with `:id` use PLACEHOLDER_ID.
 fn protected_routes() -> Vec<(Method, String)> {
-    let id_path_cat = format!("/api/v1/categories/{}", PLACEHOLDER_ID);
-    let id_path_loc = format!("/api/v1/locations/{}", PLACEHOLDER_ID);
-    let id_path_prod = format!("/api/v1/products/{}", PLACEHOLDER_ID);
-    let id_path_rev = format!("/api/v1/reviews/{}", PLACEHOLDER_ID);
+    let id_path_cat = format!("/api/v1/categories/{PLACEHOLDER_ID}");
+    let id_path_loc = format!("/api/v1/locations/{PLACEHOLDER_ID}");
+    let id_path_prod = format!("/api/v1/products/{PLACEHOLDER_ID}");
+    let id_path_rev = format!("/api/v1/reviews/{PLACEHOLDER_ID}");
     vec![
         (Method::GET, "/api/v1/me".to_string()),
         (Method::GET, "/api/v1/categories".to_string()),
@@ -119,11 +119,9 @@ async fn all_protected_routes_return_403_without_auth() {
     for (method, path) in protected_routes() {
         let body_bytes: Vec<u8> = if method == Method::POST || method == Method::PATCH {
             if path.contains("/reviews") {
-                r#"{"product_id":"00000000-0000-0000-0000-000000000003","rating":3}"#
-                    .as_bytes()
-                    .to_vec()
+                br#"{"product_id":"00000000-0000-0000-0000-000000000003","rating":3}"#.to_vec()
             } else {
-                r#"{"name":"x"}"#.as_bytes().to_vec()
+                br#"{"name":"x"}"#.to_vec()
             }
         } else {
             Vec::new()
@@ -144,9 +142,7 @@ async fn all_protected_routes_return_403_without_auth() {
         assert_eq!(
             response.status(),
             StatusCode::FORBIDDEN,
-            "{} {} should return 403 without auth header",
-            method,
-            path
+            "{method} {path} should return 403 without auth header",
         );
 
         // Test 2: Invalid authentication token => 403
@@ -167,9 +163,7 @@ async fn all_protected_routes_return_403_without_auth() {
         assert_eq!(
             response.status(),
             StatusCode::FORBIDDEN,
-            "{} {} should return 403 with invalid token",
-            method,
-            path
+            "{method} {path} should return 403 with invalid token",
         );
 
         // Test 3: Correct authentication token => !403
@@ -183,16 +177,14 @@ async fn all_protected_routes_return_403_without_auth() {
             Body::from(body_bytes)
         };
         let request = req_builder
-            .header("authorization", format!("Bearer {}", valid_token))
+            .header("authorization", format!("Bearer {valid_token}"))
             .body(body)
             .expect("request");
         let response = app.clone().oneshot(request).await.expect("service");
         assert_ne!(
             response.status(),
             StatusCode::FORBIDDEN,
-            "{} {} should not return 403 with valid token (may return 200, 201, 204, 404, etc.)",
-            method,
-            path
+            "{method} {path} should not return 403 with valid token (may return 200, 201, 204, 404, etc.)",
         );
     }
 }

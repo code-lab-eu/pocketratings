@@ -23,8 +23,10 @@ Ensures formatting is consistent. Fix any reformatting by re-running after code 
 
 ### 2. Lint (strict pedantic Clippy)
 
+Run Clippy on **all targets** (lib, bin, tests, examples):
+
 ```bash
-cd backend && cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+cd backend && cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 ```
 
 All warnings are treated as errors. Fix any reported issues before proceeding.
@@ -40,11 +42,11 @@ All tests must pass. Skip the long-running `server_start_and_stop_via_cli` test 
 ## One-shot (all checks)
 
 ```bash
-cd backend && cargo fmt && cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings && cargo test --release -- --skip server_start_and_stop_via_cli
+cd backend && cargo fmt && cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings && cargo test --release -- --skip server_start_and_stop_via_cli
 ```
 
 ## Done when
 
 - `cargo fmt` has been run and the tree is formatted.
-- `cargo clippy` with the flags above exits 0 (no warnings, no errors).
+- `cargo clippy` with the flags above exits 0 (no warnings, no errors) for all targets (including tests).
 - `cargo test --release -- --skip server_start_and_stop_via_cli` exits 0 (all tests pass, long-running server test skipped).

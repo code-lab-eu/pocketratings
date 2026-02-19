@@ -68,7 +68,7 @@ async fn delete_success_soft_deletes_user() {
 
     let (result, stdout, stderr) = run_delete(&pool, id, false).await;
 
-    assert!(result.is_ok(), "stderr: {}", stderr);
+    assert!(result.is_ok(), "stderr: {stderr}");
     assert!(stdout.contains("deleted") || stdout.contains(id));
     let got = db::user::get_by_id(&pool, id.parse().expect("uuid"))
         .await
@@ -108,8 +108,7 @@ async fn delete_unknown_id_returns_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(
         err_msg.contains("not found") || err_msg.contains("already deleted"),
-        "error should mention not found or already deleted: {}",
-        err_msg
+        "error should mention not found or already deleted: {err_msg}",
     );
 }
 
@@ -155,7 +154,7 @@ async fn delete_force_removes_user_from_database() {
 
     let (result, stdout, stderr) = run_delete(&pool, id, true).await;
 
-    assert!(result.is_ok(), "stderr: {}", stderr);
+    assert!(result.is_ok(), "stderr: {stderr}");
     assert!(stdout.contains("removed") || stdout.contains(id));
     let got = db::user::get_by_id(&pool, id.parse().expect("uuid"))
         .await

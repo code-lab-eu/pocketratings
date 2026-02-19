@@ -3,8 +3,8 @@
 //! This module is only compiled when running tests.
 
 #![cfg(test)]
+#![allow(clippy::missing_panics_doc)]
 
-use rust_decimal::Decimal;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 

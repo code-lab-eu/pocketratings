@@ -44,7 +44,7 @@ async fn location_create_and_show_roundtrip() {
         ],
     )
     .await;
-    assert!(create_result.is_ok(), "stderr: {}", create_stderr);
+    assert!(create_result.is_ok(), "stderr: {create_stderr}");
     let line = create_stdout.lines().next().expect("line");
     let json: serde_json::Value = serde_json::from_str(line).expect("json");
     let id = json
@@ -56,7 +56,7 @@ async fn location_create_and_show_roundtrip() {
 
     let (show_result, show_stdout, show_stderr) =
         run_location(&pool, &["location", "show", id, "--output", "json"]).await;
-    assert!(show_result.is_ok(), "stderr: {}", show_stderr);
+    assert!(show_result.is_ok(), "stderr: {show_stderr}");
     let line = show_stdout.lines().next().expect("show line");
     let show_json: serde_json::Value = serde_json::from_str(line).expect("json");
     assert_eq!(
@@ -150,7 +150,7 @@ async fn location_update() {
         ],
     )
     .await;
-    assert!(update_res.is_ok(), "stderr: {}", update_stderr);
+    assert!(update_res.is_ok(), "stderr: {update_stderr}");
     let line = update_stdout.lines().next().expect("line");
     let json: serde_json::Value = serde_json::from_str(line).expect("json");
     assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("NewName"));
@@ -191,7 +191,7 @@ async fn location_delete_soft_deletes() {
 
     let (del_result, _del_stdout, del_stderr) =
         run_location(&pool, &["location", "delete", &id]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let location = db::location::get_by_id(&pool, id.parse().expect("uuid"))
         .await
@@ -236,7 +236,7 @@ async fn location_delete_force_removes_row() {
 
     let (del_result, _del_stdout, del_stderr) =
         run_location(&pool, &["location", "delete", &id, "--force"]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let location = db::location::get_by_id(&pool, id.parse().expect("uuid"))
         .await

@@ -44,7 +44,7 @@ async fn category_create_and_show_roundtrip() {
         ],
     )
     .await;
-    assert!(create_result.is_ok(), "stderr: {}", create_stderr);
+    assert!(create_result.is_ok(), "stderr: {create_stderr}");
     let line = create_stdout.lines().next().expect("line");
     let json: serde_json::Value = serde_json::from_str(line).expect("json");
     let id = json
@@ -55,7 +55,7 @@ async fn category_create_and_show_roundtrip() {
 
     let (show_result, show_stdout, show_stderr) =
         run_category(&pool, &["category", "show", id, "--output", "json"]).await;
-    assert!(show_result.is_ok(), "stderr: {}", show_stderr);
+    assert!(show_result.is_ok(), "stderr: {show_stderr}");
     let line = show_stdout.lines().next().expect("show line");
     let show_json: serde_json::Value = serde_json::from_str(line).expect("json");
     assert_eq!(
@@ -115,7 +115,7 @@ async fn category_list_filters_by_parent_id() {
         ],
     )
     .await;
-    assert!(list_res.is_ok(), "stderr: {}", list_stderr);
+    assert!(list_res.is_ok(), "stderr: {list_stderr}");
     let line = list_stdout.lines().next().expect("list line");
     let arr: Vec<serde_json::Value> = serde_json::from_str(line).expect("json array");
     assert_eq!(arr.len(), 1);
@@ -148,7 +148,7 @@ async fn category_delete_soft_deletes_category() {
 
     let (del_result, _del_stdout, del_stderr) =
         run_category(&pool, &["category", "delete", id]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"))
         .await
@@ -254,7 +254,7 @@ async fn category_delete_force_removes_row() {
 
     let (del_result, _del_stdout, del_stderr) =
         run_category(&pool, &["category", "delete", id, "--force"]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"))
         .await

@@ -2,7 +2,7 @@
 
 use pocketratings::db;
 
-/// Helper: count how many tables with the given name exist in sqlite_master.
+/// Helper: count how many tables with the given name exist in `sqlite_master`.
 async fn table_exists(pool: &sqlx::SqlitePool, table_name: &str) -> bool {
     let row: (i64,) =
         sqlx::query_as("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?")
@@ -46,7 +46,7 @@ async fn migrations_create_all_tables() {
     }
 }
 
-/// Verify that foreign keys are enforced (PRAGMA foreign_keys = ON).
+/// Verify that foreign keys are enforced (PRAGMA `foreign_keys` = ON).
 #[tokio::test]
 async fn foreign_keys_are_enabled() {
     let dir = tempfile::tempdir().expect("failed to create temp dir");

@@ -43,12 +43,11 @@ async fn list_success_empty_when_no_users() {
 
     let (result, stdout, stderr) = run_list(&pool, false, false).await;
 
-    assert!(result.is_ok(), "stderr: {}", stderr);
+    assert!(result.is_ok(), "stderr: {stderr}");
     assert!(stderr.is_empty());
     assert!(
         stdout.trim().is_empty(),
-        "stdout should be empty: {:?}",
-        stdout
+        "stdout should be empty: {stdout:?}",
     );
 }
 
@@ -85,7 +84,7 @@ async fn list_shows_registered_users() {
 
     let (result, stdout, stderr) = run_list(&pool, false, false).await;
 
-    assert!(result.is_ok(), "stderr: {}", stderr);
+    assert!(result.is_ok(), "stderr: {stderr}");
     assert!(stdout.contains("alice@example.com"));
     assert!(stdout.contains("Alice"));
 }
@@ -123,7 +122,7 @@ async fn list_output_json_produces_valid_json_array() {
 
     let (result, stdout, stderr) = run_list(&pool, true, false).await;
 
-    assert!(result.is_ok(), "stderr: {}", stderr);
+    assert!(result.is_ok(), "stderr: {stderr}");
     let line = stdout.lines().next().expect("at least one line");
     let arr: Vec<serde_json::Value> = serde_json::from_str(line).expect("valid JSON array");
     assert_eq!(arr.len(), 1);
@@ -163,15 +162,13 @@ async fn list_include_deleted_includes_soft_deleted_user() {
     assert!(result_default.is_ok());
     assert!(
         !stdout_default.contains("deleted@example.com"),
-        "default list should not include deleted: {}",
-        stdout_default
+        "default list should not include deleted: {stdout_default}",
     );
 
     let (result_include, stdout_include, stderr) = run_list(&pool, false, true).await;
-    assert!(result_include.is_ok(), "stderr: {}", stderr);
+    assert!(result_include.is_ok(), "stderr: {stderr}");
     assert!(
         stdout_include.contains("deleted@example.com"),
-        "list --include-deleted should include deleted user: {}",
-        stdout_include
+        "list --include-deleted should include deleted user: {stdout_include}",
     );
 }

@@ -20,11 +20,11 @@ cargo build --release
 
 ## Lint
 
-Strict pedantic mode; all warnings are errors:
+Strict pedantic mode; all warnings are errors. Run Clippy on **all targets** (lib, bin, tests, examples):
 
 ```bash
 cd backend
-cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 ```
 
 ## Test
@@ -39,6 +39,6 @@ cargo test --release
 ```bash
 cd backend
 cargo build --release && \
-cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings && \
+cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings && \
 cargo test --release
 ```

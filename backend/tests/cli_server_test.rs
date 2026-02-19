@@ -48,6 +48,7 @@ impl Drop for TestServer {
     fn drop(&mut self) {
         if let Some(server_id) = self.server.id() {
             tokio::task::spawn_blocking(move || {
+                #[allow(clippy::cast_possible_wrap)]
                 let pid = Pid::from_raw(server_id as i32);
                 let _ = kill(pid, Signal::SIGINT);
             });
@@ -86,7 +87,7 @@ impl TestServer {
         });
         notify.notified().await;
 
-        TestServer {
+        Self {
             _dir: dir,
             server,
             stderr: stderr_lines,
@@ -94,6 +95,7 @@ impl TestServer {
     }
 
     async fn stop(&mut self) {
+        #[allow(clippy::cast_possible_wrap)]
         let pid = Pid::from_raw(self.server.id().expect("server process should be running") as i32);
         kill(pid, Signal::SIGINT).expect("SIGINT should be sent");
 
@@ -121,8 +123,7 @@ async fn server_start_cli_requires_database() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains("database pool required"),
-        "error should mention database pool: {}",
-        err
+        "error should mention database pool: {err}",
     );
 }
 
@@ -146,8 +147,7 @@ async fn server_stop_no_pid_file_returns_error() {
     let err_msg = result.unwrap_err().to_string();
     assert!(
         err_msg.contains("PID file not found") || err_msg.contains("not found"),
-        "error should mention PID file or not found: {}",
-        err_msg
+        "error should mention PID file or not found: {err_msg}",
     );
 }
 

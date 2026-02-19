@@ -33,7 +33,7 @@ jobs:
       - name: Lint
         if: always()
         working-directory: backend
-        run: cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+        run: cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 
       - name: Test
         if: always()

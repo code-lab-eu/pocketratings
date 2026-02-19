@@ -128,7 +128,7 @@ async fn output_json_produces_valid_json_with_id_and_email() {
     let (result, stdout, stderr) =
         run_register(&pool, "Carol", "carol@example.com", "secret", true).await;
 
-    assert!(result.is_ok(), "stderr: {}", stderr);
+    assert!(result.is_ok(), "stderr: {stderr}");
     assert!(stderr.is_empty());
     let line = stdout.lines().next().expect("at least one line");
     let json: serde_json::Value = serde_json::from_str(line).expect("valid JSON");

@@ -65,7 +65,7 @@ async fn product_create_and_show_roundtrip() {
         ],
     )
     .await;
-    assert!(create_result.is_ok(), "stderr: {}", create_stderr);
+    assert!(create_result.is_ok(), "stderr: {create_stderr}");
     let line = create_stdout.lines().next().expect("line");
     let json: serde_json::Value = serde_json::from_str(line).expect("json");
     let id = json
@@ -77,7 +77,7 @@ async fn product_create_and_show_roundtrip() {
 
     let (show_result, show_stdout, show_stderr) =
         run_product(&pool, &["product", "show", id, "--output", "json"]).await;
-    assert!(show_result.is_ok(), "stderr: {}", show_stderr);
+    assert!(show_result.is_ok(), "stderr: {show_stderr}");
     let line = show_stdout.lines().next().expect("show line");
     let show_json: serde_json::Value = serde_json::from_str(line).expect("json");
     assert_eq!(
@@ -160,7 +160,7 @@ async fn product_list_filters_by_category_id() {
         ],
     )
     .await;
-    assert!(list_res.is_ok(), "stderr: {}", list_stderr);
+    assert!(list_res.is_ok(), "stderr: {list_stderr}");
     let line = list_stdout.lines().next().expect("list line");
     let arr: Vec<serde_json::Value> = serde_json::from_str(line).expect("json array");
     assert_eq!(arr.len(), 2);
@@ -272,7 +272,7 @@ async fn product_update() {
         ],
     )
     .await;
-    assert!(update_res.is_ok(), "stderr: {}", update_stderr);
+    assert!(update_res.is_ok(), "stderr: {update_stderr}");
     let line = update_stdout.lines().next().expect("line");
     let json: serde_json::Value = serde_json::from_str(line).expect("json");
     assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("NewName"));
@@ -324,7 +324,7 @@ async fn product_delete_soft_deletes() {
 
     let (del_result, _del_stdout, del_stderr) =
         run_product(&pool, &["product", "delete", &id]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let product = db::product::get_by_id(&pool, id.parse().expect("uuid"))
         .await
@@ -379,7 +379,7 @@ async fn product_delete_force_removes_row() {
 
     let (del_result, _del_stdout, del_stderr) =
         run_product(&pool, &["product", "delete", &id, "--force"]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let product = db::product::get_by_id(&pool, id.parse().expect("uuid"))
         .await

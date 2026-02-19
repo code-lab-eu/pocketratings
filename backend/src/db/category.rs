@@ -418,11 +418,17 @@ mod tests {
         assert!(tree.category.is_none());
         assert_eq!(tree.children.len(), 2);
         assert_eq!(
-            tree.children[0].category.as_ref().map(|c| c.name()),
+            tree.children[0]
+                .category
+                .as_ref()
+                .map(crate::domain::category::Category::name),
             Some("A")
         );
         assert_eq!(
-            tree.children[1].category.as_ref().map(|c| c.name()),
+            tree.children[1]
+                .category
+                .as_ref()
+                .map(crate::domain::category::Category::name),
             Some("B")
         );
         assert!(tree.children[0].children.is_empty());
@@ -441,7 +447,10 @@ mod tests {
         assert!(tree.category.is_none());
         assert_eq!(tree.children.len(), 1);
         assert_eq!(
-            tree.children[0].category.as_ref().map(|c| c.name()),
+            tree.children[0]
+                .category
+                .as_ref()
+                .map(crate::domain::category::Category::name),
             Some("Root")
         );
         assert_eq!(tree.children[0].children.len(), 1);
@@ -449,7 +458,7 @@ mod tests {
             tree.children[0].children[0]
                 .category
                 .as_ref()
-                .map(|c| c.name()),
+                .map(crate::domain::category::Category::name),
             Some("Child")
         );
         assert!(tree.children[0].children[0].children.is_empty());
@@ -465,10 +474,18 @@ mod tests {
             make_category(child_id, Some(root_id), "Child"),
         ];
         let tree = get_tree(flat, Some(root_cat));
-        assert_eq!(tree.category.as_ref().map(|c| c.name()), Some("Root"));
+        assert_eq!(
+            tree.category
+                .as_ref()
+                .map(crate::domain::category::Category::name),
+            Some("Root")
+        );
         assert_eq!(tree.children.len(), 1);
         assert_eq!(
-            tree.children[0].category.as_ref().map(|c| c.name()),
+            tree.children[0]
+                .category
+                .as_ref()
+                .map(crate::domain::category::Category::name),
             Some("Child")
         );
         assert!(tree.children[0].children.is_empty());
@@ -478,7 +495,12 @@ mod tests {
     fn get_tree_empty_list_root_some() {
         let root_cat = make_category(Uuid::new_v4(), None, "Only");
         let tree = get_tree(Vec::new(), Some(root_cat.clone()));
-        assert_eq!(tree.category.as_ref().map(|c| c.id()), Some(root_cat.id()));
+        assert_eq!(
+            tree.category
+                .as_ref()
+                .map(crate::domain::category::Category::id),
+            Some(root_cat.id())
+        );
         assert!(tree.children.is_empty());
     }
 }

@@ -104,7 +104,7 @@ async fn review_create_and_show_roundtrip() {
         ],
     )
     .await;
-    assert!(create_result.is_ok(), "stderr: {}", create_stderr);
+    assert!(create_result.is_ok(), "stderr: {create_stderr}");
     let line = create_stdout.lines().next().expect("line");
     let json: serde_json::Value = serde_json::from_str(line).expect("json");
     let id = json
@@ -119,7 +119,7 @@ async fn review_create_and_show_roundtrip() {
 
     let (show_result, show_stdout, show_stderr) =
         run_review(&pool, &["review", "show", id, "--output", "json"]).await;
-    assert!(show_result.is_ok(), "stderr: {}", show_stderr);
+    assert!(show_result.is_ok(), "stderr: {show_stderr}");
     let line = show_stdout.lines().next().expect("show line");
     let show_json: serde_json::Value = serde_json::from_str(line).expect("json");
     assert_eq!(show_json.get("rating").and_then(|v| v.as_str()), Some("4"));
@@ -130,6 +130,7 @@ async fn review_create_and_show_roundtrip() {
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn review_list_with_filters_and_include_deleted() {
     let dir = tempfile::tempdir().expect("temp dir");
     let db_path = dir.path().join("cli_review_list.db");
@@ -247,6 +248,7 @@ async fn review_list_with_filters_and_include_deleted() {
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn review_update() {
     let dir = tempfile::tempdir().expect("temp dir");
     let db_path = dir.path().join("cli_review_update.db");
@@ -348,7 +350,7 @@ async fn review_update() {
         ],
     )
     .await;
-    assert!(update_res.is_ok(), "stderr: {}", update_stderr);
+    assert!(update_res.is_ok(), "stderr: {update_stderr}");
     let line = update_stdout.lines().next().expect("line");
     let json: serde_json::Value = serde_json::from_str(line).expect("json");
     assert_eq!(json.get("rating").and_then(|v| v.as_str()), Some("5"));
@@ -453,7 +455,7 @@ async fn review_delete_soft_deletes() {
     let id_uuid = id.parse().expect("uuid");
 
     let (del_result, _, del_stderr) = run_review(&pool, &["review", "delete", &id]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let by_id = db::review::get_by_id(&pool, id_uuid)
         .await
@@ -556,7 +558,7 @@ async fn review_delete_force_removes_row() {
 
     let (del_result, _, del_stderr) =
         run_review(&pool, &["review", "delete", &id, "--force"]).await;
-    assert!(del_result.is_ok(), "stderr: {}", del_stderr);
+    assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
     let by_id = db::review::get_by_id(&pool, id_uuid)
         .await

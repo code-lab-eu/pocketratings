@@ -70,7 +70,7 @@ The built site output location depends on the Svelte setup (e.g. `frontend/build
 ```bash
 cd backend
 cargo build
-cargo clippy -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+cargo clippy --all-targets -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 cargo test
 
 # Start the server
@@ -94,8 +94,8 @@ The dev server will start at `http://localhost:3000`.
 ## Lint
 
 ```bash
-# Backend
-cd backend && cargo clippy --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
+# Backend (all targets: lib, bin, tests, examples)
+cd backend && cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 
 # Frontend
 cd frontend && bun run lint

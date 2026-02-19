@@ -556,7 +556,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -571,7 +571,10 @@ mod tests {
             .to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         assert_eq!(json.get("id").and_then(|v| v.as_str()), Some(id));
-        assert_eq!(json.get("rating").and_then(|v| v.as_f64()), Some(4.5));
+        assert_eq!(
+            json.get("rating").and_then(serde_json::Value::as_f64),
+            Some(4.5)
+        );
         assert_eq!(json.get("text").and_then(|v| v.as_str()), Some("Good."));
     }
 
@@ -584,7 +587,7 @@ mod tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -632,7 +635,10 @@ mod tests {
             json.get("user_id").and_then(|v| v.as_str()),
             Some(user_id.to_string().as_str())
         );
-        assert_eq!(json.get("rating").and_then(|v| v.as_f64()), Some(4.0));
+        assert_eq!(
+            json.get("rating").and_then(serde_json::Value::as_f64),
+            Some(4.0)
+        );
         assert_eq!(
             json.get("text").and_then(|v| v.as_str()),
             Some("Nice product")
@@ -744,7 +750,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -759,7 +765,10 @@ mod tests {
             .expect("body")
             .to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
-        assert_eq!(json.get("rating").and_then(|v| v.as_f64()), Some(5.0));
+        assert_eq!(
+            json.get("rating").and_then(serde_json::Value::as_f64),
+            Some(5.0)
+        );
         assert_eq!(json.get("text").and_then(|v| v.as_str()), Some("Updated"));
         let uuid = Uuid::parse_str(id).expect("uuid");
         let persisted = db::review::get_by_id(&state.pool, uuid).await.expect("db");
@@ -779,7 +788,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -818,7 +827,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/reviews/{}", review_id))
+                    .uri(format!("/api/v1/reviews/{review_id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -909,14 +918,14 @@ mod tests {
         let id = created.get("id").and_then(|v| v.as_str()).expect("id");
         let updated_at_before = created
             .get("updated_at")
-            .and_then(|v| v.as_i64())
+            .and_then(serde_json::Value::as_i64)
             .expect("updated_at");
         let patch_body = serde_json::json!({ "rating": 4, "text": "Same" });
         let response = app
             .oneshot(
                 Request::builder()
                     .method("PATCH")
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&patch_body).expect("json")))
                     .expect("request"),
@@ -932,7 +941,7 @@ mod tests {
             .to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         assert_eq!(
-            json.get("updated_at").and_then(|v| v.as_i64()),
+            json.get("updated_at").and_then(serde_json::Value::as_i64),
             Some(updated_at_before)
         );
     }
@@ -1034,7 +1043,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(format!("/api/v1/reviews/{}?force=true", id))
+                    .uri(format!("/api/v1/reviews/{id}?force=true"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -1057,7 +1066,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(format!("/api/v1/reviews/{}", id))
+                    .uri(format!("/api/v1/reviews/{id}"))
                     .body(Body::empty())
                     .expect("request"),
             )
@@ -1094,7 +1103,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(format!("/api/v1/reviews/{}", review_id))
+                    .uri(format!("/api/v1/reviews/{review_id}"))
                     .body(Body::empty())
                     .expect("request"),
             )

@@ -20,8 +20,8 @@ echo "=== Backend: format check ==="
 	echo "Run: cd backend && cargo fmt"
 	exit 1
 }
-echo "=== Backend: clippy (pedantic) ==="
-(cd backend && cargo clippy -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings)
+echo "=== Backend: clippy (pedantic, all targets) ==="
+(cd backend && cargo clippy --all-targets -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings)
 echo "=== Backend: test ==="
 (cd backend && cargo test)
 
