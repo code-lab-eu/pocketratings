@@ -68,14 +68,73 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 ## Frontend
 
+### Home page: live-updating search
+
+**Status:** Planned (post–Phase 3)
+
+**Goal:** Update search results as the user types, without a full page reload.
+
+**Tasks:**
+- Keep search on the home page (`/?q=...`).
+- As the user types in the search input, update the URL (e.g. via `replaceState` or SvelteKit navigation) and re-run load (or refetch) so that categories and products filter in real time, without requiring the user to submit the form.
+- Optionally debounce (e.g. 300 ms) to avoid excessive requests while typing.
+- Do not reload the full page; use client-side navigation and data updates.
+
+**Rationale:** Current implementation uses submit-only search for simplicity; this improves UX for in-store lookup.
+
+### Home page: search by category name
+
+**Status:** Planned
+
+**Goal:** When searching on the homepage, include products that are linked to a category whose name matches the search term.
+
+**Tasks:**
+- Extend the search logic to query products by category name in addition to product name.
+- Backend: Update `GET /api/v1/products` search to include products where the product's category (or any ancestor category) name matches the search term.
+- Frontend: No changes needed if backend handles category matching; otherwise update frontend search to also query categories and include their products.
+
+**Rationale:** Users may search by category name (e.g. "wine", "cheese") and expect to see all products in that category, not just products with that word in their name.
+
+### Search engine evaluation
+
+**Status:** Future consideration
+
+**Goal:** Evaluate whether to integrate a more powerful search engine like Typesense for improved search capabilities.
+
+**Considerations:**
+- Current search is basic (name matching, possibly category matching).
+- Typesense (or similar) would provide:
+  - Full-text search with typo tolerance
+  - Faceted search (filter by category, location, etc.)
+  - Relevance ranking
+  - Multi-field search (name, description, category, etc.)
+- Trade-offs:
+  - Additional infrastructure and complexity
+  - Need to keep search index in sync with database
+  - May be overkill for personal use case
+- Decision point: Evaluate when search requirements grow (e.g. large product catalog, need for advanced filtering, or user feedback indicates search is insufficient).
+
+### Purchases API: include location in response
+
+**Status:** Planned
+
+**Goal:** Allow the frontend to show location name in purchase history without a separate `GET /api/v1/locations` call or client-side resolution by id.
+
+**Tasks:**
+- Extend purchase list and purchase detail responses to include location data with each purchase item. Options: (a) nested object `"location": { "id": "uuid", "name": "Store Name" }`, or (b) top-level `"location_name": "Store Name"` (and keep `location_id`).
+- Document the response shape in [api.md](api.md).
+- Frontend will use this when available; until then the frontend may call `listLocations()` and resolve `location_id` client-side.
+
+**Rationale:** Reduces round-trips and keeps product-detail load simpler when showing purchase history.
+
 ### Svelte Web Application
 
 **Status:** Planned
 
-**Primary use case:** In-store decision making — user in a shop (e.g. supermarket) looks up products by category or search and sees their own ratings at a glance to decide what to buy. See [spec: Frontend (web app)](spec.md#frontend-web-app) for information architecture, screens, and data flow.
+**Primary use case:** In-store decision making — user in a shop (e.g. supermarket) looks up products by category or search and sees clear product ratings at a glance (based on the average rating from all reviews) to decide what to buy. See [spec: Frontend (web app)](spec.md#frontend-web-app) for information architecture, screens, and data flow.
 
 **Scope:**
-- **Primary (home):** Category list + prominent search; category → products with my rating; search results with ratings; product detail (reviews, purchase history).
+- **Primary (home):** Category list + prominent search; category → products with an average rating (computed from all reviews, with the user's own rating optionally highlighted separately); search results with ratings; product detail (reviews, purchase history).
 - **Auth:** Login with JWT; token in localStorage; handle `X-New-Token` refresh. Registration remains CLI-only.
 - **Management (menu):** Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews — all behind a single entry point (e.g. hamburger or "More" menu).
 
@@ -83,10 +142,28 @@ This document tracks planned features and improvements for Pocket Ratings.
 - Svelte with TypeScript
 - Mobile-first, responsive (single column, thumb-friendly)
 - Client-side routing
-- API integration with REST endpoints; two-call pattern for list views (products + my reviews merged in frontend)
+- API integration with REST endpoints; two-call pattern for list views (products + reviews merged in frontend) so that the frontend can compute per-product average ratings from all reviews, while optionally highlighting the current user's rating separately.
 - Token storage and refresh handling
 - Form validation, error handling, user feedback
 - Dark mode support (optional)
+
+### Product list ratings: global average
+
+**Status:** Planned
+
+**Goal:** Ensure that product lists (on home and category pages) display ratings based on the **average of all reviews from all users**, not just the current user's ratings.
+
+**Tasks:**
+- Frontend:
+  - When loading product lists, fetch all relevant reviews (not only `user_id = current`), and compute per-product average ratings client-side.
+  - Optionally fetch current-user reviews separately and visually distinguish the user's own rating (e.g. badge or secondary marker) without overriding the global average.
+- Backend (optional future enhancement):
+  - Consider adding aggregated fields (e.g. `average_rating`, `review_count`) to product responses or a dedicated aggregate endpoint to avoid recomputing averages on every request.
+  - Document any aggregate fields in [api.md](api.md) and update the spec once implemented.
+
+**Rationale:**
+- Averages across all users provide a more objective signal for decision making than showing only the current user's ratings.
+- Keeping the averaging logic in the frontend initially avoids premature backend complexity, while leaving room for a future API-level optimization.
 
 **Design Considerations:**
 - Lookup-first, not data-entry-first; management tucked away in menu

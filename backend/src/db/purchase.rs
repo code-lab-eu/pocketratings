@@ -186,6 +186,35 @@ pub async fn insert(pool: &SqlitePool, purchase: &Purchase) -> Result<(), crate:
     Ok(())
 }
 
+/// Update an existing purchase (all fields). Only updates active (non–soft-deleted) rows.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure, or [`crate::db::DbError::InvalidData`] if
+/// no active purchase exists with the given id.
+pub async fn update(pool: &SqlitePool, purchase: &Purchase) -> Result<(), crate::db::DbError> {
+    let id_str = purchase.id().to_string();
+    let result = sqlx::query(
+        "UPDATE purchases SET user_id = ?, product_id = ?, location_id = ?, quantity = ?, price = ?, purchased_at = ? WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(purchase.user_id().to_string())
+    .bind(purchase.product_id().to_string())
+    .bind(purchase.location_id().to_string())
+    .bind(purchase.quantity())
+    .bind(purchase.price().to_string())
+    .bind(purchase.purchased_at())
+    .bind(&id_str)
+    .execute(pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "purchase not found or already deleted: {id_str}"
+        )));
+    }
+    Ok(())
+}
+
 /// Soft-delete a purchase by id. Sets `deleted_at` to the current time.
 ///
 /// # Errors

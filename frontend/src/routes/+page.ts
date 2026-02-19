@@ -1,13 +1,48 @@
 import type { PageLoad } from './$types';
-import { listCategories } from '$lib/api';
+import { listCategories, listProducts, listReviews } from '$lib/api';
+import type { Product, Review } from '$lib/types';
 
-export const load: PageLoad = async () => {
+export interface ProductWithReview {
+	product: Product;
+	rating?: number;
+	text?: string | null;
+}
+
+export const load: PageLoad = async ({ url }) => {
+	const q = url.searchParams.get('q') ?? '';
 	try {
-		const categories = await listCategories();
-		return { categories, error: null };
+		const [categoriesRoot, products, reviews] = await Promise.all([
+			listCategories(),
+			q ? listProducts({ q }) : listProducts(),
+			listReviews()
+		]);
+		// Filter categories client-side by keyword (name contains q, case-insensitive)
+		const categories =
+			q.trim() === ''
+				? categoriesRoot
+				: categoriesRoot.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
+		// Latest review per product
+		const reviewByProductId = new Map<string, Review>();
+		for (const r of reviews) {
+			const existing = reviewByProductId.get(r.product_id);
+			if (!existing || r.updated_at > existing.updated_at) {
+				reviewByProductId.set(r.product_id, r);
+			}
+		}
+		const items: ProductWithReview[] = products.map((product) => {
+			const review = reviewByProductId.get(product.id);
+			return {
+				product,
+				rating: review != null ? review.rating : undefined,
+				text: review?.text ?? undefined
+			};
+		});
+		return { categories, items, query: q, error: null };
 	} catch (e) {
 		return {
 			categories: [],
+			items: [],
+			query: q,
 			error: e instanceof Error ? e.message : String(e)
 		};
 	}

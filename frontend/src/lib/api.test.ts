@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as auth from './auth';
 import {
 	getCategory,
+	getProduct,
 	listCategories,
+	listLocations,
 	listProducts,
+	listPurchases,
 	listReviews,
 	login
 } from './api';
@@ -172,5 +175,82 @@ describe('api', () => {
 		await listReviews('prod-1');
 
 		expect(String(mockFetch.mock.calls[0][0])).toContain('product_id=prod-1');
+	});
+
+	it('getProduct fetches GET /api/v1/products/:id and returns product', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const product = {
+			id: 'pid',
+			category_id: 'cid',
+			brand: 'Brand',
+			name: 'Product',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(product), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await getProduct('pid');
+
+		expect(result).toEqual(product);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/products/pid');
+	});
+
+	it('listPurchases without options fetches GET /api/v1/purchases', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		await listPurchases();
+
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/purchases');
+		expect(String(mockFetch.mock.calls[0][0])).not.toContain('product_id');
+	});
+
+	it('listPurchases with product_id adds query param', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const purchases = [
+			{
+				id: 'p1',
+				user_id: 'u1',
+				product_id: 'prod-1',
+				location_id: 'loc-1',
+				quantity: 1,
+				price: '2.99',
+				purchased_at: 1708012800,
+				deleted_at: null
+			}
+		];
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(purchases), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await listPurchases({ product_id: 'prod-1' });
+
+		expect(result).toEqual(purchases);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('product_id=prod-1');
+	});
+
+	it('listLocations fetches GET /api/v1/locations and returns array', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const locations = [
+			{ id: 'loc1', name: 'Store A', deleted_at: null }
+		];
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(locations), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await listLocations();
+
+		expect(result).toEqual(locations);
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/locations');
 	});
 });

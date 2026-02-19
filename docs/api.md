@@ -404,7 +404,8 @@ List purchases.
 - `from` (optional, ISO 8601 date): Start date
 - `to` (optional, ISO 8601 date): End date
 
-**Response:** `200 OK`
+**Response:** `200 OK` — Array of purchases. When there are no matching purchases (e.g. the product exists but has no purchases), the response is `200 OK` with body `[]`.
+
 ```json
 [
   {
@@ -502,9 +503,10 @@ List reviews.
 
 **Query parameters:**
 - `product_id` (optional, UUID): Filter by product
-- `user_id` (optional, UUID): Filter by user (default: current user for "my reviews")
+- `user_id` (optional, UUID): Filter by user
 
-**Response:** `200 OK`
+**Response:** `200 OK` — Array of reviews. When there are no matching reviews (e.g. the product exists but has no reviews), the response is `200 OK` with body `[]`.
+
 ```json
 [
   {

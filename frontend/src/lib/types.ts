@@ -30,3 +30,22 @@ export interface Review {
 	updated_at: number;
 	deleted_at: number | null;
 }
+
+/** Purchase from GET /api/v1/purchases (and :id). */
+export interface Purchase {
+	id: string;
+	user_id: string;
+	product_id: string;
+	location_id: string;
+	quantity: number;
+	price: string;
+	purchased_at: number;
+	deleted_at: number | null;
+}
+
+/** Location from GET /api/v1/locations (and :id). */
+export interface Location {
+	id: string;
+	name: string;
+	deleted_at: number | null;
+}

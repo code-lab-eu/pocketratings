@@ -6,6 +6,7 @@ use super::auth::{auth_middleware, login_route, me_route};
 use super::category;
 use super::location;
 use super::product;
+use super::purchase;
 use super::review;
 use super::state::AppState;
 
@@ -20,6 +21,7 @@ pub fn router(state: AppState) -> Router {
         .merge(category::route())
         .merge(location::route())
         .merge(product::route())
+        .merge(purchase::route())
         .merge(review::route())
         .route_layer(middleware::from_fn_with_state(
             state.clone(),

@@ -229,3 +229,54 @@ async fn purchase_hard_delete_removes_row() {
         .expect("list");
     assert!(with_deleted.is_empty());
 }
+
+#[tokio::test]
+async fn purchase_update_changes_quantity_and_price() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("purchase_update.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (user_id, product_id, location_id) = insert_user_product_location(&pool).await;
+
+    let purchase_id = Uuid::new_v4();
+    let price: Decimal = "2.00".parse().expect("decimal");
+    let purchase = Purchase::new(
+        purchase_id,
+        user_id,
+        product_id,
+        location_id,
+        1,
+        price,
+        1_000,
+        None,
+    )
+    .expect("valid");
+    db::purchase::insert(&pool, &purchase)
+        .await
+        .expect("insert");
+
+    // Update quantity and price.
+    let updated_price: Decimal = "3.50".parse().expect("decimal");
+    let updated = Purchase::new(
+        purchase_id,
+        user_id,
+        product_id,
+        location_id,
+        3,
+        updated_price,
+        1_000,
+        None,
+    )
+    .expect("valid");
+    db::purchase::update(&pool, &updated).await.expect("update");
+
+    let loaded = db::purchase::get_by_id(&pool, purchase_id)
+        .await
+        .expect("get_by_id")
+        .expect("purchase should exist");
+    assert_eq!(loaded.quantity(), 3);
+    assert_eq!(loaded.price(), updated_price);
+}

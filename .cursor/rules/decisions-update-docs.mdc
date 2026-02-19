@@ -1,0 +1,34 @@
+---
+description: When making or implementing decisions that change functionality, update spec, API docs, roadmap, README, and plans
+alwaysApply: true
+---
+
+# Record decisions in documentation
+
+When you or the user make or implement a **decision that changes functionality**, keep documentation in sync. Update every artifact that is affected; do not leave specs, API docs, or plans outdated.
+
+## What counts
+
+- Changes to **user-facing behavior** (flows, screens, routes, URIs)
+- Changes to **API contract** (endpoints, request/response shape, query params)
+- **Product or UX decisions** (e.g. “search on home only”, “purchase history shows date/location/price”, “placeholder links go to `/manage/reviews/add?product_id=...`”)
+- **Scope or roadmap** (new features, deferred work, technical debt)
+
+## Artifacts to consider
+
+| Artifact | When to update |
+|----------|----------------|
+| **docs/spec.md** | Behavior, screens, data flow, frontend/backend contract |
+| **docs/api.md** | REST endpoints, request/response, errors |
+| **docs/api.http** | Runnable examples for any changed or new endpoint |
+| **docs/roadmap.md** | New or changed planned work, deferred features, backend/frontend improvements |
+| **README.md** | Setup, run instructions, high-level scope if it changed |
+| **Plan files** (e.g. `.cursor/plans/*.plan.md`, parent and phase plans) | Route tables, phase scope, decisions, URIs, out-of-scope items |
+
+## What to do
+
+1. After making or implementing a functional/API/product decision, identify which of the above are affected.
+2. Update each affected artifact so it matches the decision (same URIs, same behavior, same scope).
+3. If a decision is recorded in only one place (e.g. a phase plan), add it to the main plan and spec as well so future work and other readers see it.
+
+Existing rules (e.g. API endpoint documentation) still apply; this rule ensures **all** such decisions flow through to the right docs, not only new endpoints.

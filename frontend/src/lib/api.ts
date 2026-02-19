@@ -1,5 +1,5 @@
 import { getToken, setToken } from '$lib/auth';
-import type { Category, Product, Review } from '$lib/types';
+import type { Category, Location, Product, Purchase, Review } from '$lib/types';
 
 const BASE = typeof import.meta.env !== 'undefined' && import.meta.env.PUBLIC_API_BASE_URL != null
 	? String(import.meta.env.PUBLIC_API_BASE_URL).replace(/\/$/, '')
@@ -53,7 +53,17 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 /** GET and parse JSON response. */
 export async function apiGet<T>(path: string): Promise<T> {
 	const res = await apiFetch(path);
-	const data = (await res.json()) as T | ApiError;
+	const text = await res.text();
+	let data: T | ApiError;
+	try {
+		data = (text ? JSON.parse(text) : {}) as T | ApiError;
+	} catch {
+		throw new Error(
+			res.ok
+				? `Invalid JSON in response from ${path}`
+				: `HTTP ${res.status}: response was not JSON${text ? ` (body: ${text.slice(0, 100)}${text.length > 100 ? '…' : ''})` : ''}`
+		);
+	}
 	if (!res.ok) {
 		const err = data as ApiError;
 		throw new Error(err.message ?? err.error ?? `HTTP ${res.status}`);
@@ -103,4 +113,23 @@ export function listProducts(options?: { category_id?: string; q?: string }): Pr
 export function listReviews(productId?: string): Promise<Review[]> {
 	const path = productId ? `/api/v1/reviews?product_id=${encodeURIComponent(productId)}` : '/api/v1/reviews';
 	return apiGet<Review[]>(path);
+}
+
+/** Get a single product by id. */
+export function getProduct(id: string): Promise<Product> {
+	return apiGet<Product>(`/api/v1/products/${encodeURIComponent(id)}`);
+}
+
+/** List purchases; optional product_id for filtering (e.g. purchase history on product detail). */
+export function listPurchases(options?: { product_id?: string }): Promise<Purchase[]> {
+	const params = new URLSearchParams();
+	if (options?.product_id) params.set('product_id', options.product_id);
+	const query = params.toString();
+	const path = query ? `/api/v1/purchases?${query}` : '/api/v1/purchases';
+	return apiGet<Purchase[]>(path);
+}
+
+/** List all locations (e.g. to resolve location_id to name in purchase history). */
+export function listLocations(): Promise<Location[]> {
+	return apiGet<Location[]>('/api/v1/locations');
 }

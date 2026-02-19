@@ -62,39 +62,39 @@ The main use case for the web app is **in-store decision making**: the user is i
 
 - **Lookup-first, not data-entry-first** — Browsing categories and searching products, plus at-a-glance ratings, must be the default. Adding/editing categories, products, purchases, and reviews is secondary and lives behind a menu.
 - **Mobile-first** — One-handed use, large touch targets, minimal chrome, fast load and interaction.
-- **Fast and simple** — Few taps to "category → list of products with my rating"; search with quick feedback.
+- **Fast and simple** — Few taps to "category → list of products with clear ratings"; search with quick feedback.
 
 **Information architecture**
 
 | Priority     | Area                    | Description |
 |-------------|-------------------------|-------------|
 | **Primary** | Category browse         | List categories (flat or tree from `GET /api/v1/categories` with optional `parent_id`). Tap category → products in that category. |
-| **Primary** | Search                  | Full-text product search by name/brand (`GET /api/v1/products?q=...`). Results show the user's rating when available. |
-| **Primary** | Product list with ratings | For a chosen category (or search), show products with **my** rating and optional one-line review. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` (my reviews) in the frontend; key by `product_id`. On the **category page**, show **child categories** (from `GET /api/v1/categories?parent_id=X`) above the product list so the user can drill into subcategories. |
-| **Primary** | Product detail          | Tap product → full review(s), optional purchase history. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`. |
+| **Primary** | Search (on home)        | Single search on the **home page** filters both **categories** (client-side by name) and **products** (via `GET /api/v1/products?q=...`). No separate search page. Results show the average rating when available. |
+| **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with the average rating. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` in the frontend; key by `product_id`. It is important to show the **average rating of all reviews from all users**, not just the current user's ratings. On the **category page**, show **child categories** (from `GET /api/v1/categories?parent_id=X`) above the product list so the user can drill into subcategories. |
+| **Primary** | Product detail          | Tap product → product with **category name**; full review(s); **purchase history** (date, location, price); placeholder links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`. Uses `GET /api/v1/products/:id`, `GET /api/v1/categories/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (to show location name in purchase history). When there are no purchases or reviews for a product, the corresponding list endpoints still return `200 OK` with an empty JSON array (`[]`), not `404`. |
 | **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
 
-The home screen is **category list + search**. No dashboard or "recent activity" on the main screen for v1.
+The home screen is **categories + products + search** (one page): categories and products are both shown; search filters both by keyword. No separate search page; no dashboard or "recent activity" on the main screen for v1.
 
 **Screens**
 
-- **Home:** Categories (list or tree) + prominent search. If unauthenticated → redirect to Login.
+- **Home:** **Categories** (filtered by search when user types) + **Products** (from API, filtered by `q` when searching) + prominent search bar. If unauthenticated → redirect to Login. No separate search page.
 - **Category products:** **Child categories** of the current category listed first (each links to that category’s page). Below that, products in the current category with inline rating (and optional short review). Products + "my reviews" merged client-side.
-- **Search results:** Same product+rating list, driven by `products?q=...` + my reviews.
-- **Product detail:** Full review(s), purchase history; optional quick "rate again" or "log purchase" actions.
+- **Product detail:** Product with **category name**; full review(s); **purchase history** (date, location, price); placeholder links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`.
 - **Login:** Email + password; store token; redirect to Home.
 - **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews).
 
 **Data flow (current API, no backend changes)**
 
-- **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree). Home uses no `parent_id` (root categories). On a category page, use `?parent_id=<current category id>` to fetch **child categories** and show them above the product list. Cache after first load for speed.
+- **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree). Home uses no `parent_id` (root categories); when the user searches (`?q=...` on home), filter the category list **client-side** by name (e.g. case-insensitive match). On a category page, use `?parent_id=<current category id>` to fetch **child categories** and show them above the product list. Cache after first load for speed.
 - **Products in category:** `GET /api/v1/products?category_id=<uuid>`.
-- **Product search:** `GET /api/v1/products?q=<string>` (name/brand).
-- **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id`; show latest or best rating per product (e.g. most recent review).
-- **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`. Purchases: `GET /api/v1/purchases?product_id=:id` if needed.
+- **Products on home:** `GET /api/v1/products` (no filter when no search) or `GET /api/v1/products?q=<string>` when user has entered a search query. Merge with all reviews in the frontend and compute per-product average ratings from all matching reviews.
+- **Product search:** `GET /api/v1/products?q=<string>` (name/brand). Used on home when `q` is present.
+- **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id` only for **highlighting** the user's own rating (e.g. badge or secondary indicator). The primary rating shown for each product remains the global average computed from all reviews.
+- **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/categories/:id` (category name), `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (resolve location_id to name for purchase history). Purchase history shows date, location (name), price.
 
-Two-call pattern for list views (products + my reviews) is sufficient; no new backend endpoint required.
+Two-call pattern for list views (products + my reviews) is sufficient; no new backend endpoint required. The frontend is responsible for computing per-product averages from all reviews it fetches (or using a future backend-provided aggregate field if added).
 
 ---
 

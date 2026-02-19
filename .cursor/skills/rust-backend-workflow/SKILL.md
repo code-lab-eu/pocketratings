@@ -23,6 +23,14 @@ Three layers are required:
 
 **Rule:** When adding a new DB function, CLI command, or REST endpoint, add the corresponding test in the same change. New behaviour without a test is not done.
 
+### Test helpers and duplication
+
+- **Avoid copy-paste helpers.** If multiple tests need the same setup (e.g. `insert_user`, `insert_category`, `insert_product`, `insert_location`, or `test_pool` builders), prefer extracting shared helpers instead of duplicating them across modules.
+- It is acceptable for:
+  - **Unit/REST tests in `src/*`** to use a shared, `#[cfg(test)]` helper module (e.g. `crate::test_support`) for common fixtures.
+  - **Integration tests in `backend/tests/*`** to have their own helper module(s) or functions as long as they are not mindlessly duplicated.
+- When you notice duplication between endpoint tests (e.g. review vs purchase) or between multiple integration tests, **factor the common bits out** into a helper module in the same directory or a shared `test_support` module, and reuse it.
+
 ## Safe code — no unwrap or unsafe
 
 - **Do not use `unwrap()`, `expect()`, `unwrap_or_else()` on `Result`/`Option` in production code.** Use `?` to propagate errors or handle with `match`/`if let` and return a proper error.
@@ -39,7 +47,7 @@ Three layers are required:
 ## Checklist before submitting backend changes
 
 - [ ] **Tests first or in same change:** New/changed DB functions have tests in `backend/tests/*_db_test.rs`; new CLI commands have tests in `backend/tests/cli_*_test.rs`; new REST endpoints have tests in the same file as the handler (e.g. `api/version.rs` with a `#[cfg(test)] mod tests`). Prefer writing tests before implementing.
-- [ ] New/changed behaviour has unit and/or integration tests (no production code without a test).
+- [ ] New/changed behaviour has unit and/or integration tests (no production code without a test), and obvious test helper duplication has been factored into shared helpers where practical.
 - [ ] No `unwrap()`/`expect()` in production code; no `unsafe` (strictly forbidden).
 - [ ] Errors use `Result` and thiserror/anyhow; API and CLI map errors appropriately.
 - [ ] **Backend quality control** has been run and passes (use the backend-quality-control skill: format, Clippy in strict pedantic mode, then tests).
