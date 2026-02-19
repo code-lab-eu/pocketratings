@@ -29,7 +29,10 @@
 {#if typeof window !== 'undefined' && $token && $page.url.pathname !== '/login'}
 	<header class="border-b border-gray-200 bg-white px-4 py-3">
 		<div class="mx-auto flex max-w-2xl items-center justify-between">
-			<a href={resolve('/')} class="text-lg font-semibold text-gray-900">Pocket Ratings</a>
+			<div class="flex items-center gap-3">
+				<a href={resolve('/manage')} class="text-gray-600 hover:text-gray-900" aria-label="Menu">☰</a>
+				<a href={resolve('/')} class="text-lg font-semibold text-gray-900">Pocket Ratings</a>
+			</div>
 			<button
 				type="button"
 				onclick={handleLogout}

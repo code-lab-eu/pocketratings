@@ -70,7 +70,7 @@ The main use case for the web app is **in-store decision making**: the user is i
 |-------------|-------------------------|-------------|
 | **Primary** | Category browse         | List categories (flat or tree from `GET /api/v1/categories` with optional `parent_id`). Tap category → products in that category. |
 | **Primary** | Search                  | Full-text product search by name/brand (`GET /api/v1/products?q=...`). Results show the user's rating when available. |
-| **Primary** | Product list with ratings | For a chosen category (or search), show products with **my** rating and optional one-line review. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` (my reviews) in the frontend; key by `product_id`. |
+| **Primary** | Product list with ratings | For a chosen category (or search), show products with **my** rating and optional one-line review. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` (my reviews) in the frontend; key by `product_id`. On the **category page**, show **child categories** (from `GET /api/v1/categories?parent_id=X`) above the product list so the user can drill into subcategories. |
 | **Primary** | Product detail          | Tap product → full review(s), optional purchase history. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`. |
 | **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
@@ -80,7 +80,7 @@ The home screen is **category list + search**. No dashboard or "recent activity"
 **Screens**
 
 - **Home:** Categories (list or tree) + prominent search. If unauthenticated → redirect to Login.
-- **Category products:** Products in category with inline rating (and optional short review). Products + "my reviews" merged client-side.
+- **Category products:** **Child categories** of the current category listed first (each links to that category’s page). Below that, products in the current category with inline rating (and optional short review). Products + "my reviews" merged client-side.
 - **Search results:** Same product+rating list, driven by `products?q=...` + my reviews.
 - **Product detail:** Full review(s), purchase history; optional quick "rate again" or "log purchase" actions.
 - **Login:** Email + password; store token; redirect to Home.
@@ -88,7 +88,7 @@ The home screen is **category list + search**. No dashboard or "recent activity"
 
 **Data flow (current API, no backend changes)**
 
-- **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree). Cache after first load for speed.
+- **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree). Home uses no `parent_id` (root categories). On a category page, use `?parent_id=<current category id>` to fetch **child categories** and show them above the product list. Cache after first load for speed.
 - **Products in category:** `GET /api/v1/products?category_id=<uuid>`.
 - **Product search:** `GET /api/v1/products?q=<string>` (name/brand).
 - **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id`; show latest or best rating per product (e.g. most recent review).

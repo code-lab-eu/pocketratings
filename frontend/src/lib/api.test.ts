@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as auth from './auth';
-import { login } from './api';
+import {
+	getCategory,
+	listCategories,
+	listProducts,
+	listReviews,
+	login
+} from './api';
 
 describe('api', () => {
 	beforeEach(() => {
@@ -63,5 +69,108 @@ describe('api', () => {
 		await login('u@example.com', 'secret');
 
 		expect(auth.setToken).toHaveBeenCalledWith('new-refreshed-token');
+	});
+
+	it('listCategories fetches GET /api/v1/categories and returns array', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('token');
+		const mockFetch = vi.mocked(fetch);
+		const categories = [
+			{ id: 'c1', parent_id: null, name: 'Food', created_at: 0, updated_at: 0, deleted_at: null }
+		];
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(categories), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' }
+			})
+		);
+
+		const result = await listCategories();
+
+		expect(result).toEqual(categories);
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/categories');
+		expect(String(mockFetch.mock.calls[0][0])).not.toContain('parent_id');
+	});
+
+	it('listCategories with parentId adds query param', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		await listCategories('parent-uuid');
+
+		expect(String(mockFetch.mock.calls[0][0])).toContain('parent_id=parent-uuid');
+	});
+
+	it('getCategory fetches GET /api/v1/categories/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const cat = {
+			id: 'cid',
+			parent_id: null,
+			name: 'Drinks',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(cat), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await getCategory('cid');
+
+		expect(result).toEqual(cat);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/categories/cid');
+	});
+
+	it('listProducts with category_id fetches with query param', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		await listProducts({ category_id: 'cat-1' });
+
+		expect(String(mockFetch.mock.calls[0][0])).toContain('category_id=cat-1');
+	});
+
+	it('listProducts with q fetches with query param', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		await listProducts({ q: 'milk' });
+
+		expect(String(mockFetch.mock.calls[0][0])).toContain('q=milk');
+	});
+
+	it('listReviews without productId fetches GET /api/v1/reviews', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		await listReviews();
+
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/reviews');
+		expect(String(mockFetch.mock.calls[0][0])).not.toContain('product_id');
+	});
+
+	it('listReviews with productId adds query param', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		await listReviews('prod-1');
+
+		expect(String(mockFetch.mock.calls[0][0])).toContain('product_id=prod-1');
 	});
 });

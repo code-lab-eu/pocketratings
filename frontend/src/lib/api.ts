@@ -1,4 +1,5 @@
 import { getToken, setToken } from '$lib/auth';
+import type { Category, Product, Review } from '$lib/types';
 
 const BASE = typeof import.meta.env !== 'undefined' && import.meta.env.PUBLIC_API_BASE_URL != null
 	? String(import.meta.env.PUBLIC_API_BASE_URL).replace(/\/$/, '')
@@ -75,4 +76,31 @@ export interface MeResponse {
 
 export function me(): Promise<MeResponse> {
 	return apiGet<MeResponse>('/api/v1/me');
+}
+
+/** List categories; optional parent_id for filtering. */
+export function listCategories(parentId?: string): Promise<Category[]> {
+	const path = parentId ? `/api/v1/categories?parent_id=${encodeURIComponent(parentId)}` : '/api/v1/categories';
+	return apiGet<Category[]>(path);
+}
+
+/** Get a single category by id. */
+export function getCategory(id: string): Promise<Category> {
+	return apiGet<Category>(`/api/v1/categories/${encodeURIComponent(id)}`);
+}
+
+/** List products; optional category_id and/or q (search). */
+export function listProducts(options?: { category_id?: string; q?: string }): Promise<Product[]> {
+	const params = new URLSearchParams();
+	if (options?.category_id) params.set('category_id', options.category_id);
+	if (options?.q) params.set('q', options.q);
+	const query = params.toString();
+	const path = query ? `/api/v1/products?${query}` : '/api/v1/products';
+	return apiGet<Product[]>(path);
+}
+
+/** List reviews; no productId = "my reviews" (current user). */
+export function listReviews(productId?: string): Promise<Review[]> {
+	const path = productId ? `/api/v1/reviews?product_id=${encodeURIComponent(productId)}` : '/api/v1/reviews';
+	return apiGet<Review[]>(path);
 }

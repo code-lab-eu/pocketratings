@@ -25,6 +25,21 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 ## Backend Improvements
 
+### Category list: optional `depth` parameter
+
+**Status:** Planned
+
+**Goal:** Allow callers to request only direct children when listing categories, so the frontend can show one level at a time (e.g. on the category page, child categories only, without descendants).
+
+**Tasks:**
+- Add optional query parameter `depth` to `GET /api/v1/categories`.
+- When `depth=1` (and optionally `parent_id` is set), return only **direct children** (one level). Without `depth`, keep current behaviour (e.g. return all descendants or flat list per current implementation).
+- Document in [api.md](api.md): parameter semantics, examples (`?parent_id=<uuid>&depth=1` for direct children only).
+
+**Rationale:**
+- Frontend category page shows child categories above products; it only needs immediate children, not the full subtree.
+- Reduces payload size and clarifies API contract when only one level is needed.
+
 ### CLI Timestamp Management
 
 **Status:** Planned
