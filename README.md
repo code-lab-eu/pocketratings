@@ -24,7 +24,7 @@ you paid.
 
 - **Rust** (stable, 1.85+ for edition 2024)
 - **Bun** (latest)
-- **Node.js** 24 LTS (required by Bun)
+- **Node.js** 24 LTS
 
 ## Configuration
 
@@ -42,7 +42,7 @@ working directory, so run the backend from `backend/` (e.g. `cargo run`).
 In production, set the variables in the environment instead of using a
 file.
 
-## Building
+## Building for production
 
 ### Backend
 
@@ -72,9 +72,16 @@ cd backend
 cargo build
 cargo clippy -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
 cargo test
+
+# Start the server
+cargo run -- server start
 ```
 
+The backend API will be available at `http://127.0.0.1:3099` (or the address configured in your `.env` file).
+
 ### Frontend
+
+Once the backend server is running, start the frontend dev server:
 
 ```bash
 cd frontend

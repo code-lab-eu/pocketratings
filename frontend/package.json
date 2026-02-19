@@ -12,7 +12,7 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix",
-    "test": "vitest run",
+    "test": "node ./scripts/check-node-version.cjs && vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
