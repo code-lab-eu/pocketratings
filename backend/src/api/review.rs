@@ -285,7 +285,7 @@ mod tests {
     use crate::api::auth::CurrentUserId;
     use crate::config::Config;
     use crate::db;
-    use crate::test_support::{insert_category, insert_product, insert_user};
+    use crate::test_helpers::{insert_category, insert_product, insert_user};
 
     /// Build the review route with a fixed current user (no auth header needed). Same pattern as category/location/product tests.
     fn app_with_user(state: AppState, user_id: Uuid) -> axum::Router {

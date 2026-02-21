@@ -338,7 +338,7 @@ mod tests {
     use crate::api::auth::CurrentUserId;
     use crate::config::Config;
     use crate::db;
-    use crate::test_support::{insert_category, insert_location, insert_product, insert_user};
+    use crate::test_helpers::{insert_category, insert_location, insert_product, insert_user};
 
     /// Build the purchase route with a fixed current user (no auth header needed).
     fn app_with_user(state: AppState, user_id: Uuid) -> axum::Router {

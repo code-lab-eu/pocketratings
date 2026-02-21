@@ -25,6 +25,22 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 ## Backend Improvements
 
+### API error responses: JSON and frontend 404 handling
+
+**Status:** Planned
+
+**Goal:** Backend returns all errors as JSON (not plain text) so the frontend can parse them. Optionally include an error type in the JSON so the frontend can identify the error and respond appropriately (e.g. show a 404 page when the resource is invalid or not found).
+
+**Current behaviour:** Some endpoints (e.g. `GET /api/v1/categories/invalid-category-id`) may return a plain string body (e.g. "Invalid URL...") instead of JSON. The frontend should treat such cases as "not found" and show a 404 (e.g. "Category not found" or a 404 page).
+
+**Tasks:**
+- **Backend:** Ensure every error response has `Content-Type: application/json` and a JSON body matching the documented shape (e.g. `{ "error": "error_code", "message": "Human-readable message" }`).
+- **Backend (optional):** Add a stable `error` code (or `type`) in the JSON so the frontend can identify the error (e.g. `not_found`, `validation_error`, `conflict`) and decide how to present it.
+- **Frontend:** In cases like invalid category ID or missing resource, show a 404 (e.g. "Not found" message or 404 page) instead of a generic error or broken state.
+- Document error response format in [api.md](api.md). Update frontend API client to handle JSON errors and, where appropriate, map them to 404 or other user-facing behaviour.
+
+**Rationale:** JSON errors allow the frontend to parse and display consistent messages; the frontend is responsible for presenting "not found" (404) when the resource is invalid or missing.
+
 ### Category list: optional `depth` parameter
 
 **Status:** Planned
@@ -134,7 +150,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 **Primary use case:** In-store decision making — user in a shop (e.g. supermarket) looks up products by category or search and sees clear product ratings at a glance (based on the average rating from all reviews) to decide what to buy. See [spec: Frontend (web app)](spec.md#frontend-web-app) for information architecture, screens, and data flow.
 
 **Scope:**
-- **Primary (home):** Category list + prominent search; category → products with an average rating (computed from all reviews, with the user's own rating optionally highlighted separately); search results with ratings; product detail (reviews, purchase history).
+- **Primary (home):** Category list + prominent search; category → products with an average rating (computed from all reviews); search results with ratings; product detail (reviews, purchase history).
 - **Auth:** Login with JWT; token in localStorage; handle `X-New-Token` refresh. Registration remains CLI-only.
 - **Management (menu):** Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews — all behind a single entry point (e.g. hamburger or "More" menu).
 
@@ -151,18 +167,18 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 **Status:** Planned
 
-**Goal:** Ensure that product lists (on home and category pages) display ratings based on the **average of all reviews from all users**, not just the current user's ratings.
+**Goal:** Ensure that product lists (on home and category pages) display ratings based on the **average of all reviews from all users**, not a single user’s ratings.
 
 **Tasks:**
 - Frontend:
-  - When loading product lists, fetch all relevant reviews (not only `user_id = current`), and compute per-product average ratings client-side.
-  - Optionally fetch current-user reviews separately and visually distinguish the user's own rating (e.g. badge or secondary marker) without overriding the global average.
+  - When loading product lists, fetch all relevant reviews (not only one user), and compute per-product average ratings client-side.
+  - Optionally (future): fetch current-user reviews separately and visually distinguish the current user’s rating (e.g. badge or secondary marker) without overriding the global average.
 - Backend (optional future enhancement):
   - Consider adding aggregated fields (e.g. `average_rating`, `review_count`) to product responses or a dedicated aggregate endpoint to avoid recomputing averages on every request.
   - Document any aggregate fields in [api.md](api.md) and update the spec once implemented.
 
 **Rationale:**
-- Averages across all users provide a more objective signal for decision making than showing only the current user's ratings.
+- Averages across all users provide a more objective signal for decision making than showing only one user’s ratings.
 - Keeping the averaging logic in the frontend initially avoids premature backend complexity, while leaving room for a future API-level optimization.
 
 **Design Considerations:**

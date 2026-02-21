@@ -71,7 +71,7 @@ The main use case for the web app is **in-store decision making**: the user is i
 | **Primary** | Category browse         | List categories (flat or tree from `GET /api/v1/categories` with optional `parent_id`). Tap category → products in that category. |
 | **Primary** | Search (on home)        | Single search on the **home page** filters both **categories** (client-side by name) and **products** (via `GET /api/v1/products?q=...`). No separate search page. Results show the average rating when available. |
 | **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with the average rating. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` in the frontend; key by `product_id`. It is important to show the **average rating of all reviews from all users**, not just the current user's ratings. On the **category page**, show **child categories** (from `GET /api/v1/categories?parent_id=X`) above the product list so the user can drill into subcategories. |
-| **Primary** | Product detail          | Tap product → product with **category name**; full review(s); **purchase history** (date, location, price); placeholder links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`. Uses `GET /api/v1/products/:id`, `GET /api/v1/categories/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (to show location name in purchase history). When there are no purchases or reviews for a product, the corresponding list endpoints still return `200 OK` with an empty JSON array (`[]`), not `404`. |
+| **Primary** | Product detail          | Tap product → product with **category name**; full review(s); **purchase history** (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`. Uses `GET /api/v1/products/:id`, `GET /api/v1/categories/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (to show location name in purchase history). When there are no purchases or reviews for a product, the corresponding list endpoints still return `200 OK` with an empty JSON array (`[]`), not `404`. |
 | **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
 
@@ -80,10 +80,10 @@ The home screen is **categories + products + search** (one page): categories and
 **Screens**
 
 - **Home:** **Categories** (filtered by search when user types) + **Products** (from API, filtered by `q` when searching) + prominent search bar. If unauthenticated → redirect to Login. No separate search page.
-- **Category products:** **Child categories** of the current category listed first (each links to that category’s page). Below that, products in the current category with inline rating (and optional short review). Products + "my reviews" merged client-side.
-- **Product detail:** Product with **category name**; full review(s); **purchase history** (date, location, price); placeholder links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`.
+- **Category products:** **Child categories** of the current category listed first (each links to that category’s page). Below that, products in the current category with inline rating (and optional short review). Products and reviews merged client-side.
+- **Product detail:** Product with **category name**; full review(s); **purchase history** (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`.
 - **Login:** Email + password; store token; redirect to Home.
-- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews).
+- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form.
 
 **Data flow (current API, no backend changes)**
 
@@ -94,7 +94,7 @@ The home screen is **categories + products + search** (one page): categories and
 - **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id` only for **highlighting** the user's own rating (e.g. badge or secondary indicator). The primary rating shown for each product remains the global average computed from all reviews.
 - **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/categories/:id` (category name), `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (resolve location_id to name for purchase history). Purchase history shows date, location (name), price.
 
-Two-call pattern for list views (products + my reviews) is sufficient; no new backend endpoint required. The frontend is responsible for computing per-product averages from all reviews it fetches (or using a future backend-provided aggregate field if added).
+Two-call pattern for list views (products + reviews) is sufficient; no new backend endpoint required. The frontend is responsible for computing per-product averages from all reviews it fetches (or using a future backend-provided aggregate field if added).
 
 ---
 

@@ -1,14 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as auth from './auth';
 import {
+	createCategory,
+	createLocation,
+	createProduct,
+	createPurchase,
+	createReview,
+	deleteCategory,
+	deleteLocation,
+	deleteProduct,
+	deletePurchase,
+	deleteReview,
 	getCategory,
+	getLocation,
 	getProduct,
+	getPurchase,
+	getReview,
 	listCategories,
 	listLocations,
 	listProducts,
 	listPurchases,
 	listReviews,
-	login
+	login,
+	updateCategory,
+	updateLocation,
+	updateProduct,
+	updatePurchase,
+	updateReview
 } from './api';
 
 describe('api', () => {
@@ -240,9 +258,7 @@ describe('api', () => {
 	it('listLocations fetches GET /api/v1/locations and returns array', async () => {
 		vi.mocked(auth.getToken).mockReturnValue('t');
 		const mockFetch = vi.mocked(fetch);
-		const locations = [
-			{ id: 'loc1', name: 'Store A', deleted_at: null }
-		];
+		const locations = [{ id: 'loc1', name: 'Store A', deleted_at: null }];
 		mockFetch.mockResolvedValueOnce(
 			new Response(JSON.stringify(locations), { status: 200, headers: { 'Content-Type': 'application/json' } })
 		);
@@ -253,4 +269,334 @@ describe('api', () => {
 		expect(mockFetch).toHaveBeenCalledTimes(1);
 		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/locations');
 	});
+
+	it('createCategory sends POST to /api/v1/categories and returns category', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const created = {
+			id: 'c1',
+			parent_id: null,
+			name: 'Food',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await createCategory({ name: 'Food' });
+
+		expect(result).toEqual(created);
+		expect(initMethod(mockFetch)).toBe('POST');
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/categories');
+		expect(JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string)).toEqual({ name: 'Food' });
+	});
+
+	it('updateCategory sends PATCH to /api/v1/categories/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const updated = {
+			id: 'c1',
+			parent_id: null,
+			name: 'Food (renamed)',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(updated), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await updateCategory('c1', { name: 'Food (renamed)' });
+
+		expect(result.name).toBe('Food (renamed)');
+		expect(initMethod(mockFetch)).toBe('PATCH');
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/categories/c1');
+	});
+
+	it('deleteCategory sends DELETE to /api/v1/categories/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
+
+		await deleteCategory('c1');
+
+		expect(initMethod(mockFetch)).toBe('DELETE');
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/categories/c1');
+	});
+
+	it('getLocation fetches GET /api/v1/locations/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const loc = { id: 'loc1', name: 'Store A', deleted_at: null };
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(loc), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await getLocation('loc1');
+
+		expect(result).toEqual(loc);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/locations/loc1');
+	});
+
+	it('createLocation sends POST to /api/v1/locations', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const created = { id: 'loc1', name: 'Store A', deleted_at: null };
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await createLocation({ name: 'Store A' });
+
+		expect(result).toEqual(created);
+		expect(initMethod(mockFetch)).toBe('POST');
+		expect(JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string)).toEqual({ name: 'Store A' });
+	});
+
+	it('updateLocation sends PATCH to /api/v1/locations/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify({ id: 'loc1', name: 'Store B', deleted_at: null }), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' }
+			})
+		);
+
+		await updateLocation('loc1', { name: 'Store B' });
+
+		expect(initMethod(mockFetch)).toBe('PATCH');
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/locations/loc1');
+	});
+
+	it('deleteLocation sends DELETE to /api/v1/locations/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
+
+		await deleteLocation('loc1');
+
+		expect(initMethod(mockFetch)).toBe('DELETE');
+	});
+
+	it('createProduct sends POST to /api/v1/products', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const created = {
+			id: 'p1',
+			category_id: 'c1',
+			brand: 'B',
+			name: 'Milk',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await createProduct({ name: 'Milk', brand: 'B', category_id: 'c1' });
+
+		expect(result).toEqual(created);
+		expect(initMethod(mockFetch)).toBe('POST');
+	});
+
+	it('updateProduct sends PATCH to /api/v1/products/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					id: 'p1',
+					category_id: 'c1',
+					brand: 'B',
+					name: 'Milk 1L',
+					created_at: 0,
+					updated_at: 0,
+					deleted_at: null
+				}),
+				{ status: 200, headers: { 'Content-Type': 'application/json' } }
+			)
+		);
+
+		await updateProduct('p1', { name: 'Milk 1L' });
+
+		expect(initMethod(mockFetch)).toBe('PATCH');
+	});
+
+	it('deleteProduct sends DELETE to /api/v1/products/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
+
+		await deleteProduct('p1');
+
+		expect(initMethod(mockFetch)).toBe('DELETE');
+	});
+
+	it('getPurchase fetches GET /api/v1/purchases/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const purchase = {
+			id: 'pur1',
+			user_id: 'u1',
+			product_id: 'p1',
+			location_id: 'loc1',
+			quantity: 1,
+			price: '2.99',
+			purchased_at: 1708012800,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(purchase), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await getPurchase('pur1');
+
+		expect(result).toEqual(purchase);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/purchases/pur1');
+	});
+
+	it('createPurchase sends POST to /api/v1/purchases', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const created = {
+			id: 'pur1',
+			user_id: 'u1',
+			product_id: 'p1',
+			location_id: 'loc1',
+			quantity: 1,
+			price: '2.99',
+			purchased_at: 1708012800,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await createPurchase({ product_id: 'p1', location_id: 'loc1', price: '2.99' });
+
+		expect(result).toEqual(created);
+		expect(initMethod(mockFetch)).toBe('POST');
+	});
+
+	it('updatePurchase sends PATCH to /api/v1/purchases/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					id: 'pur1',
+					user_id: 'u1',
+					product_id: 'p1',
+					location_id: 'loc1',
+					quantity: 2,
+					price: '3.49',
+					purchased_at: 1708012800,
+					deleted_at: null
+				}),
+				{ status: 200, headers: { 'Content-Type': 'application/json' } }
+			)
+		);
+
+		await updatePurchase('pur1', { quantity: 2, price: '3.49' });
+
+		expect(initMethod(mockFetch)).toBe('PATCH');
+	});
+
+	it('deletePurchase sends DELETE to /api/v1/purchases/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
+
+		await deletePurchase('pur1');
+
+		expect(initMethod(mockFetch)).toBe('DELETE');
+	});
+
+	it('getReview fetches GET /api/v1/reviews/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const review = {
+			id: 'r1',
+			product_id: 'p1',
+			user_id: 'u1',
+			rating: 4,
+			text: 'Good',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(review), { status: 200, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await getReview('r1');
+
+		expect(result).toEqual(review);
+		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/reviews/r1');
+	});
+
+	it('createReview sends POST to /api/v1/reviews', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		const created = {
+			id: 'r1',
+			product_id: 'p1',
+			user_id: 'u1',
+			rating: 4,
+			text: 'Good',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+		);
+
+		const result = await createReview({ product_id: 'p1', rating: 4, text: 'Good' });
+
+		expect(result).toEqual(created);
+		expect(initMethod(mockFetch)).toBe('POST');
+	});
+
+	it('updateReview sends PATCH to /api/v1/reviews/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					id: 'r1',
+					product_id: 'p1',
+					user_id: 'u1',
+					rating: 5,
+					text: 'Excellent',
+					created_at: 0,
+					updated_at: 0,
+					deleted_at: null
+				}),
+				{ status: 200, headers: { 'Content-Type': 'application/json' } }
+			)
+		);
+
+		await updateReview('r1', { rating: 5, text: 'Excellent' });
+
+		expect(initMethod(mockFetch)).toBe('PATCH');
+	});
+
+	it('deleteReview sends DELETE to /api/v1/reviews/:id', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
+
+		await deleteReview('r1');
+
+		expect(initMethod(mockFetch)).toBe('DELETE');
+	});
 });
+
+function initMethod(mockFetch: ReturnType<typeof vi.mocked<typeof fetch>>): string {
+	return (mockFetch.mock.calls[0][1] as RequestInit)?.method ?? '';
+}

@@ -27,9 +27,9 @@ Three layers are required:
 
 - **Avoid copy-paste helpers.** If multiple tests need the same setup (e.g. `insert_user`, `insert_category`, `insert_product`, `insert_location`, or `test_pool` builders), prefer extracting shared helpers instead of duplicating them across modules.
 - It is acceptable for:
-  - **Unit/REST tests in `src/*`** to use a shared, `#[cfg(test)]` helper module (e.g. `crate::test_support`) for common fixtures.
+  - **Unit/REST tests in `src/*`** to use a shared, `#[cfg(test)]` helper module (e.g. `crate::test_helpers`) for common fixtures.
   - **Integration tests in `backend/tests/*`** to have their own helper module(s) or functions as long as they are not mindlessly duplicated.
-- When you notice duplication between endpoint tests (e.g. review vs purchase) or between multiple integration tests, **factor the common bits out** into a helper module in the same directory or a shared `test_support` module, and reuse it.
+- When you notice duplication between endpoint tests (e.g. review vs purchase) or between multiple integration tests, **factor the common bits out** into a helper module in the same directory or a shared `test_helpers` module, and reuse it.
 
 ## Safe code — no unwrap or unsafe
 
