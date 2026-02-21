@@ -1,0 +1,28 @@
+---
+description: Reliable editing of markdown and plan files (avoids failures on curly quotes and special characters)
+globs: "**/*.md,**/*.mdc,.cursor/plans/*.plan.md"
+alwaysApply: false
+---
+
+# Editing markdown and plan files
+
+Exact-string search_replace often fails in these files because they may contain **Unicode punctuation** (curly quotes `"` `"`, em dash `—`, etc.) that look like ASCII in the editor but do not match.
+
+## Do not
+
+- Retry the same replace with hex dumps or pasted Unicode. That wastes tokens and is brittle.
+
+## Do
+
+1. **Prefer replacement boundaries that avoid ambiguous punctuation.** Match on headings, list markers, or lines that are clearly ASCII (e.g. `### 1. Title` or `- Document in`). Exclude the line that contains the curly quote or special character from the matched span.
+
+2. **Minimal replace.** If you must change a line that has special characters, replace only a substring that is ASCII, or a unique block that does not include the problematic character.
+
+3. **For larger or multi-block edits: Read the full file, then Write the new version.** You control the output; use straight quotes and ASCII punctuation in what you write. This is usually faster and more reliable than several careful search_replace attempts.
+
+4. **When writing new or rewritten content in project markdown**, use ASCII punctuation: straight double quote `"`, straight single quote `'`, hyphen-minus `-`. That keeps future search_replace reliable.
+
+## Summary
+
+- Small, targeted replace that avoids the special character, **or**
+- Read + Write for the whole file when the edit touches multiple lines or mixed punctuation.
