@@ -239,3 +239,4 @@ This document tracks planned features and improvements for Pocket Ratings.
 - Protected fields enforcement in API documentation
 - Version endpoint: `GET /api/v1/version` (unauthenticated; returns server version)
 - No-unsafe enforcement: `#![forbid(unsafe_code)]` in backend crate roots so the build fails if `unsafe` is introduced
+- **PoC alpha: production-style deployment** — Caddy reverse proxy, static frontend (adapter-static), backend and frontend in Docker/Podman via `compose.yaml` at repo root; path-based routing (`/api/v1/` → backend, everything else → frontend); optional Let's Encrypt when the Caddyfile is set to a domain; database and Caddy data in named volumes; backup/restore documented in README

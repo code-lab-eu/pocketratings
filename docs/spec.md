@@ -191,7 +191,7 @@ Runnable HTTP examples are available in [docs/api.http](api.http).
 ## Deployment
 
 - **Same domain**: Backend and frontend are served from the **same domain** (e.g. `https://pocketratings.example.com`). The API is under `/api/v1/`; all other paths are handled by the frontend (Svelte).
-- **Nginx**: The monorepo includes an **nginx** configuration that splits traffic: requests to `/api/v1/` are proxied to the backend (Rust API); all other requests are proxied to the frontend (Svelte). This allows a single entry point and avoids CORS for same-origin requests.
+- **Reverse proxy**: The monorepo includes a **Caddy** configuration and a Compose file (`compose.yaml`) that route `/api/v1/` to the backend (Rust API) and all other paths to the frontend (Svelte). Single entry point, same-origin, no CORS. For production, the Caddyfile can be set to a domain for automatic Let's Encrypt TLS.
 
 **Configuration**
 

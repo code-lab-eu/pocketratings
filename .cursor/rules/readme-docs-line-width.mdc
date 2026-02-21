@@ -1,0 +1,17 @@
+---
+description: Keep README and docs to 80-character line width for readability and diffs
+globs: README.md, docs/**/*.md
+alwaysApply: false
+---
+
+# Line width in README and documentation
+
+When editing **README.md** or files under **docs/** (e.g. `docs/spec.md`, `docs/api.md`):
+
+- **Wrap prose and list text to 80 characters** per line. Break long sentences or
+  list items onto the next line rather than exceeding 80 characters.
+- **Code blocks**: Long commands or URLs may be split with line continuation (e.g.
+  backslash in shell) where it does not change behavior; otherwise leave a long
+  line inside a code block if breaking would harm copy-paste.
+- This keeps the docs readable in narrow terminals and keeps diffs minimal when
+  editing.

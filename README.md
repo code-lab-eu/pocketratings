@@ -61,7 +61,8 @@ bun install
 bun run build
 ```
 
-The built site output location depends on the Svelte setup (e.g. `frontend/build` for SvelteKit static build).
+The built site output location depends on the Svelte setup (e.g.
+`frontend/build` for SvelteKit static build).
 
 ## Development
 
@@ -77,7 +78,8 @@ cargo test
 cargo run -- server start
 ```
 
-The backend API will be available at `http://127.0.0.1:3099` (or the address configured in your `.env` file).
+The backend API will be available at `http://127.0.0.1:3099` (or the
+address configured in your `.env` file).
 
 ### Frontend
 
@@ -115,11 +117,111 @@ cd frontend && bun run test
 
 ## Pre-push hook
 
-From the repo root, run `./scripts/pre-push.sh` to run backend (format, clippy, test) and frontend (lint, test) checks. To install as a git hook so it runs before every push:
+From the repo root, run `./scripts/pre-push.sh` to run backend (format,
+clippy, test) and frontend (lint, test) checks. To install as a git hook
+so it runs before every push:
 
 ```bash
 ln -sf ../../scripts/pre-push.sh .git/hooks/pre-push
 ```
+
+## Running with Docker / Podman
+
+You can run the full stack (Caddy reverse proxy, backend API, static
+frontend) with Docker or Podman Compose. The proxy routes `/api/v1/` to
+the backend and everything else to the frontend; one entry point, no CORS.
+
+**Prerequisites:** Docker with Compose, or Podman with Compose (e.g.
+`podman compose` in Podman 4.1+).
+
+1. Copy the root env example and set `JWT_SECRET`:
+   ```bash
+   cp .env.example .env
+   # Edit .env and set JWT_SECRET to a long random string.
+   ```
+
+2. From the repo root, start the stack:
+   ```bash
+   docker compose up -d
+   # or: podman compose up -d
+   ```
+
+3. Open the app at **http://localhost** (or https://yourdomain.com if you
+   configured the Caddyfile with a domain for Let's Encrypt).
+
+For production HTTPS, edit the **Caddyfile** at the repo root: replace
+`http://localhost` with your domain (e.g. `https://pocketratings.example.com`).
+Caddy will obtain and renew a certificate automatically.
+
+### Running backend CLI commands
+
+When the stack is running, the database lives inside the backend container.
+Run CLI commands in that container so they use the same database:
+
+```bash
+docker compose exec backend /app/pocketratings <command> [options]
+# or: podman compose exec backend /app/pocketratings <command> [options]
+```
+
+Examples (registration is CLI-only in v1):
+
+```bash
+docker compose exec backend /app/pocketratings user register \
+  --name "Jane" --email jane@example.com --password secret
+docker compose exec backend /app/pocketratings user list
+docker compose exec backend /app/pocketratings category list
+```
+
+To run the CLI against a local database instead (e.g. from the repo
+with `cargo run`), use the backend's own `.env` in `backend/` and run from
+there; see **Configuration** and **Development** above.
+
+### Backup and restore
+
+The database is stored in a named volume `pocketratings_db`, mounted at
+`/data` in the backend container. The database file is
+`/data/pocketratings.db`.
+
+**Back up the database**
+
+From the repo root, with the stack running:
+
+```bash
+docker compose exec backend cat /data/pocketratings.db \
+  > backup-$(date +%Y%m%d-%H%M%S).db
+# or: podman compose exec backend cat /data/pocketratings.db \
+#     > backup-$(date +%Y%m%d-%H%M%S).db
+```
+
+For a consistent backup while the API is idle, you can stop the backend
+first (`docker compose stop backend` or `podman compose stop backend`),
+run the copy, then `docker compose start backend` / `podman compose start
+backend`.
+
+**Restore the database**
+
+1. Stop the backend:
+   ```bash
+   docker compose stop backend
+   # or: podman compose stop backend
+   ```
+
+2. Replace the database in the volume (use the backup file path you have):
+   ```bash
+   docker run --rm \
+     -v pocketratings_pocketratings_db:/data -v "$(pwd)":/backup \
+     alpine sh -c "cp /backup/backup-YYYYMMDD-HHMMSS.db /data/pocketratings.db \
+       && chown 1000:1000 /data/pocketratings.db"
+   ```
+   For Podman use `podman run`. Replace `backup-YYYYMMDD-HHMMSS.db` with
+   your backup filename. The volume name is `pocketratings_pocketratings_db`
+   (Compose project prefix + volume name from compose.yaml).
+
+3. Start the backend again:
+   ```bash
+   docker compose start backend
+   # or: podman compose start backend
+   ```
 
 ## License
 
