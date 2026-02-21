@@ -112,7 +112,7 @@ async fn test_state_with_user() -> (AppState, String, tempfile::TempDir) {
 }
 
 #[tokio::test]
-async fn all_protected_routes_return_403_without_auth() {
+async fn all_protected_routes_return_401_without_auth() {
     let (state, valid_token, _dir) = test_state_with_user().await;
     let app = router(state);
 
@@ -127,7 +127,7 @@ async fn all_protected_routes_return_403_without_auth() {
             Vec::new()
         };
 
-        // Test 1: No authentication token => 403
+        // Test 1: No authentication token => 401
         let mut req_builder = Request::builder().method(method.clone()).uri(path.clone());
         if method == Method::POST || method == Method::PATCH {
             req_builder = req_builder.header("content-type", "application/json");
@@ -141,11 +141,11 @@ async fn all_protected_routes_return_403_without_auth() {
         let response = app.clone().oneshot(request).await.expect("service");
         assert_eq!(
             response.status(),
-            StatusCode::FORBIDDEN,
-            "{method} {path} should return 403 without auth header",
+            StatusCode::UNAUTHORIZED,
+            "{method} {path} should return 401 without auth header",
         );
 
-        // Test 2: Invalid authentication token => 403
+        // Test 2: Invalid authentication token => 401
         let mut req_builder = Request::builder().method(method.clone()).uri(path.clone());
         if method == Method::POST || method == Method::PATCH {
             req_builder = req_builder.header("content-type", "application/json");
@@ -162,11 +162,11 @@ async fn all_protected_routes_return_403_without_auth() {
         let response = app.clone().oneshot(request).await.expect("service");
         assert_eq!(
             response.status(),
-            StatusCode::FORBIDDEN,
-            "{method} {path} should return 403 with invalid token",
+            StatusCode::UNAUTHORIZED,
+            "{method} {path} should return 401 with invalid token",
         );
 
-        // Test 3: Correct authentication token => !403
+        // Test 3: Correct authentication token => !401
         let mut req_builder = Request::builder().method(method.clone()).uri(path.clone());
         if method == Method::POST || method == Method::PATCH {
             req_builder = req_builder.header("content-type", "application/json");
@@ -183,8 +183,8 @@ async fn all_protected_routes_return_403_without_auth() {
         let response = app.clone().oneshot(request).await.expect("service");
         assert_ne!(
             response.status(),
-            StatusCode::FORBIDDEN,
-            "{method} {path} should not return 403 with valid token (may return 200, 201, 204, 404, etc.)",
+            StatusCode::UNAUTHORIZED,
+            "{method} {path} should not return 401 with valid token (may return 200, 201, 204, 404, etc.)",
         );
     }
 }

@@ -63,6 +63,19 @@ All error responses (4xx/5xx) return JSON with the following format:
 }
 ```
 
+The `error` field mirrors the HTTP status category. The `message` field provides a human-readable description when applicable.
+
+| HTTP status | `error` value | Meaning |
+|-------------|---------------|---------|
+| 400 | `bad_request` | Validation error or malformed request |
+| 401 | `unauthorized` | Missing, invalid, or expired authentication token; client should clear stored token and redirect to login |
+| 403 | `forbidden` | Authenticated but not allowed to access this resource |
+| 404 | `not_found` | Resource not found |
+| 409 | `conflict` | Business rule violation (e.g. delete category that has products) |
+| 500 | `internal_server_error` | Server error |
+
+Clients should branch on the HTTP status code. The `message` field is informational and should not be used for control flow.
+
 ### Query Parameters
 
 - IDs in path and query parameters are UUIDs

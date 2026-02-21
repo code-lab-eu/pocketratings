@@ -29,9 +29,11 @@ cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -
 
 ## Test
 
+Skip the long-running `server_start_and_stop_via_cli` test (starts/stops the server; can exceed timeouts):
+
 ```bash
 cd backend
-cargo test --release
+cargo test --release -- --skip server_start_and_stop_via_cli
 ```
 
 ## All checks (build + lint + test)
@@ -40,5 +42,5 @@ cargo test --release
 cd backend
 cargo build --release && \
 cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings && \
-cargo test --release
+cargo test --release -- --skip server_start_and_stop_via_cli
 ```

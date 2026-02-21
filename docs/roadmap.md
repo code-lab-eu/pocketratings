@@ -29,9 +29,9 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 **Status:** Planned
 
-**Goal:** Backend returns all errors as JSON (not plain text) so the frontend can parse them. Optionally include an error type in the JSON so the frontend can identify the error and respond appropriately (e.g. show a 404 page when the resource is invalid or not found).
+**Goal:** Backend returns all errors as JSON (not plain text) so the frontend can parse them. Include the error type in the JSON so the frontend can identify the error and respond appropriately (e.g. show a 404 page when the resource is invalid or not found).
 
-**Current behaviour:** Some endpoints (e.g. `GET /api/v1/categories/invalid-category-id`) may return a plain string body (e.g. "Invalid URL...") instead of JSON. The frontend should treat such cases as "not found" and show a 404 (e.g. "Category not found" or a 404 page).
+**Current behaviour:** Some endpoints (e.g. `GET /api/v1/categories/invalid-category-id`) may return a plain string body (e.g. "Invalid URL...") instead of JSON. The frontend cannot parse plain strings.
 
 **Tasks:**
 - **Backend:** Ensure every error response has `Content-Type: application/json` and a JSON body matching the documented shape (e.g. `{ "error": "error_code", "message": "Human-readable message" }`).
@@ -83,6 +83,14 @@ This document tracks planned features and improvements for Pocket Ratings.
 - Less error-prone (no risk of forgetting to set timestamps)
 
 ## Frontend
+
+### Loading indicators / loading UX (v2)
+
+**Status:** Deferred to v2
+
+**Goal:** Show loading indicators (e.g. global progress bar or spinner) while page data is loading, so users get feedback during navigation.
+
+**Rationale:** This is deferred because the Rust backend is fast and loading times are currently negligible. Revisit in v2 if needed (e.g. slower networks, heavier pages, or user feedback).
 
 ### Home page: live-updating search
 
@@ -150,7 +158,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 **Primary use case:** In-store decision making — user in a shop (e.g. supermarket) looks up products by category or search and sees clear product ratings at a glance (based on the average rating from all reviews) to decide what to buy. See [spec: Frontend (web app)](spec.md#frontend-web-app) for information architecture, screens, and data flow.
 
 **Scope:**
-- **Primary (home):** Category list + prominent search; category → products with an average rating (computed from all reviews); search results with ratings; product detail (reviews, purchase history).
+- **Primary (home):** Category list + prominent search; category → products with an average rating (computed from all reviews, with the user's own rating optionally highlighted separately); search results with ratings; product detail (reviews, purchase history).
 - **Auth:** Login with JWT; token in localStorage; handle `X-New-Token` refresh. Registration remains CLI-only.
 - **Management (menu):** Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews — all behind a single entry point (e.g. hamburger or "More" menu).
 

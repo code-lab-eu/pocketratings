@@ -10,6 +10,7 @@
 	let category = $derived(data.category);
 	let locationNames = $derived(data.locationNames);
 	let error = $derived(data.error);
+	let notFound = $derived(data.notFound ?? false);
 
 	function formatDate(unixSeconds: number): string {
 		return new Date(unixSeconds * 1000).toLocaleDateString(undefined, {
@@ -30,14 +31,19 @@
 		<a href={resolve('/')} class="text-gray-600 hover:text-gray-900">← Home</a>
 	</p>
 
-	{#if error}
+	{#if notFound}
+		<p class="text-gray-600">Product not found.</p>
+		<p class="mt-2">
+			<a href={resolve('/')} class="text-gray-900 underline hover:no-underline">Back to home</a>
+		</p>
+	{:else if error}
 		<p class="text-red-600">{error}</p>
 	{:else if !product}
 		<p class="text-gray-600">Product not found.</p>
 	{:else}
-		<article>
+		<article class="min-w-0">
 			<header class="mb-6">
-				<h1 class="text-xl font-semibold text-gray-900">{product.name}</h1>
+				<h1 class="break-words text-xl font-semibold text-gray-900">{product.name}</h1>
 				{#if product.brand}
 					<p class="text-gray-600">{product.brand}</p>
 				{/if}

@@ -51,6 +51,7 @@ const defaultData: PageData = {
 	purchases: [purchase],
 	category,
 	locationNames: { 'loc-1': 'Store A' },
+	notFound: false,
 	error: null
 };
 
@@ -107,6 +108,26 @@ describe('Product detail page', () => {
 		expect(addPurchase.getAttribute('href')).toContain('product_id=prod-1');
 	});
 
+	it('shows Not found and back link when notFound is true', () => {
+		render(ProductDetailPage, {
+			props: {
+				data: {
+					...defaultData,
+					product: null,
+					reviews: [],
+					purchases: [],
+					category: null,
+					notFound: true,
+					error: null
+				} as unknown as PageData
+			}
+		});
+		expect(screen.getByText(/product not found/i)).toBeInTheDocument();
+		const backLink = screen.getByRole('link', { name: /back to home/i });
+		expect(backLink).toBeInTheDocument();
+		expect(backLink.getAttribute('href')).toContain('/');
+	});
+
 	it('shows error when error is set', () => {
 		render(ProductDetailPage, {
 			props: {
@@ -116,6 +137,7 @@ describe('Product detail page', () => {
 					reviews: [],
 					purchases: [],
 					category: null,
+					notFound: false,
 					error: 'Not found'
 				} as PageData
 			}
@@ -123,7 +145,7 @@ describe('Product detail page', () => {
 		expect(screen.getByText('Not found')).toBeInTheDocument();
 	});
 
-	it('shows product not found when product is null and no error', () => {
+	it('shows product not found when product is null and no error and not notFound', () => {
 		render(ProductDetailPage, {
 			props: {
 				data: {
@@ -132,6 +154,7 @@ describe('Product detail page', () => {
 					reviews: [],
 					purchases: [],
 					category: null,
+					notFound: false,
 					error: null
 				} as unknown as PageData
 			}

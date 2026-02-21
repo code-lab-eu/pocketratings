@@ -1,18 +1,20 @@
 import type { PageLoad } from './$types';
-import { getProduct, listCategories } from '$lib/api';
+import { ApiClientError, isValidUuid, getProduct, listCategories } from '$lib/api';
 
 export const load: PageLoad = async ({ params }) => {
 	const id = params.id;
-	if (!id) {
-		return { product: null, categories: [], error: 'Missing product id' };
+	if (!id || !isValidUuid(id)) {
+		return { product: null, categories: [], notFound: true, error: !id ? 'Missing product id' : null };
 	}
 	try {
 		const [product, categories] = await Promise.all([getProduct(id), listCategories()]);
-		return { product, categories, error: null };
+		return { product, categories, notFound: false, error: null };
 	} catch (e) {
+		const notFound = e instanceof ApiClientError && e.status === 404;
 		return {
 			product: null,
 			categories: [],
+			notFound,
 			error: e instanceof Error ? e.message : String(e)
 		};
 	}

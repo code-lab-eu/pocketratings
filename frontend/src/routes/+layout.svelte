@@ -5,13 +5,15 @@
 	import { page } from '$app/stores';
 	import favicon from '$lib/assets/favicon.svg';
 	import { clearToken, getToken, token } from '$lib/auth';
+	import { initTheme, dark, toggleDark } from '$lib/theme';
 
 	let { children } = $props();
 
-	// Client-only: sync token store from localStorage on load, then redirect if unauthenticated
+	// Client-only: init theme from localStorage and sync token
 	$effect(() => {
 		if (typeof window === 'undefined') return;
-		getToken(); // sync store from localStorage
+		initTheme();
+		getToken();
 		const path = $page.url.pathname;
 		if (path !== '/login' && !getToken()) {
 			goto(resolve('/login'));
@@ -27,21 +29,34 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 {#if typeof window !== 'undefined' && $token && $page.url.pathname !== '/login'}
-	<header class="border-b border-gray-200 bg-white px-4 py-3">
-		<div class="mx-auto flex max-w-2xl items-center justify-between">
-			<div class="flex items-center gap-3">
-				<a href={resolve('/manage')} class="text-gray-600 hover:text-gray-900" aria-label="Menu">☰</a>
-				<a href={resolve('/')} class="text-lg font-semibold text-gray-900">Pocket Ratings</a>
+	<header class="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+		<div class="mx-auto flex max-w-2xl min-w-0 items-center justify-between">
+			<div class="flex min-h-[44px] min-w-0 items-center gap-3">
+				<a href={resolve('/manage')} class="flex min-h-[44px] min-w-[44px] items-center justify-center text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white" aria-label="Menu">☰</a>
+				<a href={resolve('/')} class="min-h-[44px] flex items-center break-words text-lg font-semibold text-gray-900 dark:text-white">Pocket Ratings</a>
 			</div>
-			<button
-				type="button"
-				onclick={handleLogout}
-				class="text-sm text-gray-600 hover:text-gray-900"
-			>
-				Log out
-			</button>
+			<div class="flex items-center gap-2">
+				<button
+					type="button"
+					onclick={toggleDark}
+					class="min-h-[44px] min-w-[44px] px-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+					aria-label={$dark ? 'Switch to light mode' : 'Switch to dark mode'}
+					title={$dark ? 'Light mode' : 'Dark mode'}
+				>
+					{$dark ? '☀' : '☾'}
+				</button>
+				<button
+					type="button"
+					onclick={handleLogout}
+					class="min-h-[44px] min-w-[44px] px-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+				>
+					Log out
+				</button>
+			</div>
 		</div>
 	</header>
 {/if}
 
-{@render children()}
+<div class="min-h-screen dark:bg-gray-900 dark:text-gray-100">
+	{@render children()}
+</div>

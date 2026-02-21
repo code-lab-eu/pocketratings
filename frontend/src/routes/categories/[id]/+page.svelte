@@ -7,6 +7,7 @@
 	let childCategories = $derived(data.childCategories);
 	let items = $derived(data.items);
 	let error = $derived(data.error);
+	let notFound = $derived(data.notFound ?? false);
 </script>
 
 <svelte:head>
@@ -20,7 +21,12 @@
 		<a href={resolve('/')} class="text-gray-600 hover:text-gray-900">← Home</a>
 	</nav>
 
-	{#if error}
+	{#if notFound}
+		<p class="text-gray-600">Category not found.</p>
+		<p class="mt-2">
+			<a href={resolve('/')} class="text-gray-900 underline hover:no-underline">Back to home</a>
+		</p>
+	{:else if error}
 		<p class="text-red-600">{error}</p>
 	{:else if category}
 		<h1 class="mb-4 text-2xl font-semibold text-gray-900">{category.name}</h1>
@@ -44,6 +50,6 @@
 			<ProductList items={items} />
 		{/if}
 	{:else}
-		<p class="text-gray-600">Missing category.</p>
+		<p class="text-gray-600">Category not found.</p>
 	{/if}
 </main>

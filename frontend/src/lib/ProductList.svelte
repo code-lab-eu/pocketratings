@@ -13,10 +13,10 @@
 
 <ul class="space-y-2">
 	{#each items as { product, rating, text } (product.id)}
-		<li>
+		<li class="min-w-0">
 			<a
 				href={resolve(`/products/${product.id}`)}
-				class="block rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50"
+				class="block min-h-[44px] rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50 break-words"
 			>
 				<span class="font-medium">{product.name}</span>
 				{#if product.brand}

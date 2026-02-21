@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { resolve } from '$app/paths';
 	import { getToken, setToken } from '$lib/auth';
 	import { login } from '$lib/api';
@@ -8,6 +9,8 @@
 	let password = $state('');
 	let error = $state('');
 	let loading = $state(false);
+
+	const sessionExpired = $derived($page?.url?.searchParams?.get('expired') === '1');
 
 	// If already logged in, go home (client-only)
 	$effect(() => {
@@ -38,6 +41,9 @@
 
 <main class="mx-auto max-w-sm px-4 py-12">
 	<h1 class="mb-6 text-2xl font-semibold text-gray-900">Pocket Ratings</h1>
+	{#if sessionExpired}
+		<p class="mb-4 text-sm text-amber-700" role="alert">Session expired. Please sign in again.</p>
+	{/if}
 	<p class="mb-6 text-gray-600">Sign in to view your categories and product ratings.</p>
 
 	<form onsubmit={handleSubmit} class="space-y-4">

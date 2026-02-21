@@ -7,6 +7,7 @@
 	let category = $derived(data.category);
 	let categories = $derived(data.categories);
 	let error = $derived(data.error);
+	let notFound = $derived(data.notFound ?? false);
 
 	let name = $state('');
 	let parentId = $state('');
@@ -60,7 +61,12 @@
 		<a href={resolve('/manage/categories')} class="text-gray-600 hover:text-gray-900">← Categories</a>
 	</nav>
 
-	{#if error}
+	{#if notFound}
+		<p class="text-gray-600">Category not found.</p>
+		<p class="mt-2">
+			<a href={resolve('/manage/categories')} class="text-gray-900 underline hover:no-underline">Back to categories</a>
+		</p>
+	{:else if error}
 		<p class="text-red-600">{error}</p>
 	{:else if category}
 		<h1 class="mb-4 text-2xl font-semibold text-gray-900">Edit category</h1>

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import CategoryPage from '../../src/routes/categories/[id]/+page.svelte';
+import type { PageData } from '../../src/routes/categories/[id]/$types';
 import type { Category, Product } from '../../src/lib/types';
 
 describe('Category page', () => {
@@ -30,6 +31,7 @@ describe('Category page', () => {
 					category,
 					childCategories: [],
 					items: [{ product: products[0], rating: 4, text: 'Good' }],
+					notFound: false,
 					error: null
 				}
 			}
@@ -53,7 +55,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, childCategories: [], items: [], error: null }
+				data: { category, childCategories: [], items: [], notFound: false, error: null }
 			}
 		});
 
@@ -62,10 +64,35 @@ describe('Category page', () => {
 		expect(homeLink.getAttribute('href')).toContain('/');
 	});
 
+	it('shows Category not found and back link when notFound is true', () => {
+		render(CategoryPage, {
+			props: {
+				data: {
+					category: null,
+					childCategories: [],
+					items: [],
+					notFound: true,
+					error: null
+				} as unknown as PageData
+			}
+		});
+
+		expect(screen.getByText(/category not found/i)).toBeInTheDocument();
+		const backLink = screen.getByRole('link', { name: /back to home/i });
+		expect(backLink).toBeInTheDocument();
+		expect(backLink.getAttribute('href')).toContain('/');
+	});
+
 	it('shows error when error is set', () => {
 		render(CategoryPage, {
 			props: {
-				data: { category: null, childCategories: [], items: [], error: 'Not found' }
+				data: {
+					category: null,
+					childCategories: [],
+					items: [],
+					notFound: false,
+					error: 'Not found'
+				}
 			}
 		});
 
@@ -83,7 +110,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, childCategories: [], items: [], error: null }
+				data: { category, childCategories: [], items: [], notFound: false, error: null }
 			}
 		});
 
@@ -112,7 +139,7 @@ describe('Category page', () => {
 		];
 		render(CategoryPage, {
 			props: {
-				data: { category, childCategories, items: [], error: null }
+				data: { category, childCategories, items: [], notFound: false, error: null }
 			}
 		});
 

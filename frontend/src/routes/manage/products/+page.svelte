@@ -43,8 +43,8 @@
 	{:else}
 		<ul class="space-y-2">
 			{#each products as product (product.id)}
-				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
-					<a href={resolve(`/manage/products/${product.id}`)} class="flex-1 text-gray-900 hover:underline">
+				<li class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
+					<a href={resolve(`/manage/products/${product.id}`)} class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline">
 						<span class="font-medium">{product.name}</span>
 						{#if product.brand}
 							<span class="text-gray-600"> — {product.brand}</span>

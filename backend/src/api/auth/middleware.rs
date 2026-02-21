@@ -28,20 +28,21 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Response {
     let Some(auth_header) = request.headers().get(header::AUTHORIZATION) else {
-        return ApiError::Forbidden("missing authorization header".to_string()).into_response();
+        return ApiError::Unauthorized("missing authorization header".to_string()).into_response();
     };
     let Ok(auth_str) = auth_header.to_str() else {
-        return ApiError::Forbidden("invalid authorization header".to_string()).into_response();
+        return ApiError::Unauthorized("invalid authorization header".to_string()).into_response();
     };
     let token = auth_str.strip_prefix("Bearer ").unwrap_or(auth_str);
     if token.is_empty() || token == auth_str {
-        return ApiError::Forbidden("missing or invalid bearer token".to_string()).into_response();
+        return ApiError::Unauthorized("missing or invalid bearer token".to_string())
+            .into_response();
     }
     let Ok(claims) = jwt::verify_token(&state.config.jwt_secret, token) else {
-        return ApiError::Forbidden("invalid or expired token".to_string()).into_response();
+        return ApiError::Unauthorized("invalid or expired token".to_string()).into_response();
     };
     let Ok(user_id) = Uuid::parse_str(&claims.sub) else {
-        return ApiError::Forbidden("invalid token subject".to_string()).into_response();
+        return ApiError::Unauthorized("invalid token subject".to_string()).into_response();
     };
     request.extensions_mut().insert(CurrentUserId(user_id));
 
@@ -152,7 +153,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_me_returns_403_without_auth_header() {
+    async fn get_me_returns_401_without_auth_header() {
         let (state, _, _dir) = test_pool_with_user("u@ex.co", "pass").await;
         let app = router::router(state);
 
@@ -166,7 +167,7 @@ mod tests {
             .await
             .expect("service");
 
-        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]

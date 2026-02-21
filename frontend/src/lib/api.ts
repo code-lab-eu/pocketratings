@@ -1,4 +1,4 @@
-import { getToken, setToken } from '$lib/auth';
+import { getToken, setToken, clearToken } from '$lib/auth';
 import type { Category, Location, Product, Purchase, Review } from '$lib/types';
 
 const BASE = typeof import.meta.env !== 'undefined' && import.meta.env.PUBLIC_API_BASE_URL != null
@@ -11,12 +11,32 @@ function ensureAbsolute(path: string): string {
 	return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
+/** JSON error body from the API (all 4xx/5xx use this shape). */
 export interface ApiError {
 	error: string;
 	message?: string;
 }
 
-/** Fetch with Bearer token and X-New-Token handling. */
+/** Thrown by apiGet/apiPost/apiPatch/apiDelete when the response is not ok. Carries status and error code for callers. */
+export class ApiClientError extends Error {
+	constructor(
+		message: string,
+		public readonly status: number,
+		public readonly errorCode: string
+	) {
+		super(message);
+		this.name = 'ApiClientError';
+	}
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Returns true when the string is a valid UUID v4 format. */
+export function isValidUuid(value: string): boolean {
+	return UUID_RE.test(value);
+}
+
+/** Fetch with Bearer token and X-New-Token handling. On 401, clears token and redirects to login. */
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
 	const url = ensureAbsolute(path);
 	const token = getToken();
@@ -28,6 +48,13 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 		headers.set('Content-Type', 'application/json');
 	}
 	const res = await fetch(url, { ...init, headers });
+	if (res.status === 401 && token && typeof window !== 'undefined') {
+		clearToken();
+		const { goto } = await import('$app/navigation');
+		const { resolve } = await import('$app/paths');
+		goto(`${resolve('/login')}?expired=1`);
+		return res;
+	}
 	const newToken = res.headers.get('X-New-Token');
 	if (newToken) {
 		setToken(newToken);
@@ -35,22 +62,36 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 	return res;
 }
 
-/** POST JSON and parse JSON response. */
+/** POST JSON and parse JSON response. On error throws ApiClientError with status and error code. */
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 	const res = await apiFetch(path, {
 		method: 'POST',
 		body: JSON.stringify(body),
 		headers: { 'Content-Type': 'application/json' }
 	});
-	const data = (await res.json()) as T | ApiError;
+	const text = await res.text();
+	let data: T | ApiError;
+	try {
+		data = (text ? JSON.parse(text) : {}) as T | ApiError;
+	} catch {
+		throw new ApiClientError(
+			res.ok ? `Invalid JSON from ${path}` : `HTTP ${res.status}`,
+			res.status,
+			'bad_request'
+		);
+	}
 	if (!res.ok) {
 		const err = data as ApiError;
-		throw new Error(err.message ?? err.error ?? `HTTP ${res.status}`);
+		throw new ApiClientError(
+			err.message ?? err.error ?? `HTTP ${res.status}`,
+			res.status,
+			err.error ?? 'unknown'
+		);
 	}
 	return data as T;
 }
 
-/** GET and parse JSON response. */
+/** GET and parse JSON response. On error throws ApiClientError with status and error code. */
 export async function apiGet<T>(path: string): Promise<T> {
 	const res = await apiFetch(path);
 	const text = await res.text();
@@ -58,20 +99,26 @@ export async function apiGet<T>(path: string): Promise<T> {
 	try {
 		data = (text ? JSON.parse(text) : {}) as T | ApiError;
 	} catch {
-		throw new Error(
+		throw new ApiClientError(
 			res.ok
 				? `Invalid JSON in response from ${path}`
-				: `HTTP ${res.status}: response was not JSON${text ? ` (body: ${text.slice(0, 100)}${text.length > 100 ? '…' : ''})` : ''}`
+				: `HTTP ${res.status}: response was not JSON`,
+			res.status,
+			'bad_request'
 		);
 	}
 	if (!res.ok) {
 		const err = data as ApiError;
-		throw new Error(err.message ?? err.error ?? `HTTP ${res.status}`);
+		throw new ApiClientError(
+			err.message ?? err.error ?? `HTTP ${res.status}`,
+			res.status,
+			err.error ?? 'unknown'
+		);
 	}
 	return data as T;
 }
 
-/** PATCH JSON and parse JSON response. */
+/** PATCH JSON and parse JSON response. On error throws ApiClientError with status and error code. */
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 	const res = await apiFetch(path, {
 		method: 'PATCH',
@@ -83,20 +130,24 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 	try {
 		data = (text ? JSON.parse(text) : {}) as T | ApiError;
 	} catch {
-		throw new Error(
-			res.ok
-				? `Invalid JSON in response from ${path}`
-				: `HTTP ${res.status}: response was not JSON`
+		throw new ApiClientError(
+			res.ok ? `Invalid JSON from ${path}` : `HTTP ${res.status}`,
+			res.status,
+			'bad_request'
 		);
 	}
 	if (!res.ok) {
 		const err = data as ApiError;
-		throw new Error(err.message ?? err.error ?? `HTTP ${res.status}`);
+		throw new ApiClientError(
+			err.message ?? err.error ?? `HTTP ${res.status}`,
+			res.status,
+			err.error ?? 'unknown'
+		);
 	}
 	return data as T;
 }
 
-/** DELETE; 204 returns void; 200 with body parses JSON. */
+/** DELETE; 204 returns void; 200 with body parses JSON. On error throws ApiClientError. */
 export async function apiDelete(path: string): Promise<void> {
 	const res = await apiFetch(path, { method: 'DELETE' });
 	if (res.status === 204 || res.status === 200) {
@@ -114,9 +165,13 @@ export async function apiDelete(path: string): Promise<void> {
 	try {
 		data = (text ? JSON.parse(text) : {}) as ApiError;
 	} catch {
-		throw new Error(`HTTP ${res.status}`);
+		throw new ApiClientError(`HTTP ${res.status}`, res.status, 'bad_request');
 	}
-	throw new Error(data.message ?? data.error ?? `HTTP ${res.status}`);
+	throw new ApiClientError(
+		data.message ?? data.error ?? `HTTP ${res.status}`,
+		res.status,
+		data.error ?? 'unknown'
+	);
 }
 
 export interface LoginResponse {

@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deleteCategory } from '$lib/api';
+	import EmptyState from '$lib/EmptyState.svelte';
 	import type { Category } from '$lib/types';
 
 	let { data } = $props();
@@ -39,12 +40,15 @@
 	{#if error}
 		<p class="text-red-600">{error}</p>
 	{:else if categories.length === 0}
-		<p class="text-gray-600">No categories yet.</p>
+		<EmptyState
+			message="No categories yet."
+			action={{ label: 'Add your first category', href: '/manage/categories/new' }}
+		/>
 	{:else}
 		<ul class="space-y-2">
 			{#each categories as category (category.id)}
-				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
-					<a href={resolve(`/manage/categories/${category.id}`)} class="flex-1 text-gray-900 hover:underline">
+				<li class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
+					<a href={resolve(`/manage/categories/${category.id}`)} class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline">
 						{category.name}
 					</a>
 					<button
