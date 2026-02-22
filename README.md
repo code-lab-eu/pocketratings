@@ -186,17 +186,31 @@ The database is stored in a named volume `pocketratings_db`, mounted at
 
 From the repo root, with the stack running:
 
+**Recommended: hot backup without stopping the server**
+
+```bash
+docker compose exec backend /app/pocketratings database backup
+# or: podman compose exec backend /app/pocketratings database backup
+```
+
+This writes a snapshot to `/data/pocketratings.db.backup` inside the
+container. Copy it out (replace `CONTAINER_ID` with the backend container
+ID or name):
+
+```bash
+docker cp CONTAINER_ID:/data/pocketratings.db.backup backup-$(date +%Y%m%d-%H%M%S).db
+# or: podman cp CONTAINER_ID:/data/pocketratings.db.backup backup-$(date +%Y%m%d-%H%M%S).db
+```
+
+**Alternative: raw copy** (simpler but not a guaranteed consistent
+snapshot if the server is writing):
+
 ```bash
 docker compose exec backend cat /data/pocketratings.db \
   > backup-$(date +%Y%m%d-%H%M%S).db
 # or: podman compose exec backend cat /data/pocketratings.db \
 #     > backup-$(date +%Y%m%d-%H%M%S).db
 ```
-
-For a consistent backup while the API is idle, you can stop the backend
-first (`docker compose stop backend` or `podman compose stop backend`),
-run the copy, then `docker compose start backend` / `podman compose start
-backend`.
 
 **Restore the database**
 

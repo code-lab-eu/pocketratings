@@ -43,6 +43,18 @@ pub async fn create_pool(database_path: &str) -> Result<SqlitePool, DbError> {
     Ok(pool)
 }
 
+/// Create a consistent backup using `VACUUM INTO`.
+///
+/// # Errors
+///
+/// Returns [`DbError::Sqlx`] if the vacuum operation fails.
+pub async fn vacuum_into(pool: &SqlitePool, path: &str) -> Result<(), DbError> {
+    let escaped = path.replace('\'', "''");
+    let sql = format!("VACUUM INTO '{escaped}'");
+    sqlx::query(&sql).execute(pool).await?;
+    Ok(())
+}
+
 /// Run all pending migrations against the given pool.
 ///
 /// # Errors

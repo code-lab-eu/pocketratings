@@ -1,6 +1,7 @@
 //! CLI commands and parsing.
 
 mod category;
+mod database;
 mod location;
 mod product;
 mod purchase;
@@ -14,6 +15,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 use sqlx::SqlitePool;
 
 use crate::cli::category as category_cli;
+use crate::cli::database as database_cli;
 use crate::cli::location as location_cli;
 use crate::cli::product as product_cli;
 use crate::cli::purchase as purchase_cli;
@@ -32,13 +34,14 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    User(UserArgs),
     Category(CategoryArgs),
+    Database(DatabaseArgs),
     Location(LocationArgs),
     Product(ProductArgs),
     Purchase(PurchaseArgs),
     Review(ReviewArgs),
     Server(ServerArgs),
+    User(UserArgs),
 }
 
 /// Start or stop the API server.
@@ -466,6 +469,26 @@ pub struct CategoryDeleteOpts {
     pub force: bool,
 }
 
+/// Manage database operations: backup.
+#[derive(clap::Args)]
+pub struct DatabaseArgs {
+    #[command(subcommand)]
+    pub command: DatabaseCmd,
+}
+
+#[derive(Subcommand)]
+pub enum DatabaseCmd {
+    /// Create a backup of the database (server can keep running).
+    Backup(DatabaseBackupOpts),
+}
+
+#[derive(clap::Args)]
+pub struct DatabaseBackupOpts {
+    /// Output path for the backup file (default: `DB_PATH` with `.backup` suffix).
+    #[arg(long)]
+    pub output: Option<String>,
+}
+
 /// CLI-specific errors for user-facing messages and exit codes.
 #[derive(Debug, thiserror::Error)]
 pub enum CliError {
@@ -845,6 +868,23 @@ pub async fn run(
                 server_cli::start(pool, &opts, config_override, stdout, stderr).await
             }
             ServerCmd::Stop(_opts) => server_cli::stop(config_override, stdout, stderr),
+        },
+        Some(Commands::Database(db_args)) => match db_args.command {
+            DatabaseCmd::Backup(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for database backup"
+                    ))
+                })?;
+                database_cli::backup(
+                    pool,
+                    config_override,
+                    opts.output.as_deref(),
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
         },
         None => {
             let mut out = Vec::new();

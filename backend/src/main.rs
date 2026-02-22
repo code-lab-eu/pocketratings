@@ -47,6 +47,7 @@ async fn main() {
                 Some("create" | "list" | "show" | "update" | "delete")
             )
             | (Some("server"), Some("start"))
+            | (Some("database"), Some("backup"))
     );
 
     let pool = if needs_db {

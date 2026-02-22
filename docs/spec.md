@@ -215,6 +215,10 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings server start [--bind <addr>] [--daemon]` — Start the API server. Bind address from `--bind` or env (e.g. `BIND`); default `127.0.0.1:3099` (port 3099 to avoid clashes with common dev ports like 8080/3000). Foreground by default; `--daemon` runs in background and writes a PID file so it can be stopped later. PID file location is configurable via `PID_FILE` environment variable; defaults to a temporary directory (e.g., `/tmp/pocketratings.pid` on Unix, `%TEMP%\pocketratings.pid` on Windows).
 - `pocketratings server stop` — Stop the server if it was started with `--daemon` (read PID file, send SIGTERM). Exit with error if no PID file or process not running.
 
+**Database**
+
+- `pocketratings database backup [--output <path>]` — Create a consistent snapshot of the database (SQLite `VACUUM INTO`). The server can keep running. Default output path: `{DB_PATH}.backup` (e.g. `/data/pocketratings.db.backup` in the container). Use for backups without stopping the server.
+
 **User (account)**
 
 - `pocketratings user register --name <name> --email <email> --password <password>` — Create a user (v1: only way to register). Password hashed with Argon2 before store.
