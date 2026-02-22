@@ -1,5 +1,5 @@
 # Stage 1: build Rust binary
-FROM rust:1-bookworm AS builder
+FROM docker.io/library/rust:1-bookworm AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY src ./src
 RUN cargo build --release
 
 # Stage 2: minimal runtime
-FROM debian:bookworm-slim
+FROM docker.io/library/debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \

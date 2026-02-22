@@ -1,5 +1,5 @@
 # Stage 1: build SvelteKit static site
-FROM oven/bun:1 AS builder
+FROM docker.io/oven/bun:1 AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY . .
 RUN bun run build || npm run build
 
 # Stage 2: serve static files with Caddy
-FROM caddy:2-alpine
+FROM docker.io/library/caddy:2-alpine
 
 COPY --from=builder /app/build /srv
 COPY Caddyfile /etc/caddy/Caddyfile
