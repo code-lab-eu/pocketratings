@@ -67,6 +67,30 @@ refetch), without requiring form submit.
   types; optional debounce (e.g. 300 ms). Client-side navigation, no full
   reload.
 
+### 6. Product variations
+
+**Goal:** Products can be sold in different variations (e.g. mayonnaise in
+different jar sizes). Purchases track prices, so we need to differentiate
+between buying a big jar or a small jar by associating purchases with product
+variations.
+
+**Summary:**
+- New model and database table for product variations (linked to product).
+- Purchases are associated with a product variation so price history is
+  per-variation (e.g. small vs large jar).
+- User-selectable unit per variation: grams, milliliters, other, or no unit;
+  keep UX simple.
+- When creating a new product, create an initial product variation
+  automatically.
+
+**Tasks:**
+- Add product variation model and migration; link variations to products.
+- Add unit field (grams, milliliters, other, or none) and ensure easy
+  selection in UI.
+- On product create, create one initial variation.
+- Associate purchases with a product variation (API, DB, frontend).
+- Document in [spec.md](spec.md) and [api.md](api.md).
+
 ---
 
 ## Distant future
