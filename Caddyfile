@@ -1,11 +1,12 @@
 # Pocket Ratings reverse proxy: path-based routing.
+# /api/v1/* -> backend; everything else -> frontend.
 #
-# Local dev (HTTP only): use this block as-is. Open http://localhost
-# Production (HTTPS + Let's Encrypt): replace "http://localhost" with your domain, e.g.:
-#   https://pocketratings.example.com
-# Caddy will obtain and renew a certificate automatically.
+# Site address (first line below): choose one.
+#   http://localhost    - local dev; accept only localhost traffic.
+#   :80                 - listen on port 80, accept any hostname.
+#   https://your.domain - Caddy terminates TLS and obtains a certificate.
 
-http://localhost {
+:80 {
 	# API: forward /api/v1/* to the backend (full path preserved)
 	@api path /api/v1/*
 	handle @api {
