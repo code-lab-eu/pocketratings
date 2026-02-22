@@ -1,0 +1,40 @@
+# Single-file compose for running behind a bastion with SSL termination. Exposes
+# HTTP only and avoids the use of port 80 so it can run rootless with Podman.
+# Run: podman-compose -f compose.bastion.yml up -d
+
+services:
+  proxy:
+    image: docker.io/library/caddy:2-alpine
+    ports:
+      - "3080:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      BIND: "0.0.0.0:3099"
+      DB_PATH: /data/pocketratings.db
+      JWT_SECRET: ${JWT_SECRET}
+    env_file:
+      - .env
+    volumes:
+      - pocketratings_db:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  pocketratings_db:
