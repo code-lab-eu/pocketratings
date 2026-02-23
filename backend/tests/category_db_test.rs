@@ -87,7 +87,7 @@ async fn category_get_by_id_get_parent_get_children_get_all_and_get_tree() {
     let all = db::category::get_all(&pool).await.expect("get_all");
     assert_eq!(all.len(), 2);
 
-    let tree = db::category::get_tree(all, None);
+    let tree = db::category::Categories::from_list(all, None, None, false);
     assert!(tree.category.is_none());
     assert_eq!(tree.children.len(), 1);
     assert_eq!(

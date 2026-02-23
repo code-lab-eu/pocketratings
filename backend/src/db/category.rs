@@ -1,7 +1,7 @@
 //! Category persistence and tree building.
 //!
-//! Provides the [`Categories`] tree type, a pure [`get_tree`] that builds a tree from a flat list,
-//! and DB functions: [`get_by_id`], [`get_parent`], [`get_children`], [`get_all`],
+//! Provides the [`Categories`] tree type, [`Categories::from_list`] that builds a tree from a flat
+//! list, and DB functions: [`get_by_id`], [`get_parent`], [`get_children`], [`get_all`],
 //! [`get_all_with_deleted`], [`insert`], [`update`], and [`soft_delete`].
 
 use std::collections::HashMap;
@@ -23,41 +23,66 @@ pub struct Categories {
 fn children_for(
     parent_id: Option<Uuid>,
     map: &HashMap<Option<Uuid>, Vec<Category>>,
+    remaining_depth: Option<u8>,
 ) -> Vec<Categories> {
+    if remaining_depth == Some(0) {
+        return Vec::new();
+    }
     let list = match map.get(&parent_id) {
         Some(v) => v.clone(),
         None => return Vec::new(),
     };
+    let next_depth = remaining_depth.map(|n| n.saturating_sub(1));
     list.into_iter()
         .map(|c| Categories {
             category: Some(c.clone()),
-            children: children_for(Some(c.id()), map),
+            children: children_for(Some(c.id()), map, next_depth),
         })
         .collect()
 }
 
-/// Build a tree from a flat list of categories.
-///
-/// If `root` is `None`, returns the full tree with a virtual root (one node with `category: None`
-/// and children = root categories). If `root` is `Some(r)`, returns the subtree rooted at `r`.
-#[must_use]
-pub fn get_tree(flat_list: Vec<Category>, root: Option<Category>) -> Categories {
-    let map: HashMap<Option<Uuid>, Vec<Category>> =
-        flat_list.into_iter().fold(HashMap::new(), |mut acc, c| {
-            acc.entry(c.parent_id()).or_default().push(c);
-            acc
-        });
+impl Categories {
+    /// Build a tree from a flat list of categories.
+    ///
+    /// If `root` is `None`, returns the full tree with a virtual root (one node with `category:
+    /// None` and children = root categories). If `root` is `Some(r)`, returns the subtree rooted
+    /// at `r`.
+    ///
+    /// When `include_deleted` is `false`, categories with `deleted_at.is_some()` are filtered out
+    /// before building the tree. When `true`, the full list is used.
+    ///
+    /// When `depth` is `Some(n)`, only up to `n` levels of children are included (e.g. `Some(1)`
+    /// = roots only at virtual root, or root + direct children when `root` is `Some`). When
+    /// `None`, the tree is unbounded.
+    #[must_use]
+    pub fn from_list(
+        flat_list: Vec<Category>,
+        root: Option<Category>,
+        depth: Option<u8>,
+        include_deleted: bool,
+    ) -> Self {
+        let list: Vec<Category> = if include_deleted {
+            flat_list
+        } else {
+            flat_list.into_iter().filter(Category::is_active).collect()
+        };
+        let map: HashMap<Option<Uuid>, Vec<Category>> =
+            list.into_iter().fold(HashMap::new(), |mut acc, c| {
+                acc.entry(c.parent_id()).or_default().push(c);
+                acc
+            });
 
-    root.map_or_else(
-        || Categories {
-            category: None,
-            children: children_for(None, &map),
-        },
-        |r| Categories {
-            category: Some(r.clone()),
-            children: children_for(Some(r.id()), &map),
-        },
-    )
+        root.map_or_else(
+            || Self {
+                category: None,
+                children: children_for(None, &map, depth),
+            },
+            |r| Self {
+                category: Some(r.clone()),
+                children: children_for(Some(r.id()), &map, depth),
+            },
+        )
+    }
 }
 
 /// Map a DB row into a [`Category`]. Fails on invalid UUID or domain validation.
@@ -193,7 +218,7 @@ pub async fn get_children(
     Ok(out)
 }
 
-/// Fetch all active categories (flat list). Use with [`get_tree`] for the full tree.
+/// Fetch all active categories (flat list). Use with [`Categories::from_list`] for the full tree.
 ///
 /// # Errors
 ///
@@ -414,18 +439,18 @@ mod tests {
     }
 
     #[test]
-    fn get_tree_empty_list_root_none() {
-        let tree = get_tree(Vec::new(), None);
+    fn from_list_empty_list_root_none() {
+        let tree = Categories::from_list(Vec::new(), None, None, false);
         assert!(tree.category.is_none());
         assert!(tree.children.is_empty());
     }
 
     #[test]
-    fn get_tree_two_roots_root_none() {
+    fn from_list_two_roots_root_none() {
         let id1 = Uuid::new_v4();
         let id2 = Uuid::new_v4();
         let flat = vec![make_category(id1, None, "A"), make_category(id2, None, "B")];
-        let tree = get_tree(flat, None);
+        let tree = Categories::from_list(flat, None, None, false);
         assert!(tree.category.is_none());
         assert_eq!(tree.children.len(), 2);
         assert_eq!(
@@ -447,14 +472,14 @@ mod tests {
     }
 
     #[test]
-    fn get_tree_one_root_one_child_root_none() {
+    fn from_list_one_root_one_child_root_none() {
         let root_id = Uuid::new_v4();
         let child_id = Uuid::new_v4();
         let flat = vec![
             make_category(root_id, None, "Root"),
             make_category(child_id, Some(root_id), "Child"),
         ];
-        let tree = get_tree(flat, None);
+        let tree = Categories::from_list(flat, None, None, false);
         assert!(tree.category.is_none());
         assert_eq!(tree.children.len(), 1);
         assert_eq!(
@@ -476,7 +501,61 @@ mod tests {
     }
 
     #[test]
-    fn get_tree_one_root_one_child_root_some() {
+    fn from_list_depth_1_excludes_children() {
+        let root_id = Uuid::new_v4();
+        let child_id = Uuid::new_v4();
+        let flat = vec![
+            make_category(root_id, None, "Root"),
+            make_category(child_id, Some(root_id), "Child"),
+        ];
+        let tree = Categories::from_list(flat, None, Some(1), false);
+        assert!(tree.category.is_none());
+        assert_eq!(tree.children.len(), 1);
+        assert_eq!(
+            tree.children[0]
+                .category
+                .as_ref()
+                .map(crate::domain::category::Category::name),
+            Some("Root")
+        );
+        assert!(
+            tree.children[0].children.is_empty(),
+            "depth=1 should not include grandchildren"
+        );
+    }
+
+    #[test]
+    fn from_list_include_deleted_false_filters_deleted() {
+        let root_id = Uuid::new_v4();
+        let deleted_id = Uuid::new_v4();
+        let root = make_category(root_id, None, "Root");
+        let deleted_cat =
+            Category::new(deleted_id, None, "Deleted".to_string(), 1, 1, Some(99)).expect("valid");
+        let flat = vec![root, deleted_cat];
+        let tree = Categories::from_list(flat, None, None, false);
+        assert_eq!(tree.children.len(), 1);
+        assert_eq!(
+            tree.children[0]
+                .category
+                .as_ref()
+                .map(crate::domain::category::Category::name),
+            Some("Root")
+        );
+    }
+
+    #[test]
+    fn from_list_include_deleted_true_includes_deleted() {
+        let root_id = Uuid::new_v4();
+        let deleted_id = Uuid::new_v4();
+        let deleted_cat =
+            Category::new(deleted_id, None, "Deleted".to_string(), 1, 1, Some(99)).expect("valid");
+        let flat = vec![make_category(root_id, None, "Root"), deleted_cat];
+        let tree = Categories::from_list(flat, None, None, true);
+        assert_eq!(tree.children.len(), 2);
+    }
+
+    #[test]
+    fn from_list_one_root_one_child_root_some() {
         let root_id = Uuid::new_v4();
         let child_id = Uuid::new_v4();
         let root_cat = make_category(root_id, None, "Root");
@@ -484,7 +563,7 @@ mod tests {
             root_cat.clone(),
             make_category(child_id, Some(root_id), "Child"),
         ];
-        let tree = get_tree(flat, Some(root_cat));
+        let tree = Categories::from_list(flat, Some(root_cat), None, false);
         assert_eq!(
             tree.category
                 .as_ref()
@@ -503,9 +582,9 @@ mod tests {
     }
 
     #[test]
-    fn get_tree_empty_list_root_some() {
+    fn from_list_empty_list_root_some() {
         let root_cat = make_category(Uuid::new_v4(), None, "Only");
-        let tree = get_tree(Vec::new(), Some(root_cat.clone()));
+        let tree = Categories::from_list(Vec::new(), Some(root_cat.clone()), None, false);
         assert_eq!(
             tree.category
                 .as_ref()
