@@ -16,6 +16,9 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 ## Planned
 
+Prioritized: blocking tasks and quick wins first, then items that depend on
+them, then larger improvements.
+
 ### 1. Category list: optional `depth` parameter
 
 **Goal:** Allow `GET /api/v1/categories?parent_id=<id>&depth=1` to return only
@@ -37,7 +40,96 @@ location without a separate `GET /api/v1/locations` call.
 - Extend purchase list and detail responses with location; document in
   [api.md](api.md). Frontend can then drop client-side resolution by id.
 
-### 3. Home page: search by category name
+### 3. Reusable search on home and category pages
+
+**Goal:** The search currently on the homepage is also shown on category pages,
+implemented as a single reusable component.
+
+**Tasks:**
+- Extract the search form/UI from the home page into a reusable component
+  (e.g. in `$lib`), with props for current `q` and form action/base URL (or use
+  client-side navigation + URL so it works on both `/` and `/categories/:id`).
+- Use this component on the home page and on the category page
+  (`/categories/[id]`), so search on category page filters categories/products
+  in the same way (or scoped to that category if we keep current API
+  behaviour; spec can clarify). Document in [spec.md](spec.md) that search
+  appears on both home and category pages.
+
+### 4. Management list UX: edit/delete icons; entity name → view page
+
+**Goal:** On management list pages (categories, products, locations, reviews,
+purchases), use separate **Edit** and **Delete** actions as **icons** (not
+text links/buttons). The **entity name** links to the **public entity page**
+when it exists (e.g. category → `/categories/:id`, product → `/products/:id`);
+otherwise it is not a link (or remains secondary link to edit, per
+product/category).
+
+**Tasks:**
+- Introduce shared list-row pattern or small component: entity name (optional
+  link to view URL), Edit icon (link to `/manage/.../[:id]`), Delete icon
+  (existing delete handler). Use consistent icon set (e.g. pencil, trash) and
+  `aria-label` for accessibility.
+- **Categories:** Name → `/categories/:id` (view); Edit icon →
+  `/manage/categories/:id`; Delete icon → delete.
+- **Products:** Name → `/products/:id` (view); Edit icon →
+  `/manage/products/:id`; Delete icon → delete.
+- **Locations:** No public location page → name is plain text (or keep link
+  to edit); Edit icon → `/manage/locations/:id`; Delete icon → delete.
+- **Reviews:** Keep product name → `/products/:id`; add Edit icon → edit
+  review (e.g. `/manage/reviews/[:id]` if exists, or add); Delete icon →
+  delete.
+- **Purchases:** No public purchase page → primary text not a link (or link to
+  product); add Edit icon → edit purchase; Delete icon → delete.
+- Update [spec.md](spec.md) (Management / list behaviour) to describe: “List
+  rows: entity name links to view page when it exists; separate Edit and
+  Delete icon actions.”
+
+### 5. Category list: immediate children only with inline expand
+
+**Goal:** On the homepage and on category pages, the category list shows only
+**immediate children** (one level), not the full tree. Each category in the
+list can be **expanded inline** via a link/control that loads and shows its
+children; this expand control is shown **only if the category has children**.
+Requires the REST API to expose a **`has_children: bool`** on each category in
+list/detail responses so the frontend can show/hide the expand link without
+extra requests.
+
+**Ties to:** §1 (Category list: optional `depth` parameter) — use `depth=1` to
+fetch only direct children for the initial list; when user expands a category,
+fetch its children (e.g. `GET /api/v1/categories?parent_id=<id>&depth=1`) and
+render them inline.
+
+**Tasks:**
+- Backend: Add `has_children: bool` to category payloads returned by the REST
+  API (list and by-id). Compute from existence of any non-deleted child
+  category. Document in [api.md](api.md).
+- Frontend (home + category page): Request only direct children (e.g.
+  `depth=1` once §1 is done; or already use `parent_id` and ensure only one
+  level is shown). Render each category with an expand control only when
+  `has_children === true`. On expand, fetch children for that category and
+  render them inline (nested or indented). Update [spec.md](spec.md) so
+  category list behaviour is “immediate children only; expand to show children
+  inline when present.”
+
+### 6. Category page: products from current category and all child categories
+
+**Goal:** On the category page, show all products that belong to the current
+category **and** to any descendant category (full subtree). Use a depth limit
+(e.g. depth 5) for “child categories” to avoid unbounded trees.
+
+**Blocked by:** §1 (Category list: optional `depth` parameter).
+
+**Tasks:**
+- Backend (if not already covered): support listing products for a category
+  subtree (e.g. new query param or multiple category IDs); document in
+  [api.md](api.md).
+- Frontend: category page data load uses current category + descendant
+  category IDs (e.g. from categories API with depth, or new endpoint); fetch
+  products for that set and merge/deduplicate; show in existing product list.
+  Use depth of 5 for subtree. Update [spec.md](spec.md) so category products
+  include “current + all descendant categories” and reference depth.
+
+### 7. Home page: search by category name
 
 **Goal:** Search on the homepage includes products whose category (or ancestor)
 name matches the search term, not only product name/brand.
@@ -47,17 +139,7 @@ name matches the search term, not only product name/brand.
   a category whose name matches `q`. Frontend may need no change if backend
   handles it.
 
-### 4. CLI timestamp management
-
-**Goal:** `updated_at` and `deleted_at` set automatically in the database
-layer (like the REST API), not manually in each CLI command.
-
-**Tasks:**
-- Database layer: set `updated_at` on update, `deleted_at` on soft-delete.
-- Remove manual timestamp setting from CLI commands (category, location,
-  product, review, purchase update/delete). Verify `created_at` on create.
-
-### 5. Home page: live-updating search
+### 8. Home page: live-updating search
 
 **Goal:** Search results update as the user types (e.g. URL + debounced
 refetch), without requiring form submit.
@@ -67,7 +149,17 @@ refetch), without requiring form submit.
   types; optional debounce (e.g. 300 ms). Client-side navigation, no full
   reload.
 
-### 6. Product variations
+### 9. CLI timestamp management
+
+**Goal:** `updated_at` and `deleted_at` set automatically in the database
+layer (like the REST API), not manually in each CLI command.
+
+**Tasks:**
+- Database layer: set `updated_at` on update, `deleted_at` on soft-delete.
+- Remove manual timestamp setting from CLI commands (category, location,
+  product, review, purchase update/delete). Verify `created_at` on create.
+
+### 10. Product variations
 
 **Goal:** Products can be sold in different variations (e.g. mayonnaise in
 different jar sizes). Purchases track prices, so we need to differentiate
