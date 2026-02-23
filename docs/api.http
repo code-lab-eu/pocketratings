@@ -55,14 +55,26 @@ Authorization: Bearer {{token}}
 
 ### Categories
 
-# GET /api/v1/categories — List all (root/flat). Optional: ?parent_id=uuid for children of a category.
+# GET /api/v1/categories — List as nested tree (roots at top level; each item has "children" array).
 GET {{baseUrl}}/api/v1/categories
 Authorization: Bearer {{token}}
 
 ###
 
-# GET /api/v1/categories?parent_id=uuid — List children of a category (replace uuid with real category id)
-# GET {{baseUrl}}/api/v1/categories?parent_id={{categoryId}}
+# GET /api/v1/categories?depth=1 — One level only: roots with empty "children".
+GET {{baseUrl}}/api/v1/categories?depth=1
+Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/categories?parent_id=uuid — Direct children of a category (replace uuid with real category id).
+GET {{baseUrl}}/api/v1/categories?parent_id={{categoryId}}
+Authorization: Bearer {{token}}
+
+###
+
+# GET /api/v1/categories?parent_id=uuid&depth=1 — One level: direct children only.
+# GET {{baseUrl}}/api/v1/categories?parent_id={{categoryId}}&depth=1
 # Authorization: Bearer {{token}}
 
 ###

@@ -31,6 +31,9 @@ pub struct UpdateCategoryRequest {
 #[derive(Debug, Default, Deserialize)]
 pub struct ListCategoriesQuery {
     pub parent_id: Option<Uuid>,
+    /// When `Some(1)`, return only one level (roots when no `parent_id`, or direct children of `parent_id`). Omit for full tree.
+    #[serde(default)]
+    pub depth: Option<u8>,
 }
 
 /// Query params for delete (optional force).
@@ -40,7 +43,7 @@ pub struct DeleteCategoryQuery {
     pub force: bool,
 }
 
-/// Response body: category with timestamps as i64.
+/// Response body: category with timestamps as i64 and optional nested children (list endpoint only).
 #[derive(Debug, serde::Serialize)]
 pub struct CategoryResponse {
     pub id: Uuid,
@@ -51,6 +54,8 @@ pub struct CategoryResponse {
     pub updated_at: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<i64>,
+    /// Nested children.
+    pub children: Vec<Self>,
 }
 
 fn category_to_response(c: &Category) -> CategoryResponse {
@@ -61,7 +66,27 @@ fn category_to_response(c: &Category) -> CategoryResponse {
         created_at: c.created_at(),
         updated_at: c.updated_at(),
         deleted_at: c.deleted_at(),
+        children: Vec::new(),
     }
+}
+
+/// Map a slice of tree nodes to response list (recursive).
+fn categories_to_response_list(nodes: &[db::category::Categories]) -> Vec<CategoryResponse> {
+    nodes
+        .iter()
+        .filter_map(|n| {
+            let c = n.category.as_ref()?;
+            Some(CategoryResponse {
+                id: c.id(),
+                parent_id: c.parent_id(),
+                name: c.name().to_string(),
+                created_at: c.created_at(),
+                updated_at: c.updated_at(),
+                deleted_at: c.deleted_at(),
+                children: categories_to_response_list(&n.children),
+            })
+        })
+        .collect()
 }
 
 /// Map `DbError` to `ApiError` for category operations.
@@ -86,21 +111,47 @@ fn map_db_error(e: &db::DbError) -> ApiError {
     }
 }
 
-/// GET /api/v1/categories — list categories, optionally filtered by `parent_id`.
+/// GET /api/v1/categories — list categories as a nested tree; optional `parent_id` and `depth`.
 pub async fn list_categories(
     State(state): State<AppState>,
     Query(q): Query<ListCategoriesQuery>,
 ) -> Result<Json<Vec<CategoryResponse>>, ApiError> {
-    let list = if let Some(pid) = q.parent_id {
-        db::category::get_children(&state.pool, Some(pid))
+    let depth = q.depth.filter(|&d| d > 0);
+
+    let response = if depth == Some(1) {
+        let list = db::category::get_children(&state.pool, q.parent_id)
             .await
-            .map_err(|e| map_db_error(&e))?
+            .map_err(|e| map_db_error(&e))?;
+        list.into_iter()
+            .map(|c| CategoryResponse {
+                id: c.id(),
+                parent_id: c.parent_id(),
+                name: c.name().to_string(),
+                created_at: c.created_at(),
+                updated_at: c.updated_at(),
+                deleted_at: c.deleted_at(),
+                children: Vec::new(),
+            })
+            .collect()
     } else {
-        db::category::get_all(&state.pool)
+        let all = db::category::get_all(&state.pool)
             .await
-            .map_err(|e| map_db_error(&e))?
+            .map_err(|e| map_db_error(&e))?;
+        let root = if let Some(pid) = q.parent_id {
+            let parent = db::category::get_by_id(&state.pool, pid)
+                .await
+                .map_err(|e| map_db_error(&e))?;
+            let parent = parent
+                .ok_or_else(|| ApiError::NotFound("parent category not found".to_string()))?;
+            Some(parent)
+        } else {
+            None
+        };
+        let tree = db::category::Categories::from_list(all, root, depth, false);
+        categories_to_response_list(&tree.children)
     };
-    Ok(Json(list.iter().map(category_to_response).collect()))
+
+    Ok(Json(response))
 }
 
 /// GET /api/v1/categories/:id — get one category.
@@ -775,6 +826,81 @@ mod tests {
         let arr = json.as_array().expect("array");
         assert_eq!(arr.len(), 1);
         assert_eq!(arr[0].get("name").and_then(|v| v.as_str()), Some("Child"));
+        assert_eq!(
+            arr[0]
+                .get("children")
+                .and_then(|v| v.as_array())
+                .map(Vec::len),
+            Some(0)
+        );
+    }
+
+    #[tokio::test]
+    async fn list_categories_with_depth_1_returns_only_roots() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state);
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/categories")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::to_vec(&serde_json::json!({ "name": "Root1" })).expect("json"),
+                    ))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/categories")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::to_vec(&serde_json::json!({ "name": "Root2" })).expect("json"),
+                    ))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/categories?depth=1")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 2, "depth=1 with no parent_id returns only roots");
+        assert!(
+            arr.iter()
+                .any(|v| v.get("name").and_then(|x| x.as_str()) == Some("Root1"))
+        );
+        assert!(
+            arr.iter()
+                .any(|v| v.get("name").and_then(|x| x.as_str()) == Some("Root2"))
+        );
+        for item in arr {
+            assert!(
+                item.get("children")
+                    .and_then(|v| v.as_array())
+                    .is_some_and(Vec::is_empty)
+            );
+        }
     }
 
     #[tokio::test]

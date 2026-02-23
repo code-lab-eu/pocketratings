@@ -153,21 +153,33 @@ Returns the current authenticated user's id and name (e.g. for display in the fr
 
 #### `GET /api/v1/categories`
 
-List categories.
+List categories as a **nested tree**. Each category object includes a `children` array of the same shape (nested categories). Top-level array: root categories when `parent_id` is omitted, or direct children of the given parent when `parent_id` is set.
 
 **Query parameters:**
-- `parent_id` (optional, UUID): Filter by parent category. Omit for root categories or flat list.
+- `parent_id` (optional, UUID): When set, the top-level array is the direct children of this category. Omit for the full tree (roots at top level).
+- `depth` (optional, integer): When `1`, return only one level (roots when no `parent_id`, or direct children of `parent_id`); each item has an empty `children` array. Omit for full tree depth.
 
 **Response:** `200 OK`
 ```json
 [
   {
     "id": "uuid",
-    "parent_id": "uuid" | null,
+    "parent_id": null,
     "name": "Groceries",
     "created_at": 1708012800,
     "updated_at": 1708012800,
-    "deleted_at": null
+    "deleted_at": null,
+    "children": [
+      {
+        "id": "uuid",
+        "parent_id": "uuid",
+        "name": "Fruit",
+        "created_at": 1708012800,
+        "updated_at": 1708012800,
+        "deleted_at": null,
+        "children": []
+      }
+    ]
   }
 ]
 ```

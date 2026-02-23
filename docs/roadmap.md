@@ -183,6 +183,21 @@ variations.
 - Associate purchases with a product variation (API, DB, frontend).
 - Document in [spec.md](spec.md) and [api.md](api.md).
 
+### 11. Categories: single list function with `include_deleted` option
+
+**Goal:** Replace `get_all()` and `get_all_with_deleted()` with one function,
+e.g. `get_all(pool, include_deleted: bool)`, to reduce duplication and keep
+caching logic in one place.
+
+**Tasks:**
+- Add `include_deleted: bool` parameter to the category list function; merge
+  the two implementations.
+- Update all call sites (API and tests).
+- **Cache:** One cache (full list including deleted) is sufficient: on read
+  when `include_deleted == false`, filter out deleted (O(n) over ~1000
+  categories is cheap). If preferred, keep two cache slots (active vs
+  with-deleted); memory is negligible at this scale.
+
 ---
 
 ## Distant future
