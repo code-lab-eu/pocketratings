@@ -5,11 +5,98 @@
 //! [`get_all_with_deleted`], [`insert`], [`update`], and [`soft_delete`].
 
 use std::collections::HashMap;
+use std::sync::{OnceLock, RwLock};
 
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
 
 use crate::domain::category::Category;
+
+/// True when the process is the production binary (`main()` has run). False in test binaries so the
+/// cache is off unless a test explicitly enables it via [`set_use_category_list_cache_for_test`].
+static RUNNING_AS_PRODUCTION: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+fn use_cache() -> bool {
+    RUNNING_AS_PRODUCTION.load(std::sync::atomic::Ordering::SeqCst)
+        || USE_CACHE_IN_TEST.with(|v| v.load(std::sync::atomic::Ordering::SeqCst))
+}
+
+/// Call from production `main()` so the category list cache is used. Not called in test binaries.
+pub fn set_running_as_production() {
+    RUNNING_AS_PRODUCTION.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+// Thread-local: when true in this thread, get_all/get_all_with_deleted use the cache. Lets cache
+// tests enable the cache without affecting parallel tests (they see default false).
+std::thread_local! {
+    static USE_CACHE_IN_TEST: std::sync::atomic::AtomicBool = const { std::sync::atomic::AtomicBool::new(false) };
+}
+
+/// Enable or disable use of the category list cache in the current thread.
+///
+/// For use by cache tests only. Thread-local so other tests can run in parallel with cache off.
+/// Cache tests should be marked `#[serial_test::serial]` so they don't run in parallel with each
+/// other (they share the process-wide cache).
+pub fn set_use_category_list_cache_for_test(use_cache: bool) {
+    USE_CACHE_IN_TEST.with(|v| v.store(use_cache, std::sync::atomic::Ordering::SeqCst));
+}
+
+/// Module-level cache for the full category list (including deleted). Used by `get_all` and
+/// `get_all_with_deleted`.
+///
+/// **Disabled in test builds by default:** The cache is a single process-wide static. Unrelated
+/// tests run in parallel with their own DBs; we bypass the cache so they don't see each other's
+/// data. Cache tests enable it via [`set_use_category_list_cache_for_test`] and run under
+/// `#[serial]` so only one runs at a time.
+fn category_list_cache() -> &'static RwLock<Option<Vec<Category>>> {
+    static CACHE: OnceLock<RwLock<Option<Vec<Category>>>> = OnceLock::new();
+    CACHE.get_or_init(|| RwLock::new(None))
+}
+
+fn invalidate_category_list_cache() {
+    let _ = category_list_cache().write().map(|mut g| *g = None);
+}
+
+/// Clear the category list cache. For use by cache tests so they start from a known state.
+pub fn clear_category_list_cache() {
+    let _ = category_list_cache().write().map(|mut g| *g = None);
+}
+
+/// Set the category list cache to a specific value. For use by cache tests to verify that
+/// `get_all` / `get_all_with_deleted` return cached data when the cache is populated.
+pub fn set_category_list_cache_for_test(list: Option<Vec<Category>>) {
+    let _ = category_list_cache().write().map(|mut g| *g = list);
+}
+
+/// Fetch all categories from the database (active and soft-deleted). Used to fill the cache.
+async fn fetch_all_categories_raw(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbError> {
+    let rows = sqlx::query(
+        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut out = Vec::with_capacity(rows.len());
+    for row in rows {
+        let id: String = row.get("id");
+        let parent_id: Option<String> = row.get("parent_id");
+        let name: String = row.get("name");
+        let created_at: i64 = row.get("created_at");
+        let updated_at: i64 = row.get("updated_at");
+        let deleted_at: Option<i64> = row.get("deleted_at");
+        let category = row_to_category(
+            &id,
+            parent_id.as_deref(),
+            &name,
+            created_at,
+            updated_at,
+            deleted_at,
+        )?;
+        out.push(category);
+    }
+    Ok(out)
+}
 
 /// A tree of categories: a node (optionally a category) and its children.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -220,68 +307,56 @@ pub async fn get_children(
 
 /// Fetch all active categories (flat list). Use with [`Categories::from_list`] for the full tree.
 ///
+/// When not in test, results are cached in memory; the cache is invalidated on any category
+/// insert, update, or delete.
+///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
 pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbError> {
-    let rows = sqlx::query(
-        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE deleted_at IS NULL",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let mut out = Vec::with_capacity(rows.len());
-    for row in rows {
-        let id: String = row.get("id");
-        let parent_id: Option<String> = row.get("parent_id");
-        let name: String = row.get("name");
-        let created_at: i64 = row.get("created_at");
-        let updated_at: i64 = row.get("updated_at");
-        let deleted_at: Option<i64> = row.get("deleted_at");
-        let category = row_to_category(
-            &id,
-            parent_id.as_deref(),
-            &name,
-            created_at,
-            updated_at,
-            deleted_at,
-        )?;
-        out.push(category);
+    if use_cache()
+        && let Ok(guard) = category_list_cache().read()
+        && let Some(ref list) = *guard
+    {
+        return Ok(list.iter().filter(|c| c.is_active()).cloned().collect());
     }
-    Ok(out)
+
+    let list = fetch_all_categories_raw(pool).await?;
+
+    if use_cache()
+        && let Ok(mut guard) = category_list_cache().write()
+    {
+        *guard = Some(list.clone());
+    }
+
+    Ok(list.into_iter().filter(Category::is_active).collect())
 }
 
 /// Fetch all categories (active and soft-deleted).
+///
+/// When not in test, results are cached in memory; the cache is invalidated on any category
+/// insert, update, or delete.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
 pub async fn get_all_with_deleted(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbError> {
-    let rows = sqlx::query(
-        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let mut out = Vec::with_capacity(rows.len());
-    for row in rows {
-        let id: String = row.get("id");
-        let parent_id: Option<String> = row.get("parent_id");
-        let name: String = row.get("name");
-        let created_at: i64 = row.get("created_at");
-        let updated_at: i64 = row.get("updated_at");
-        let deleted_at: Option<i64> = row.get("deleted_at");
-        let category = row_to_category(
-            &id,
-            parent_id.as_deref(),
-            &name,
-            created_at,
-            updated_at,
-            deleted_at,
-        )?;
-        out.push(category);
+    if use_cache()
+        && let Ok(guard) = category_list_cache().read()
+        && let Some(ref list) = *guard
+    {
+        return Ok(list.clone());
     }
-    Ok(out)
+
+    let list = fetch_all_categories_raw(pool).await?;
+
+    if use_cache()
+        && let Ok(mut guard) = category_list_cache().write()
+    {
+        *guard = Some(list.clone());
+    }
+
+    Ok(list)
 }
 
 /// Insert a category into the database.
@@ -301,6 +376,7 @@ pub async fn insert(pool: &SqlitePool, category: &Category) -> Result<(), crate:
     .bind(category.deleted_at())
     .execute(pool)
     .await?;
+    invalidate_category_list_cache();
     Ok(())
 }
 
@@ -321,6 +397,7 @@ pub async fn update(pool: &SqlitePool, category: &Category) -> Result<(), crate:
     .bind(category.id().to_string())
     .execute(pool)
     .await?;
+    invalidate_category_list_cache();
     Ok(())
 }
 
@@ -377,6 +454,7 @@ pub async fn soft_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
         )));
     }
 
+    invalidate_category_list_cache();
     Ok(())
 }
 
@@ -427,6 +505,7 @@ pub async fn hard_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
         )));
     }
 
+    invalidate_category_list_cache();
     Ok(())
 }
 

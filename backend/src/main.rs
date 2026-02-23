@@ -26,6 +26,7 @@ impl Write for StderrWriter {
 
 #[tokio::main]
 async fn main() {
+    pocketratings::db::category::set_running_as_production();
     dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()
