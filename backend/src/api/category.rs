@@ -92,7 +92,7 @@ pub async fn list_categories(
     Query(q): Query<ListCategoriesQuery>,
 ) -> Result<Json<Vec<CategoryResponse>>, ApiError> {
     let list = if let Some(pid) = q.parent_id {
-        db::category::get_children(&state.pool, pid)
+        db::category::get_children(&state.pool, Some(pid))
             .await
             .map_err(|e| map_db_error(&e))?
     } else {

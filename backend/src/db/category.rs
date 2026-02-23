@@ -144,22 +144,33 @@ pub async fn get_parent(
     get_by_id(pool, pid).await
 }
 
-/// Fetch direct children of a category (active only).
+/// Fetch direct children of a category, or root categories when `parent_id` is `None` (active only).
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
 pub async fn get_children(
     pool: &SqlitePool,
-    parent_id: Uuid,
+    parent_id: Option<Uuid>,
 ) -> Result<Vec<Category>, crate::db::DbError> {
-    let parent_str = parent_id.to_string();
-    let rows = sqlx::query(
-        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE parent_id = ? AND deleted_at IS NULL",
-    )
-    .bind(&parent_str)
-    .fetch_all(pool)
-    .await?;
+    let rows = match parent_id {
+        Some(pid) => {
+            let parent_str = pid.to_string();
+            sqlx::query(
+                "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE parent_id = ? AND deleted_at IS NULL",
+            )
+            .bind(&parent_str)
+            .fetch_all(pool)
+            .await?
+        }
+        None => {
+            sqlx::query(
+                "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE parent_id IS NULL AND deleted_at IS NULL",
+            )
+            .fetch_all(pool)
+            .await?
+        }
+    };
 
     let mut out = Vec::with_capacity(rows.len());
     for row in rows {

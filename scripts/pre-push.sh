@@ -17,7 +17,7 @@ cd "$ROOT" || exit 1
 # --- Backend ---
 echo "=== Backend: format check ==="
 (cd backend && cargo fmt --check) || {
-	echo "Run: cd backend && cargo fmt"
+	(cd backend && cargo fmt)
 	exit 1
 }
 echo "=== Backend: clippy (pedantic, all targets) ==="
