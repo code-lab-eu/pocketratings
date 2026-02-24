@@ -645,8 +645,6 @@ mod tests {
         assert_eq!(response.status(), StatusCode::FORBIDDEN);
     }
 
-    // --- Priority 1: create/update/delete success and 404 ---
-
     #[tokio::test]
     async fn create_purchase_returns_404_when_product_not_found() {
         let (state, _dir) = test_pool().await;
@@ -870,8 +868,6 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
-
-    // --- Priority 2: list filter, update 404 for product/location, hard delete ---
 
     #[tokio::test]
     async fn list_purchases_with_product_id_filter_returns_only_that_products_purchases() {
