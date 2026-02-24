@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { createLocation } from '$lib/api';
+	import PageHeading from '$lib/PageHeading.svelte';
+	import Button from '$lib/Button.svelte';
 
 	let name = $state('');
 	let submitting = $state(false);
@@ -31,45 +33,34 @@
 	<nav class="mb-4">
 		<a
 			href={resolve('/manage/locations')}
-			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			class="pr-link-muted"
 			>← Locations</a
 		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">New location</h1>
+	<PageHeading>New location</PageHeading>
 
 	<form onsubmit={handleSubmit} class="space-y-4">
 		{#if error}
 			<p class="text-red-600 dark:text-red-300">{error}</p>
 		{/if}
 		<div>
-			<label
-				for="name"
-				class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-				>Name</label
-			>
+			<label for="name" class="mb-1 block pr-text-label">Name</label>
 			<input
 				id="name"
 				type="text"
 				bind:value={name}
 				required
-				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+				class="pr-input"
 				autocomplete="off"
 			/>
 		</div>
 		<div class="flex gap-2">
-			<button
-				type="submit"
-				disabled={submitting}
-				class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
-			>
+			<Button type="submit" disabled={submitting} variant="primary">
 				{submitting ? 'Creating…' : 'Create'}
-			</button>
-			<a
-				href={resolve('/manage/locations')}
-				class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
-				>
+			</Button>
+			<Button variant="secondary" href={resolve('/manage/locations')}>
 				Cancel
-			</a>
+			</Button>
 		</div>
 	</form>
 </main>

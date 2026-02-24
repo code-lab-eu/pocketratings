@@ -4,6 +4,8 @@
 	import { createProduct } from '$lib/api';
 	import { flattenCategories } from '$lib/categories';
 	import CategorySelect from '$lib/CategorySelect.svelte';
+	import PageHeading from '$lib/PageHeading.svelte';
+	import Button from '$lib/Button.svelte';
 
 	let { data } = $props();
 	let categories = $derived(data.categories);
@@ -44,11 +46,11 @@
 	<nav class="mb-4">
 		<a
 			href={resolve('/manage/products')}
-			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			class="pr-link-muted"
 			>← Products</a
 		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">New product</h1>
+	<PageHeading>New product</PageHeading>
 
 	{#if loadError}
 		<p class="text-red-600 dark:text-red-300">{loadError}</p>
@@ -58,31 +60,23 @@
 				<p class="text-red-600 dark:text-red-300">{error}</p>
 			{/if}
 			<div>
-				<label
-					for="name"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Name</label
-				>
+				<label for="name" class="mb-1 block pr-text-label">Name</label>
 				<input
 					id="name"
 					type="text"
 					bind:value={name}
 					required
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 					autocomplete="off"
 				/>
 			</div>
 			<div>
-				<label
-					for="brand"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Brand</label
-				>
+				<label for="brand" class="mb-1 block pr-text-label">Brand</label>
 				<input
 					id="brand"
 					type="text"
 					bind:value={brand}
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 					autocomplete="off"
 				/>
 			</div>
@@ -95,19 +89,12 @@
 				required
 			/>
 			<div class="flex gap-2">
-				<button
-					type="submit"
-					disabled={submitting}
-				class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
-				>
+				<Button type="submit" disabled={submitting} variant="primary">
 					{submitting ? 'Creating…' : 'Create'}
-				</button>
-				<a
-					href={resolve('/manage/products')}
-					class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
-					>
+				</Button>
+				<Button variant="secondary" href={resolve('/manage/products')}>
 					Cancel
-				</a>
+				</Button>
 			</div>
 		</form>
 	{/if}

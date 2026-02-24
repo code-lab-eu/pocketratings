@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { createPurchase } from '$lib/api';
+	import PageHeading from '$lib/PageHeading.svelte';
+	import Button from '$lib/Button.svelte';
 
 	let { data } = $props();
 	let products = $derived(data.products);
@@ -67,11 +69,11 @@
 	<nav class="mb-4">
 		<a
 			href={resolve('/manage/purchases')}
-			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			class="pr-link-muted"
 			>← Purchases</a
 		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Record purchase</h1>
+	<PageHeading>Record purchase</PageHeading>
 
 	{#if loadError}
 		<p class="text-red-600 dark:text-red-300">{loadError}</p>
@@ -81,16 +83,12 @@
 				<p class="text-red-600 dark:text-red-300">{error}</p>
 			{/if}
 			<div>
-				<label
-					for="product"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Product</label
-				>
+				<label for="product" class="mb-1 block pr-text-label">Product</label>
 				<select
 					id="product"
 					bind:value={productId}
 					required
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 				>
 					<option value="">Select product</option>
 					{#each products as p (p.id)}
@@ -99,16 +97,12 @@
 				</select>
 			</div>
 			<div>
-				<label
-					for="location"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Location</label
-				>
+				<label for="location" class="mb-1 block pr-text-label">Location</label>
 				<select
 					id="location"
 					bind:value={locationId}
 					required
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 				>
 					<option value="">Select location</option>
 					{#each locations as loc (loc.id)}
@@ -117,61 +111,42 @@
 				</select>
 			</div>
 			<div>
-				<label
-					for="quantity"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Quantity</label
-				>
+				<label for="quantity" class="mb-1 block pr-text-label">Quantity</label>
 				<input
 					id="quantity"
 					type="number"
 					bind:value={quantity}
 					min="1"
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 				/>
 			</div>
 			<div>
-				<label
-					for="price"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Price (EUR)</label
-				>
+				<label for="price" class="mb-1 block pr-text-label">Price (EUR)</label>
 				<input
 					id="price"
 					type="text"
 					bind:value={price}
 					placeholder="2.99"
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 					inputmode="decimal"
 				/>
 			</div>
 			<div>
-				<label
-					for="purchased_at"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Date</label
-				>
+				<label for="purchased_at" class="mb-1 block pr-text-label">Date</label>
 				<input
 					id="purchased_at"
 					type="datetime-local"
 					bind:value={purchasedAt}
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 				/>
 			</div>
 			<div class="flex gap-2">
-				<button
-					type="submit"
-					disabled={submitting}
-					class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
-				>
+				<Button type="submit" disabled={submitting} variant="primary">
 					{submitting ? 'Saving…' : 'Record'}
-				</button>
-				<a
-					href={resolve('/manage/purchases')}
-					class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
-					>
+				</Button>
+				<Button variant="secondary" href={resolve('/manage/purchases')}>
 					Cancel
-				</a>
+				</Button>
 			</div>
 		</form>
 	{/if}

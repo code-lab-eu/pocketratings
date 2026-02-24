@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deleteProduct } from '$lib/api';
+	import PageHeading from '$lib/PageHeading.svelte';
+	import Button from '$lib/Button.svelte';
 	import type { Product } from '$lib/types';
 
 	let { data } = $props();
@@ -28,17 +30,18 @@
 	<nav class="mb-4">
 		<a
 			href={resolve('/manage')}
-			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			class="pr-link-muted"
 			>← Manage</a
 		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Products</h1>
-	<a
+	<PageHeading>Products</PageHeading>
+	<Button
+		variant="primary"
 		href={resolve('/manage/products/new')}
-		class="mb-4 inline-block rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
+		class="mb-4 inline-block"
 	>
 		New product
-	</a>
+	</Button>
 
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
