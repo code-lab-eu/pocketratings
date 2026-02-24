@@ -52,16 +52,15 @@ describe('Home page', () => {
 	});
 
 	it('shows category list when categories are provided', () => {
-		const categories: Category[] = [
-			{
-				id: 'cat-1',
-				parent_id: null,
-				name: 'Food',
-				created_at: 0,
-				updated_at: 0,
-				deleted_at: null
-			}
-		];
+		const food: Category = {
+			id: 'cat-1',
+			parent_id: null,
+			name: 'Food',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		const categories = [{ category: food, depth: 0 }];
 		render(HomePage, {
 			props: { data: { ...defaultData, categories } as PageData }
 		});

@@ -37,8 +37,8 @@
 				<p class="text-gray-600">No categories match.</p>
 			{:else}
 				<ul class="space-y-2">
-					{#each categories as category (category.id)}
-						<li>
+					{#each categories as { category, depth } (category.id)}
+						<li style="padding-left: {depth * 1}rem">
 							<a
 								href={resolve(`/categories/${category.id}`)}
 								class="block rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50"

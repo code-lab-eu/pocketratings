@@ -1,4 +1,4 @@
-/** Category from GET /api/v1/categories (and :id). */
+/** Category from GET /api/v1/categories (and :id). List returns nested tree via `children`. */
 export interface Category {
 	id: string;
 	parent_id: string | null;
@@ -6,6 +6,8 @@ export interface Category {
 	created_at: number;
 	updated_at: number;
 	deleted_at: number | null;
+	/** Nested children (list response only). */
+	children?: Category[];
 }
 
 /** Product from GET /api/v1/products (and :id). */

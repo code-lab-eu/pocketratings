@@ -2,10 +2,14 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deleteCategory, updateCategory } from '$lib/api';
+	import { flattenCategories } from '$lib/categories';
 
 	let { data } = $props();
 	let category = $derived(data.category);
 	let categories = $derived(data.categories);
+	let parentOptions = $derived(
+		category ? flattenCategories(categories).filter(({ category: c }) => c.id !== category.id) : []
+	);
 	let error = $derived(data.error);
 	let notFound = $derived(data.notFound ?? false);
 
@@ -88,16 +92,16 @@
 			</div>
 			<div>
 				<label for="parent" class="mb-1 block text-sm font-medium text-gray-700">Parent (optional)</label>
-				<select
-					id="parent"
-					bind:value={parentId}
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
-				>
-					<option value="">None</option>
-					{#each categories.filter((c) => c.id !== category.id) as cat (cat.id)}
-						<option value={cat.id}>{cat.name}</option>
-					{/each}
-				</select>
+			<select
+				id="parent"
+				bind:value={parentId}
+				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+			>
+				<option value="">None</option>
+				{#each parentOptions as { category: cat, depth } (cat.id)}
+					<option value={cat.id}>{'\u00A0'.repeat(depth * 2)}{cat.name}</option>
+				{/each}
+			</select>
 			</div>
 			<div class="flex flex-wrap gap-2">
 				<button

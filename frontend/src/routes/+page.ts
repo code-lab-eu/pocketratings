@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { listCategories, listProducts, listReviews } from '$lib/api';
+import { flattenCategories } from '$lib/categories';
 import type { Product, Review } from '$lib/types';
 
 export interface ProductWithReview {
@@ -11,16 +12,18 @@ export interface ProductWithReview {
 export const load: PageLoad = async ({ url }) => {
 	const q = url.searchParams.get('q') ?? '';
 	try {
-		const [categoriesRoot, products, reviews] = await Promise.all([
+		const [categoriesTree, products, reviews] = await Promise.all([
 			listCategories(),
 			q ? listProducts({ q }) : listProducts(),
 			listReviews()
 		]);
-		// Filter categories client-side by keyword (name contains q, case-insensitive)
+		const flat = flattenCategories(categoriesTree);
 		const categories =
 			q.trim() === ''
-				? categoriesRoot
-				: categoriesRoot.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
+				? flat
+				: flat.filter(({ category }) =>
+						category.name.toLowerCase().includes(q.toLowerCase())
+					);
 		// Latest review per product
 		const reviewByProductId = new Map<string, Review>();
 		for (const r of reviews) {

@@ -2,9 +2,11 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { createProduct } from '$lib/api';
+	import { flattenCategories } from '$lib/categories';
 
 	let { data } = $props();
 	let categories = $derived(data.categories);
+	let categoryOptions = $derived(flattenCategories(categories));
 	let loadError = $derived(data.error);
 
 	let name = $state('');
@@ -80,8 +82,8 @@
 					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
 				>
 					<option value="">Select category</option>
-					{#each categories as cat (cat.id)}
-						<option value={cat.id}>{cat.name}</option>
+					{#each categoryOptions as { category: cat, depth } (cat.id)}
+						<option value={cat.id}>{'\u00A0'.repeat(depth * 2)}{cat.name}</option>
 					{/each}
 				</select>
 			</div>
