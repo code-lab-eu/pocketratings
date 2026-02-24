@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { deleteProduct, updateProduct } from '$lib/api';
 	import { flattenCategories } from '$lib/categories';
+	import CategorySelect from '$lib/CategorySelect.svelte';
 
 	let { data } = $props();
 	let product = $derived(data.product);
@@ -101,19 +102,14 @@
 					autocomplete="off"
 				/>
 			</div>
-			<div>
-				<label for="category" class="mb-1 block text-sm font-medium text-gray-700">Category</label>
-				<select
-					id="category"
-					bind:value={categoryId}
-					required
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
-				>
-					{#each categoryOptions as { category: cat, depth } (cat.id)}
-						<option value={cat.id}>{'\u00A0'.repeat(depth * 2)}{cat.name}</option>
-					{/each}
-				</select>
-			</div>
+			<CategorySelect
+				options={categoryOptions}
+				bind:value={categoryId}
+				id="category"
+				label="Category"
+				placeholder=""
+				required
+			/>
 			<div class="flex flex-wrap gap-2">
 				<button
 					type="submit"

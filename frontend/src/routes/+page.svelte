@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import CategoryLinkList from '$lib/CategoryLinkList.svelte';
 	import ProductList from '$lib/ProductList.svelte';
 
 	let { data } = $props();
@@ -36,18 +37,7 @@
 			{#if categories.length === 0}
 				<p class="text-gray-600">No categories match.</p>
 			{:else}
-				<ul class="space-y-2">
-					{#each categories as { category, depth } (category.id)}
-						<li style="padding-left: {depth * 1}rem">
-							<a
-								href={resolve(`/categories/${category.id}`)}
-								class="block rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50"
-							>
-								{category.name}
-							</a>
-						</li>
-					{/each}
-				</ul>
+				<CategoryLinkList items={categories} basePath="categories" />
 			{/if}
 		</section>
 

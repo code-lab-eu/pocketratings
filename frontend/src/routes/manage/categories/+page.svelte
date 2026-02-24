@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { deleteCategory } from '$lib/api';
 	import { flattenCategories } from '$lib/categories';
+	import CategoryLinkList from '$lib/CategoryLinkList.svelte';
 	import EmptyState from '$lib/EmptyState.svelte';
 	import type { Category } from '$lib/types';
 
@@ -47,26 +48,21 @@
 			action={{ label: 'Add your first category', href: '/manage/categories/new' }}
 		/>
 	{:else}
-		<ul class="space-y-2">
-			{#each flat as { category, depth } (category.id)}
-				<li
-					class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3"
-					style="margin-left: {depth * 1}rem"
-				>
-					<a href={resolve(`/manage/categories/${category.id}`)} class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline">
-						{category.name}
-					</a>
-					<button
-						type="button"
-						onclick={() => handleDelete(category)}
-						disabled={deletingId === category.id}
-						class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
-						aria-label="Delete {category.name}"
-					>
-						{deletingId === category.id ? '…' : 'Delete'}
-					</button>
-				</li>
-			{/each}
-		</ul>
+		{#snippet deleteButton(category: Category)}
+			<button
+				type="button"
+				onclick={() => handleDelete(category)}
+				disabled={deletingId === category.id}
+				class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
+				aria-label="Delete {category.name}"
+			>
+				{deletingId === category.id ? '…' : 'Delete'}
+			</button>
+		{/snippet}
+		<CategoryLinkList
+			items={flat}
+			basePath="manage/categories"
+			action={deleteButton}
+		/>
 	{/if}
 </main>

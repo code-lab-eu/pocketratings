@@ -50,7 +50,7 @@
 				<p class="mt-1 text-gray-600">
 					Category:
 					<a
-						href={resolve(`/categories/${product.category_id}`)}
+						href={resolve('/categories/[id]', { id: product.category_id })}
 						class="text-gray-900 underline hover:no-underline"
 					>
 						{category?.name ?? 'Category'}
@@ -98,15 +98,15 @@
 
 			<section class="border-t border-gray-200 pt-4" aria-label="Actions">
 				<p class="text-gray-600">
-					<a
-						href={`${resolve('/manage/reviews/add')}?product_id=${product.id}`}
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
+					<a href={`${resolve('/manage/reviews/add')}?product_id=${product.id}`}
 						class="text-gray-900 underline hover:no-underline"
 					>
 						Add review
 					</a>
 					<span class="mx-2">·</span>
-					<a
-						href={`${resolve('/manage/purchases/add')}?product_id=${product.id}`}
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
+					<a href={`${resolve('/manage/purchases/add')}?product_id=${product.id}`}
 						class="text-gray-900 underline hover:no-underline"
 					>
 						Add purchase
