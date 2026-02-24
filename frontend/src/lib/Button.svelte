@@ -29,6 +29,7 @@
 </script>
 
 {#if href}
+	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is already resolved at callsites or may be external; this component cannot safely call resolve() -->
 	<a href={href} class={classes}>
 		<slot />
 	</a>
