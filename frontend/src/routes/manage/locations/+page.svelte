@@ -46,7 +46,7 @@
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if locations.length === 0}
-		<p class="text-gray-600 dark:text-gray-200">No locations yet.</p>
+		<p class="pr-text-muted">No locations yet.</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each locations as location (location.id)}

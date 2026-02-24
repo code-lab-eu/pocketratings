@@ -46,7 +46,7 @@
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if products.length === 0}
-		<p class="text-gray-600 dark:text-gray-200">No products yet.</p>
+		<p class="pr-text-muted">No products yet.</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each products as product (product.id)}
@@ -57,7 +57,7 @@
 					>
 						<span class="font-medium">{product.name}</span>
 						{#if product.brand}
-							<span class="text-gray-600 dark:text-gray-200"> — {product.brand}</span>
+							<span class="pr-text-muted"> — {product.brand}</span>
 						{/if}
 					</a>
 					<button

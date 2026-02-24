@@ -4,6 +4,8 @@
 	import { deleteProduct, updateProduct } from '$lib/api';
 	import { flattenCategories } from '$lib/categories';
 	import CategorySelect from '$lib/CategorySelect.svelte';
+	import PageHeading from '$lib/PageHeading.svelte';
+	import Button from '$lib/Button.svelte';
 
 	let { data } = $props();
 	let product = $derived(data.product);

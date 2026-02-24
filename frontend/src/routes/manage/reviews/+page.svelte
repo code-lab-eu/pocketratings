@@ -47,7 +47,7 @@
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if reviews.length === 0}
-		<p class="text-gray-600 dark:text-gray-200">No reviews yet.</p>
+		<p class="pr-text-muted">No reviews yet.</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each reviews as review (review.id)}
@@ -55,13 +55,13 @@
 					<div class="min-w-0 flex-1">
 						<a
 							href={resolve(`/products/${review.product_id}`)}
-							class="font-medium text-gray-900 hover:underline dark:text-gray-50"
+							class="font-medium pr-text-body"
 						>
 							{productMap.get(review.product_id)?.name ?? review.product_id}
 						</a>
-						<span class="text-gray-600 dark:text-gray-200"> — {review.rating}/5</span>
+						<span class="pr-text-muted"> — {review.rating}/5</span>
 						{#if review.text}
-							<p class="mt-1 truncate text-sm text-gray-600 dark:text-gray-200">{review.text}</p>
+							<p class="mt-1 truncate text-sm pr-text-muted">{review.text}</p>
 						{/if}
 					</div>
 					<button

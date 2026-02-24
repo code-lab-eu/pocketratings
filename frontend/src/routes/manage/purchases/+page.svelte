@@ -52,14 +52,14 @@
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if purchases.length === 0}
-		<p class="text-gray-600 dark:text-gray-200">No purchases yet.</p>
+		<p class="pr-text-muted">No purchases yet.</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each purchases as purchase (purchase.id)}
 				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
 					<div class="min-w-0 flex-1">
 						<span class="font-medium text-gray-900 dark:text-gray-50">{productMap.get(purchase.product_id)?.name ?? purchase.product_id}</span>
-						<span class="text-gray-600 dark:text-gray-200">
+						<span class="pr-text-muted">
 							— {locationMap.get(purchase.location_id)?.name ?? purchase.location_id} · {formatDate(purchase.purchased_at)} · {purchase.price}€
 						</span>
 					</div>
