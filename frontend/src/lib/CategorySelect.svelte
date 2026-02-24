@@ -16,7 +16,7 @@
 <div>
 	<label
 		for={id}
-		class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+		class="mb-1 block pr-text-label"
 	>
 		{label}
 	</label>
@@ -24,7 +24,7 @@
 		{id}
 		bind:value
 		{required}
-		class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+		class="pr-input"
 		autocomplete="off"
 	>
 		{#if placeholder}

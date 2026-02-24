@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deletePurchase } from '$lib/api';
+	import PageHeading from '$lib/PageHeading.svelte';
+	import Button from '$lib/Button.svelte';
 	import type { Purchase } from '$lib/types';
 
 	let { data } = $props();
@@ -34,29 +36,30 @@
 	<nav class="mb-4">
 		<a
 			href={resolve('/manage')}
-			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			class="pr-link-muted"
 			>← Manage</a
 		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Purchases</h1>
-	<a
+	<PageHeading>Purchases</PageHeading>
+	<Button
+		variant="primary"
 		href={resolve('/manage/purchases/add')}
-		class="mb-4 inline-block rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
+		class="mb-4 inline-block"
 	>
 		Record purchase
-	</a>
+	</Button>
 
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if purchases.length === 0}
-		<p class="text-gray-600 dark:text-gray-200">No purchases yet.</p>
+		<p class="pr-text-muted">No purchases yet.</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each purchases as purchase (purchase.id)}
 				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
 					<div class="min-w-0 flex-1">
 						<span class="font-medium text-gray-900 dark:text-gray-50">{productMap.get(purchase.product_id)?.name ?? purchase.product_id}</span>
-						<span class="text-gray-600 dark:text-gray-200">
+						<span class="pr-text-muted">
 							— {locationMap.get(purchase.location_id)?.name ?? purchase.location_id} · {formatDate(purchase.purchased_at)} · {purchase.price}€
 						</span>
 					</div>

@@ -30,3 +30,66 @@ html.dark body {
 html.dark {
 	color-scheme: dark;
 }
+
+/* Semantic project-wide utilities and components */
+@layer utilities {
+	/* Text roles */
+	.pr-text-body {
+		@apply text-gray-900 dark:text-gray-50;
+	}
+
+	.pr-text-muted {
+		@apply text-gray-600 dark:text-gray-200;
+	}
+
+	.pr-text-subtle {
+		@apply text-gray-500 dark:text-gray-300;
+	}
+
+	.pr-text-label {
+		@apply text-sm font-medium text-gray-700 dark:text-gray-200;
+	}
+
+	/* Inline links and navigation links */
+	.pr-link-inline {
+		@apply text-gray-900 underline hover:no-underline dark:text-gray-50;
+	}
+
+	.pr-link-muted {
+		@apply text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50;
+	}
+
+	/* Form controls */
+	.pr-input {
+		@apply w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:placeholder-gray-400 dark:focus:border-gray-400 dark:focus:ring-gray-400;
+	}
+}
+
+@layer components {
+	/* Headings */
+	.pr-heading-page {
+		@apply mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50;
+	}
+
+	.pr-heading-section {
+		@apply mb-3 text-lg font-medium text-gray-900 dark:text-gray-50;
+	}
+
+	/* Buttons */
+	.pr-btn-primary {
+		@apply rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200;
+	}
+
+	.pr-btn-secondary {
+		@apply rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700;
+	}
+
+	/* Cards and list items */
+	.pr-card {
+		@apply rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700;
+	}
+
+	.pr-list-item-link {
+		@apply min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline dark:text-gray-50;
+	}
+}

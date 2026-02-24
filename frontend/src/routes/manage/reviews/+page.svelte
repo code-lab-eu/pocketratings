@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deleteReview } from '$lib/api';
+	import PageHeading from '$lib/PageHeading.svelte';
+	import Button from '$lib/Button.svelte';
 	import type { Review } from '$lib/types';
 
 	let { data } = $props();
@@ -29,22 +31,23 @@
 	<nav class="mb-4">
 		<a
 			href={resolve('/manage')}
-			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			class="pr-link-muted"
 			>← Manage</a
 		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Reviews</h1>
-	<a
+	<PageHeading>Reviews</PageHeading>
+	<Button
+		variant="primary"
 		href={resolve('/manage/reviews/add')}
-		class="mb-4 inline-block rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
+		class="mb-4 inline-block"
 	>
 		Add review
-	</a>
+	</Button>
 
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if reviews.length === 0}
-		<p class="text-gray-600 dark:text-gray-200">No reviews yet.</p>
+		<p class="pr-text-muted">No reviews yet.</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each reviews as review (review.id)}
@@ -52,13 +55,13 @@
 					<div class="min-w-0 flex-1">
 						<a
 							href={resolve(`/products/${review.product_id}`)}
-							class="font-medium text-gray-900 hover:underline dark:text-gray-50"
+							class="font-medium pr-text-body"
 						>
 							{productMap.get(review.product_id)?.name ?? review.product_id}
 						</a>
-						<span class="text-gray-600 dark:text-gray-200"> — {review.rating}/5</span>
+						<span class="pr-text-muted"> — {review.rating}/5</span>
 						{#if review.text}
-							<p class="mt-1 truncate text-sm text-gray-600 dark:text-gray-200">{review.text}</p>
+							<p class="mt-1 truncate text-sm pr-text-muted">{review.text}</p>
 						{/if}
 					</div>
 					<button
