@@ -209,6 +209,20 @@ caching logic in one place.
   categories is cheap). If preferred, keep two cache slots (active vs
   with-deleted); memory is negligible at this scale.
 
+### 12. Add cargo-llvm-cov to QA
+
+**Goal:** Run code coverage (cargo-llvm-cov) as part of backend quality
+assurance so new or changed code is measured and, optionally, coverage
+thresholds can be enforced.
+
+**Tasks:**
+- Install and run cargo-llvm-cov for the backend (e.g. in CI and/or in the
+  backend QC skill). Generate reports (e.g. `--lcov`, `--html`).
+- Optionally: add `--fail-under-lines` (or similar) to fail the build when
+  overall line coverage drops below a threshold.
+- Document in the backend QC skill and any CI workflow how to run coverage
+  and interpret results.
+
 ---
 
 ## Distant future
