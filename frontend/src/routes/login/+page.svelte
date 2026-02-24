@@ -40,45 +40,37 @@
 </svelte:head>
 
 <main class="mx-auto max-w-sm px-4 py-12">
-	<h1 class="mb-6 text-2xl font-semibold text-gray-900 dark:text-gray-50">Pocket Ratings</h1>
+	<h1 class="pr-heading-page mb-6">Pocket Ratings</h1>
 	{#if sessionExpired}
 		<p class="mb-4 text-sm text-amber-700 dark:text-amber-300" role="alert">
 			Session expired. Please sign in again.
 		</p>
 	{/if}
-	<p class="mb-6 text-gray-600 dark:text-gray-200">
+	<p class="mb-6 pr-text-muted">
 		Sign in to view your categories and product ratings.
 	</p>
 
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
-			<label
-				for="email"
-				class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-				>Email</label
-			>
+			<label for="email" class="mb-1 block pr-text-label">Email</label>
 			<input
 				id="email"
 				type="email"
 				required
 				autocomplete="email"
 				bind:value={email}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+				class="pr-input"
 			/>
 		</div>
 		<div>
-			<label
-				for="password"
-				class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-				>Password</label
-			>
+			<label for="password" class="mb-1 block pr-text-label">Password</label>
 			<input
 				id="password"
 				type="password"
 				required
 				autocomplete="current-password"
 				bind:value={password}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+				class="pr-input"
 			/>
 		</div>
 		{#if error}

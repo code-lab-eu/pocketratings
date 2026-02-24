@@ -24,7 +24,7 @@
 			name="q"
 			value={query}
 			placeholder="Search categories and products…"
-			class="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-500 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:placeholder-gray-400 dark:focus:border-gray-400 dark:focus:ring-gray-400"
+			class="pr-input"
 			autocomplete="off"
 		/>
 	</form>
@@ -33,28 +33,22 @@
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else}
 		<section class="mb-8" aria-labelledby="categories-heading">
-			<h2
-				id="categories-heading"
-				class="mb-3 text-lg font-medium text-gray-900 dark:text-gray-50"
-			>
+			<h2 id="categories-heading" class="pr-heading-section">
 				Categories
 			</h2>
 			{#if categories.length === 0}
-				<p class="text-gray-600 dark:text-gray-200">No categories match.</p>
+				<p class="pr-text-muted">No categories match.</p>
 			{:else}
 				<CategoryLinkList items={categories} basePath="categories" />
 			{/if}
 		</section>
 
 		<section aria-labelledby="products-heading">
-			<h2
-				id="products-heading"
-				class="mb-3 text-lg font-medium text-gray-900 dark:text-gray-50"
-			>
+			<h2 id="products-heading" class="pr-heading-section">
 				Products
 			</h2>
 			{#if items.length === 0}
-				<p class="text-gray-600 dark:text-gray-200">No products match.</p>
+				<p class="pr-text-muted">No products match.</p>
 			{:else}
 				<ProductList {items} />
 			{/if}
