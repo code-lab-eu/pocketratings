@@ -19,7 +19,21 @@ This document tracks planned features and improvements for Pocket Ratings.
 Prioritized: blocking tasks and quick wins first, then items that depend on
 them, then larger improvements.
 
-### 1. Category list: optional `depth` parameter
+### 1. Identify reusable frontend components
+
+**Goal:** Systematically find duplicated UI patterns in the frontend that can be
+extracted into reusable components (e.g. in `$lib`), to reduce duplication and
+keep behaviour and styling consistent.
+
+**Tasks:**
+- Audit routes and pages for repeated patterns: forms (inputs, selects,
+  buttons), list rows (links, actions), empty states, navigation chunks.
+- Produce a short list of candidate components with suggested props/slots and
+  consumer pages.
+- Prioritise and implement extractions (or add to this roadmap as separate
+  items). Prefer small, focused components over large ones.
+
+### 2. Category list: optional `depth` parameter
 
 **Goal:** Allow `GET /api/v1/categories?parent_id=<id>&depth=1` to return only
 direct children (one level), so the category page does not need the full
@@ -30,7 +44,7 @@ subtree.
   `depth=1`, return only direct children.
 - Document in [api.md](api.md).
 
-### 2. Purchases API: include location in response
+### 3. Purchases API: include location in response
 
 **Goal:** Purchase list/detail responses include location data (e.g. nested
 `"location": { "id", "name" }` or `location_name`) so the frontend can show
@@ -40,7 +54,7 @@ location without a separate `GET /api/v1/locations` call.
 - Extend purchase list and detail responses with location; document in
   [api.md](api.md). Frontend can then drop client-side resolution by id.
 
-### 3. Reusable search on home and category pages
+### 4. Reusable search on home and category pages
 
 **Goal:** The search currently on the homepage is also shown on category pages,
 implemented as a single reusable component.
@@ -55,7 +69,7 @@ implemented as a single reusable component.
   behaviour; spec can clarify). Document in [spec.md](spec.md) that search
   appears on both home and category pages.
 
-### 4. Management list UX: edit/delete icons; entity name → view page
+### 5. Management list UX: edit/delete icons; entity name → view page
 
 **Goal:** On management list pages (categories, products, locations, reviews,
 purchases), use separate **Edit** and **Delete** actions as **icons** (not
@@ -84,7 +98,7 @@ product/category).
   rows: entity name links to view page when it exists; separate Edit and
   Delete icon actions.”
 
-### 5. Category list: immediate children only with inline expand
+### 6. Category list: immediate children only with inline expand
 
 **Goal:** On the homepage and on category pages, the category list shows only
 **immediate children** (one level), not the full tree. Each category in the
@@ -94,7 +108,7 @@ Requires the REST API to expose a **`has_children: bool`** on each category in
 list/detail responses so the frontend can show/hide the expand link without
 extra requests.
 
-**Ties to:** §1 (Category list: optional `depth` parameter) — use `depth=1` to
+**Ties to:** §2 (Category list: optional `depth` parameter) — use `depth=1` to
 fetch only direct children for the initial list; when user expands a category,
 fetch its children (e.g. `GET /api/v1/categories?parent_id=<id>&depth=1`) and
 render them inline.
@@ -104,20 +118,20 @@ render them inline.
   API (list and by-id). Compute from existence of any non-deleted child
   category. Document in [api.md](api.md).
 - Frontend (home + category page): Request only direct children (e.g.
-  `depth=1` once §1 is done; or already use `parent_id` and ensure only one
+  `depth=1` once §2 is done; or already use `parent_id` and ensure only one
   level is shown). Render each category with an expand control only when
   `has_children === true`. On expand, fetch children for that category and
   render them inline (nested or indented). Update [spec.md](spec.md) so
   category list behaviour is “immediate children only; expand to show children
   inline when present.”
 
-### 6. Category page: products from current category and all child categories
+### 7. Category page: products from current category and all child categories
 
 **Goal:** On the category page, show all products that belong to the current
 category **and** to any descendant category (full subtree). Use a depth limit
 (e.g. depth 5) for “child categories” to avoid unbounded trees.
 
-**Blocked by:** §1 (Category list: optional `depth` parameter).
+**Blocked by:** §2 (Category list: optional `depth` parameter).
 
 **Tasks:**
 - Backend (if not already covered): support listing products for a category
@@ -129,7 +143,7 @@ category **and** to any descendant category (full subtree). Use a depth limit
   Use depth of 5 for subtree. Update [spec.md](spec.md) so category products
   include “current + all descendant categories” and reference depth.
 
-### 7. Home page: search by category name
+### 8. Home page: search by category name
 
 **Goal:** Search on the homepage includes products whose category (or ancestor)
 name matches the search term, not only product name/brand.
@@ -139,7 +153,7 @@ name matches the search term, not only product name/brand.
   a category whose name matches `q`. Frontend may need no change if backend
   handles it.
 
-### 8. Home page: live-updating search
+### 9. Home page: live-updating search
 
 **Goal:** Search results update as the user types (e.g. URL + debounced
 refetch), without requiring form submit.
@@ -149,7 +163,7 @@ refetch), without requiring form submit.
   types; optional debounce (e.g. 300 ms). Client-side navigation, no full
   reload.
 
-### 9. CLI timestamp management
+### 10. CLI timestamp management
 
 **Goal:** `updated_at` and `deleted_at` set automatically in the database
 layer (like the REST API), not manually in each CLI command.
@@ -159,7 +173,7 @@ layer (like the REST API), not manually in each CLI command.
 - Remove manual timestamp setting from CLI commands (category, location,
   product, review, purchase update/delete). Verify `created_at` on create.
 
-### 10. Product variations
+### 11. Product variations
 
 **Goal:** Products can be sold in different variations (e.g. mayonnaise in
 different jar sizes). Purchases track prices, so we need to differentiate
@@ -183,7 +197,7 @@ variations.
 - Associate purchases with a product variation (API, DB, frontend).
 - Document in [spec.md](spec.md) and [api.md](api.md).
 
-### 11. Categories: single list function with `include_deleted` option
+### 12. Categories: single list function with `include_deleted` option
 
 **Goal:** Replace `get_all()` and `get_all_with_deleted()` with one function,
 e.g. `get_all(pool, include_deleted: bool)`, to reduce duplication and keep
