@@ -230,6 +230,7 @@ Authorization: Bearer {{token}}
 # Authorization: Bearer {{token}}
 
 ### Purchases
+# List, get, create, and update responses include nested user, product, and location (e.g. "user": { "id", "name" }, "product": { "id", "brand", "name" }, "location": { "id", "name" }).
 
 # GET /api/v1/purchases — Query: ?user_id=uuid, ?product_id=uuid, ?location_id=uuid, ?from=date, ?to=date
 GET {{baseUrl}}/api/v1/purchases

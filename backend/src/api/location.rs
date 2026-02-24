@@ -13,6 +13,13 @@ use crate::api::{error::ApiError, state::AppState};
 use crate::db;
 use crate::domain::location::Location;
 
+/// Minimal location info for embedding in purchase (and future) responses.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LocationRef {
+    pub id: Uuid,
+    pub name: String,
+}
+
 /// Request body for creating a location.
 #[derive(Debug, Deserialize)]
 pub struct CreateLocationRequest {

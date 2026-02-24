@@ -15,8 +15,12 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::auth::CurrentUserId;
+use crate::api::location::LocationRef;
+use crate::api::product::ProductRef;
+use crate::api::user::UserRef;
 use crate::api::{error::ApiError, state::AppState};
 use crate::db;
+use crate::db::purchase::PurchaseWithRelations;
 use crate::domain::purchase::{Purchase, ValidationError};
 
 /// Query params for list purchases.
@@ -65,13 +69,13 @@ where
     Ok(s.to_lowercase() == "true" || s == "1")
 }
 
-/// Response body: purchase with price as string, timestamps as i64.
+/// Response body: purchase with nested user, product, location; price as string, timestamps as i64.
 #[derive(Debug, serde::Serialize)]
 pub struct PurchaseResponse {
     pub id: Uuid,
-    pub user_id: Uuid,
-    pub product_id: Uuid,
-    pub location_id: Uuid,
+    pub user: UserRef,
+    pub product: ProductRef,
+    pub location: LocationRef,
     pub quantity: i32,
     pub price: String,
     pub purchased_at: i64,
@@ -79,16 +83,26 @@ pub struct PurchaseResponse {
     pub deleted_at: Option<i64>,
 }
 
-fn purchase_to_response(p: &Purchase) -> PurchaseResponse {
+fn purchase_with_relations_to_response(p: &PurchaseWithRelations) -> PurchaseResponse {
     PurchaseResponse {
-        id: p.id(),
-        user_id: p.user_id(),
-        product_id: p.product_id(),
-        location_id: p.location_id(),
-        quantity: p.quantity(),
-        price: p.price().to_string(),
-        purchased_at: p.purchased_at(),
-        deleted_at: p.deleted_at(),
+        id: p.id,
+        user: UserRef {
+            id: p.user_id,
+            name: p.user_name.clone(),
+        },
+        product: ProductRef {
+            id: p.product_id,
+            brand: p.product_brand.clone(),
+            name: p.product_name.clone(),
+        },
+        location: LocationRef {
+            id: p.location_id,
+            name: p.location_name.clone(),
+        },
+        quantity: p.quantity,
+        price: p.price.clone(),
+        purchased_at: p.purchased_at,
+        deleted_at: p.deleted_at,
     }
 }
 
@@ -125,7 +139,7 @@ pub async fn list_purchases(
     let user_id = q.user_id.or(Some(current_user_id));
     let from_ts = q.from.as_deref().and_then(parse_iso_date_to_ts);
     let to_ts = q.to.as_deref().and_then(parse_iso_date_to_ts);
-    let list = db::purchase::list(
+    let list = db::purchase::list_with_relations(
         &state.pool,
         user_id,
         q.product_id,
@@ -136,7 +150,11 @@ pub async fn list_purchases(
     )
     .await
     .map_err(|e| map_db_error(&e))?;
-    Ok(Json(list.iter().map(purchase_to_response).collect()))
+    Ok(Json(
+        list.iter()
+            .map(purchase_with_relations_to_response)
+            .collect(),
+    ))
 }
 
 /// GET /api/v1/purchases/:id — get one purchase.
@@ -144,11 +162,11 @@ pub async fn get_purchase(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<PurchaseResponse>, ApiError> {
-    let purchase = db::purchase::get_by_id(&state.pool, id)
+    let purchase = db::purchase::get_by_id_with_relations(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
     let purchase = purchase.ok_or_else(|| ApiError::NotFound("purchase not found".to_string()))?;
-    Ok(Json(purchase_to_response(&purchase)))
+    Ok(Json(purchase_with_relations_to_response(&purchase)))
 }
 
 /// POST /api/v1/purchases — create a purchase (`user_id` from JWT).
@@ -203,7 +221,14 @@ pub async fn create_purchase(
     db::purchase::insert(&state.pool, &purchase)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok((StatusCode::CREATED, Json(purchase_to_response(&purchase))))
+    let with_relations = db::purchase::get_by_id_with_relations(&state.pool, id)
+        .await
+        .map_err(|e| map_db_error(&e))?
+        .expect("purchase just inserted");
+    Ok((
+        StatusCode::CREATED,
+        Json(purchase_with_relations_to_response(&with_relations)),
+    ))
 }
 
 /// PATCH /api/v1/purchases/:id — partial update; only owner.
@@ -277,7 +302,11 @@ pub async fn update_purchase(
     db::purchase::update(&state.pool, &updated)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok(Json(purchase_to_response(&updated)))
+    let with_relations = db::purchase::get_by_id_with_relations(&state.pool, id)
+        .await
+        .map_err(|e| map_db_error(&e))?
+        .expect("purchase just updated");
+    Ok(Json(purchase_with_relations_to_response(&with_relations)))
 }
 
 /// DELETE /api/v1/purchases/:id — soft delete, or hard with ?force=true; only owner.
@@ -460,15 +489,21 @@ mod tests {
             .to_bytes();
         let got: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         assert_eq!(
-            got.get("user_id").and_then(|v| v.as_str()),
+            got.get("user")
+                .and_then(|u| u.get("id"))
+                .and_then(|v| v.as_str()),
             Some(user_id.to_string().as_str())
         );
         assert_eq!(
-            got.get("product_id").and_then(|v| v.as_str()),
+            got.get("product")
+                .and_then(|p| p.get("id"))
+                .and_then(|v| v.as_str()),
             Some(product_id.to_string().as_str())
         );
         assert_eq!(
-            got.get("location_id").and_then(|v| v.as_str()),
+            got.get("location")
+                .and_then(|l| l.get("id"))
+                .and_then(|v| v.as_str()),
             Some(location_id.to_string().as_str())
         );
         assert_eq!(

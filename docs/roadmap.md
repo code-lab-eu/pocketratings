@@ -41,7 +41,7 @@ keep behaviour and styling consistent.
 - Prioritise and implement extractions (or add to this roadmap as separate
   items). Prefer small, focused components over large ones.
 
-### 2. Purchases API: include location in response
+### 2. Purchases API: include location in response — Done
 
 **Goal:** Purchase list/detail responses include location data (e.g. nested
 `"location": { "id", "name" }` or `location_name`) so the frontend can show
@@ -50,6 +50,8 @@ location without a separate `GET /api/v1/locations` call.
 **Tasks:**
 - Extend purchase list and detail responses with location; document in
   [api.md](api.md). Frontend can then drop client-side resolution by id.
+
+**Done:** Backend returns nested `user`, `product`, and `location` on list, get, create, and update; documented in api.md and api.http. Frontend types and pages (manage/purchases, product detail) to be updated per plan.
 
 ### 3. Reusable search on home and category pages
 

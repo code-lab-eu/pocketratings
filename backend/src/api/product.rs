@@ -13,6 +13,14 @@ use crate::api::{error::ApiError, state::AppState};
 use crate::db;
 use crate::domain::product::Product;
 
+/// Minimal product info for embedding in purchase (and future) responses.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ProductRef {
+    pub id: Uuid,
+    pub brand: String,
+    pub name: String,
+}
+
 /// Request body for creating a product.
 #[derive(Debug, Deserialize)]
 pub struct CreateProductRequest {

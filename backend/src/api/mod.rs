@@ -10,6 +10,7 @@ mod review;
 mod router;
 mod server;
 mod state;
+mod user;
 mod version;
 
 pub use error::{ApiError, ErrorBody};
