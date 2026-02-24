@@ -36,9 +36,9 @@ const review: Review = {
 
 const purchase: Purchase = {
 	id: 'pur-1',
-	user_id: 'u1',
-	product_id: 'prod-1',
-	location_id: 'loc-1',
+	user: { id: 'u1', name: 'Alice' },
+	product: { id: 'prod-1', brand: 'Acme', name: 'Milk' },
+	location: { id: 'loc-1', name: 'Store A' },
 	quantity: 1,
 	price: '2.99',
 	purchased_at: 1708012800,
@@ -50,7 +50,6 @@ const defaultData: PageData = {
 	reviews: [review],
 	purchases: [purchase],
 	category,
-	locationNames: { 'loc-1': 'Store A' },
 	notFound: false,
 	error: null
 };

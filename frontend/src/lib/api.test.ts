@@ -236,9 +236,9 @@ describe('api', () => {
 		const purchases = [
 			{
 				id: 'p1',
-				user_id: 'u1',
-				product_id: 'prod-1',
-				location_id: 'loc-1',
+				user: { id: 'u1', name: 'Alice' },
+				product: { id: 'prod-1', brand: 'Brand', name: 'Product' },
+				location: { id: 'loc-1', name: 'Store' },
 				quantity: 1,
 				price: '2.99',
 				purchased_at: 1708012800,
@@ -441,9 +441,9 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const purchase = {
 			id: 'pur1',
-			user_id: 'u1',
-			product_id: 'p1',
-			location_id: 'loc1',
+			user: { id: 'u1', name: 'Alice' },
+			product: { id: 'p1', brand: 'Brand', name: 'Product' },
+			location: { id: 'loc1', name: 'Store' },
 			quantity: 1,
 			price: '2.99',
 			purchased_at: 1708012800,
@@ -464,9 +464,9 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const created = {
 			id: 'pur1',
-			user_id: 'u1',
-			product_id: 'p1',
-			location_id: 'loc1',
+			user: { id: 'u1', name: 'Alice' },
+			product: { id: 'p1', brand: 'Brand', name: 'Product' },
+			location: { id: 'loc1', name: 'Store' },
 			quantity: 1,
 			price: '2.99',
 			purchased_at: 1708012800,
@@ -489,9 +489,9 @@ describe('api', () => {
 			new Response(
 				JSON.stringify({
 					id: 'pur1',
-					user_id: 'u1',
-					product_id: 'p1',
-					location_id: 'loc1',
+					user: { id: 'u1', name: 'Alice' },
+					product: { id: 'p1', brand: 'Brand', name: 'Product' },
+					location: { id: 'loc1', name: 'Store' },
 					quantity: 2,
 					price: '3.49',
 					purchased_at: 1708012800,

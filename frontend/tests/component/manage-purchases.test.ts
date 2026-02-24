@@ -5,9 +5,9 @@ import type { Purchase } from '../../src/lib/types';
 
 const purchase: Purchase = {
 	id: 'pur1',
-	user_id: 'u1',
-	product_id: 'p1',
-	location_id: 'loc1',
+	user: { id: 'u1', name: 'Alice' },
+	product: { id: 'p1', brand: 'B', name: 'Milk' },
+	location: { id: 'loc1', name: 'Store A' },
 	quantity: 1,
 	price: '2.99',
 	purchased_at: 1708012800,
@@ -20,8 +20,6 @@ describe('Manage purchases list', () => {
 			props: {
 				data: {
 					purchases: [],
-					productMap: new Map(),
-					locationMap: new Map(),
 					error: null
 				}
 			}
@@ -35,8 +33,6 @@ describe('Manage purchases list', () => {
 			props: {
 				data: {
 					purchases: [],
-					productMap: new Map(),
-					locationMap: new Map(),
 					error: null
 				}
 			}
@@ -45,14 +41,10 @@ describe('Manage purchases list', () => {
 	});
 
 	it('shows purchase list with delete button', () => {
-		const productMap = new Map([['p1', { id: 'p1', name: 'Milk', brand: 'B', category_id: 'c1', created_at: 0, updated_at: 0, deleted_at: null }]]);
-		const locationMap = new Map([['loc1', { id: 'loc1', name: 'Store A', deleted_at: null }]]);
 		render(PurchasesPage, {
 			props: {
 				data: {
 					purchases: [purchase],
-					productMap,
-					locationMap,
 					error: null
 				}
 			}

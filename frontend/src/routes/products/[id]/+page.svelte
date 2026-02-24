@@ -7,7 +7,6 @@
 	let reviews = $derived(data.reviews);
 	let purchases = $derived(data.purchases);
 	let category = $derived(data.category);
-	let locationNames = $derived(data.locationNames);
 	let error = $derived(data.error);
 	let notFound = $derived(data.notFound ?? false);
 
@@ -17,11 +16,6 @@
 			month: 'short',
 			day: 'numeric'
 		});
-	}
-
-	function locationName(locationId: string): string {
-		const map = locationNames as Record<string, string>;
-		return map[locationId] ?? locationId;
 	}
 </script>
 
@@ -96,7 +90,7 @@
 						{#each purchases as purchase (purchase.id)}
 							<li class="flex flex-wrap gap-x-4 gap-y-1 pr-text-body text-gray-700 dark:text-gray-200">
 								<span>{formatDate(purchase.purchased_at)}</span>
-								<span>{locationName(purchase.location_id)}</span>
+								<span>{purchase.location.name}</span>
 								<span>{purchase.price} €</span>
 							</li>
 						{/each}
