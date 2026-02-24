@@ -644,4 +644,431 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::FORBIDDEN);
     }
+
+    // --- Priority 1: create/update/delete success and 404 ---
+
+    #[tokio::test]
+    async fn create_purchase_returns_404_when_product_not_found() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let _product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let app = app_with_user(state, user_id);
+        let fake_product_id = Uuid::new_v4();
+
+        let body = serde_json::json!({
+            "product_id": fake_product_id,
+            "location_id": location_id,
+            "quantity": 1,
+            "price": "2.99",
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/purchases")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn create_purchase_returns_404_when_location_not_found() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let _location_id = insert_location(&state.pool, "Store").await;
+        let app = app_with_user(state, user_id);
+        let fake_location_id = Uuid::new_v4();
+
+        let body = serde_json::json!({
+            "product_id": product_id,
+            "location_id": fake_location_id,
+            "quantity": 1,
+            "price": "2.99",
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/purchases")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn update_purchase_returns_200_and_updated_body() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            location_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
+        let app = app_with_user(state, user_id);
+
+        let body = serde_json::json!({ "quantity": 3, "price": "5.00" });
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/v1/purchases/{}", purchase.id()))
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let got: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        assert_eq!(
+            got.get("quantity").and_then(serde_json::Value::as_i64),
+            Some(3)
+        );
+        assert_eq!(got.get("price").and_then(|v| v.as_str()), Some("5.00"));
+        assert_eq!(
+            got.get("product")
+                .and_then(|p| p.get("id"))
+                .and_then(|v| v.as_str()),
+            Some(product_id.to_string().as_str())
+        );
+        assert_eq!(
+            got.get("location")
+                .and_then(|l| l.get("id"))
+                .and_then(|v| v.as_str()),
+            Some(location_id.to_string().as_str())
+        );
+    }
+
+    #[tokio::test]
+    async fn update_purchase_returns_404_when_purchase_not_found() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let app = app_with_user(state, user_id);
+        let missing_id = Uuid::new_v4();
+
+        let body = serde_json::json!({ "quantity": 2 });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/v1/purchases/{missing_id}"))
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn delete_purchase_returns_204_and_soft_deletes() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            location_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
+        let app = app_with_user(state, user_id);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(format!("/api/v1/purchases/{}", purchase.id()))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+        // GET same id returns 404 (soft-deleted purchases are excluded).
+        let get_resp = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/purchases/{}", purchase.id()))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(get_resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn delete_purchase_returns_404_when_not_found() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let app = app_with_user(state, user_id);
+        let missing_id = Uuid::new_v4();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(format!("/api/v1/purchases/{missing_id}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    // --- Priority 2: list filter, update 404 for product/location, hard delete ---
+
+    #[tokio::test]
+    async fn list_purchases_with_product_id_filter_returns_only_that_products_purchases() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Alice", "a@example.com").await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id_1 = insert_product(&state.pool, cat_id, "B1", "P1").await;
+        let product_id_2 = insert_product(&state.pool, cat_id, "B2", "P2").await;
+        let loc_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let p1 = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id_1,
+            loc_id,
+            1,
+            Decimal::from(1),
+            now,
+            None,
+        )
+        .expect("valid");
+        let p2 = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id_2,
+            loc_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid");
+        db::purchase::insert(&state.pool, &p1)
+            .await
+            .expect("insert");
+        db::purchase::insert(&state.pool, &p2)
+            .await
+            .expect("insert");
+        let app = app_with_user(state, user_id);
+
+        let uri = format!("/api/v1/purchases?product_id={product_id_1}");
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(uri)
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(
+            arr[0]
+                .get("product")
+                .and_then(|p| p.get("id"))
+                .and_then(|v| v.as_str()),
+            Some(product_id_1.to_string().as_str())
+        );
+    }
+
+    #[tokio::test]
+    async fn update_purchase_returns_404_when_product_id_invalid() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            location_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
+        let app = app_with_user(state, user_id);
+        let fake_product_id = Uuid::new_v4();
+
+        let body = serde_json::json!({ "product_id": fake_product_id });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/v1/purchases/{}", purchase.id()))
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn update_purchase_returns_404_when_location_id_invalid() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            location_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
+        let app = app_with_user(state, user_id);
+        let fake_location_id = Uuid::new_v4();
+
+        let body = serde_json::json!({ "location_id": fake_location_id });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/v1/purchases/{}", purchase.id()))
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn delete_purchase_with_force_true_hard_deletes() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            location_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
+        let pool = state.pool.clone();
+        let app = app_with_user(state, user_id);
+        let id = purchase.id();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(format!("/api/v1/purchases/{id}?force=true"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+        // Row should be gone (hard delete).
+        let row: Option<(String,)> = sqlx::query_as("SELECT id FROM purchases WHERE id = ?")
+            .bind(id.to_string())
+            .fetch_optional(&pool)
+            .await
+            .expect("query");
+        assert!(row.is_none());
+    }
 }
