@@ -60,52 +60,41 @@
 	</nav>
 
 	{#if notFound}
-		<p class="text-gray-600 dark:text-gray-200">Location not found.</p>
+		<p class="pr-text-muted">Location not found.</p>
 		<p class="mt-2">
 			<a
 				href={resolve('/manage/locations')}
-				class="text-gray-900 underline hover:no-underline dark:text-gray-50"
+				class="pr-link-inline"
 				>Back to locations</a
 			>
 		</p>
 	{:else if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if location}
-		<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Edit location</h1>
+		<PageHeading>Edit location</PageHeading>
 
 		<form onsubmit={handleSubmit} class="space-y-4">
 			{#if formError}
 				<p class="text-red-600 dark:text-red-300">{formError}</p>
 			{/if}
 			<div>
-				<label
-					for="name"
-					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
-					>Name</label
-				>
+				<label for="name" class="mb-1 block pr-text-label">Name</label>
 				<input
 					id="name"
 					type="text"
 					bind:value={name}
 					required
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
+					class="pr-input"
 					autocomplete="off"
 				/>
 			</div>
 			<div class="flex flex-wrap gap-2">
-				<button
-					type="submit"
-					disabled={submitting}
-					class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
-				>
+				<Button type="submit" disabled={submitting} variant="primary">
 					{submitting ? 'Saving…' : 'Save'}
-				</button>
-				<a
-					href={resolve('/manage/locations')}
-					class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
-					>
+				</Button>
+				<Button variant="secondary" href={resolve('/manage/locations')}>
 					Cancel
-				</a>
+				</Button>
 				<button
 					type="button"
 					onclick={handleDelete}
@@ -116,6 +105,6 @@
 			</div>
 		</form>
 	{:else}
-		<p class="text-gray-600 dark:text-gray-200">Location not found.</p>
+		<p class="pr-text-muted">Location not found.</p>
 	{/if}
 </main>
