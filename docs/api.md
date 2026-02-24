@@ -418,8 +418,6 @@ Soft-delete a product.
 
 ### Purchases
 
-All purchase list/detail/create/update responses use the same shape (no top-level `user_id`, `product_id`, or `location_id`; see example below).
-
 #### `GET /api/v1/purchases`
 
 List purchases.
