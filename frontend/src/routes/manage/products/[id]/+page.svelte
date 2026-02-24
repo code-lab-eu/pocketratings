@@ -64,41 +64,57 @@
 
 <main class="mx-auto max-w-2xl px-4 py-8">
 	<nav class="mb-4">
-		<a href={resolve('/manage/products')} class="text-gray-600 hover:text-gray-900">← Products</a>
+		<a
+			href={resolve('/manage/products')}
+			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			>← Products</a
+		>
 	</nav>
 
 	{#if notFound}
-		<p class="text-gray-600">Product not found.</p>
+		<p class="text-gray-600 dark:text-gray-200">Product not found.</p>
 		<p class="mt-2">
-			<a href={resolve('/manage/products')} class="text-gray-900 underline hover:no-underline">Back to products</a>
+			<a
+				href={resolve('/manage/products')}
+				class="text-gray-900 underline hover:no-underline dark:text-gray-50"
+				>Back to products</a
+			>
 		</p>
 	{:else if error}
-		<p class="text-red-600">{error}</p>
+		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if product}
-		<h1 class="mb-4 text-2xl font-semibold text-gray-900">Edit product</h1>
+		<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Edit product</h1>
 
 		<form onsubmit={handleSubmit} class="space-y-4">
 			{#if formError}
-				<p class="text-red-600">{formError}</p>
+				<p class="text-red-600 dark:text-red-300">{formError}</p>
 			{/if}
 			<div>
-				<label for="name" class="mb-1 block text-sm font-medium text-gray-700">Name</label>
+				<label
+					for="name"
+					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+					>Name</label
+				>
 				<input
 					id="name"
 					type="text"
 					bind:value={name}
 					required
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
 					autocomplete="off"
 				/>
 			</div>
 			<div>
-				<label for="brand" class="mb-1 block text-sm font-medium text-gray-700">Brand</label>
+				<label
+					for="brand"
+					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+					>Brand</label
+				>
 				<input
 					id="brand"
 					type="text"
 					bind:value={brand}
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
 					autocomplete="off"
 				/>
 			</div>
@@ -114,23 +130,26 @@
 				<button
 					type="submit"
 					disabled={submitting}
-					class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
+					class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
 				>
 					{submitting ? 'Saving…' : 'Save'}
 				</button>
-				<a href={resolve('/manage/products')} class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
+				<a
+					href={resolve('/manage/products')}
+					class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
+					>
 					Cancel
 				</a>
 				<button
 					type="button"
 					onclick={handleDelete}
-					class="rounded-lg border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50"
+					class="rounded-lg border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50 dark:border-red-500 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950"
 				>
 					Delete
 				</button>
 			</div>
 		</form>
 	{:else}
-		<p class="text-gray-600">Product not found.</p>
+		<p class="text-gray-600 dark:text-gray-200">Product not found.</p>
 	{/if}
 </main>

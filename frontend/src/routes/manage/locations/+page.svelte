@@ -26,32 +26,39 @@
 
 <main class="mx-auto max-w-2xl px-4 py-8">
 	<nav class="mb-4">
-		<a href={resolve('/manage')} class="text-gray-600 hover:text-gray-900">← Manage</a>
+		<a
+			href={resolve('/manage')}
+			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			>← Manage</a
+		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900">Locations</h1>
+	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Locations</h1>
 	<a
 		href={resolve('/manage/locations/new')}
-		class="mb-4 inline-block rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800"
+		class="mb-4 inline-block rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
 	>
 		New location
 	</a>
 
 	{#if error}
-		<p class="text-red-600">{error}</p>
+		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if locations.length === 0}
-		<p class="text-gray-600">No locations yet.</p>
+		<p class="text-gray-600 dark:text-gray-200">No locations yet.</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each locations as location (location.id)}
-				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
-					<a href={resolve(`/manage/locations/${location.id}`)} class="flex-1 text-gray-900 hover:underline">
+				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+					<a
+						href={resolve(`/manage/locations/${location.id}`)}
+						class="flex-1 text-gray-900 hover:underline dark:text-gray-50"
+					>
 						{location.name}
 					</a>
 					<button
 						type="button"
 						onclick={() => handleDelete(location)}
 						disabled={deletingId === location.id}
-						class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
+						class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 dark:text-red-300 dark:hover:text-red-200"
 						aria-label="Delete {location.name}"
 					>
 						{deletingId === location.id ? '…' : 'Delete'}

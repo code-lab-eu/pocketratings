@@ -14,12 +14,17 @@
 </script>
 
 <div>
-	<label for={id} class="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+	<label
+		for={id}
+		class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+	>
+		{label}
+	</label>
 	<select
 		{id}
 		bind:value
 		{required}
-		class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+		class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
 		autocomplete="off"
 	>
 		{#if placeholder}

@@ -30,18 +30,22 @@
 
 <main class="mx-auto max-w-2xl px-4 py-8">
 	<nav class="mb-4">
-		<a href={resolve('/manage')} class="text-gray-600 hover:text-gray-900">← Manage</a>
+		<a
+			href={resolve('/manage')}
+			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			>← Manage</a
+		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900">Categories</h1>
+	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Categories</h1>
 	<a
 		href={resolve('/manage/categories/new')}
-		class="mb-4 inline-block rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800"
+		class="mb-4 inline-block rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
 	>
 		New category
 	</a>
 
 	{#if error}
-		<p class="text-red-600">{error}</p>
+		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if flat.length === 0}
 		<EmptyState
 			message="No categories yet."
@@ -53,7 +57,7 @@
 				type="button"
 				onclick={() => handleDelete(category)}
 				disabled={deletingId === category.id}
-				class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
+				class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 dark:text-red-300 dark:hover:text-red-200"
 				aria-label="Delete {category.name}"
 			>
 				{deletingId === category.id ? '…' : 'Delete'}

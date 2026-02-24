@@ -66,7 +66,11 @@ The built site output location depends on the Svelte setup (e.g.
 
 ## Development
 
+**Important:** The backend server must be started before starting the frontend server, as the frontend depends on the backend API.
+
 ### Backend
+
+Start the backend server first:
 
 ```bash
 cd backend

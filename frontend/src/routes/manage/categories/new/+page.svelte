@@ -37,25 +37,33 @@
 
 <main class="mx-auto max-w-2xl px-4 py-8">
 	<nav class="mb-4">
-		<a href={resolve('/manage/categories')} class="text-gray-600 hover:text-gray-900">← Categories</a>
+		<a
+			href={resolve('/manage/categories')}
+			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			>← Categories</a
+		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900">New category</h1>
+	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">New category</h1>
 
 	{#if loadError}
-		<p class="text-red-600">{loadError}</p>
+		<p class="text-red-600 dark:text-red-300">{loadError}</p>
 	{:else}
 	<form onsubmit={handleSubmit} class="space-y-4">
 		{#if error}
-			<p class="text-red-600">{error}</p>
+			<p class="text-red-600 dark:text-red-300">{error}</p>
 		{/if}
 		<div>
-			<label for="name" class="mb-1 block text-sm font-medium text-gray-700">Name</label>
+			<label
+				for="name"
+				class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+				>Name</label
+			>
 			<input
 				id="name"
 				type="text"
 				bind:value={name}
 				required
-				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
 				autocomplete="off"
 			/>
 		</div>
@@ -74,7 +82,10 @@
 			>
 				{submitting ? 'Creating…' : 'Create'}
 			</button>
-			<a href={resolve('/manage/categories')} class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
+			<a
+				href={resolve('/manage/categories')}
+				class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
+				>
 				Cancel
 			</a>
 		</div>
