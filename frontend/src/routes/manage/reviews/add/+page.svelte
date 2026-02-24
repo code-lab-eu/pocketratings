@@ -50,24 +50,32 @@
 
 <main class="mx-auto max-w-2xl px-4 py-8">
 	<nav class="mb-4">
-		<a href={resolve('/manage/reviews')} class="text-gray-600 hover:text-gray-900">← Reviews</a>
+		<a
+			href={resolve('/manage/reviews')}
+			class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
+			>← Reviews</a
+		>
 	</nav>
-	<h1 class="mb-4 text-2xl font-semibold text-gray-900">Add review</h1>
+	<h1 class="mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50">Add review</h1>
 
 	{#if loadError}
-		<p class="text-red-600">{loadError}</p>
+		<p class="text-red-600 dark:text-red-300">{loadError}</p>
 	{:else}
 		<form onsubmit={handleSubmit} class="space-y-4">
 			{#if error}
-				<p class="text-red-600">{error}</p>
+				<p class="text-red-600 dark:text-red-300">{error}</p>
 			{/if}
 			<div>
-				<label for="product" class="mb-1 block text-sm font-medium text-gray-700">Product</label>
+				<label
+					for="product"
+					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+					>Product</label
+				>
 				<select
 					id="product"
 					bind:value={productId}
 					required
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
 				>
 					<option value="">Select product</option>
 					{#each products as p (p.id)}
@@ -76,7 +84,11 @@
 				</select>
 			</div>
 			<div>
-				<label for="rating" class="mb-1 block text-sm font-medium text-gray-700">Rating (1–5)</label>
+				<label
+					for="rating"
+					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+					>Rating (1–5)</label
+				>
 				<input
 					id="rating"
 					type="number"
@@ -84,16 +96,20 @@
 					min="1"
 					max="5"
 					step="0.5"
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
 				/>
 			</div>
 			<div>
-				<label for="text" class="mb-1 block text-sm font-medium text-gray-700">Review (optional)</label>
+				<label
+					for="text"
+					class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200"
+					>Review (optional)</label
+				>
 				<textarea
 					id="text"
 					bind:value={text}
 					rows="3"
-					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+					class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
 					placeholder="Your review…"
 				></textarea>
 			</div>
@@ -101,11 +117,14 @@
 				<button
 					type="submit"
 					disabled={submitting}
-					class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
+					class="rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200"
 				>
 					{submitting ? 'Saving…' : 'Save'}
 				</button>
-				<a href={resolve('/manage/reviews')} class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
+				<a
+					href={resolve('/manage/reviews')}
+					class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
+					>
 					Cancel
 				</a>
 			</div>

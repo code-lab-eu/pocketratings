@@ -56,13 +56,27 @@
 
 ## Frontend (web app)
 
-The main use case for the web app is **in-store decision making**: the user is in a shop (e.g. supermarket) facing a large selection (wines, coffees, cheeses, sausages). They take out their phone, open the app, and want to quickly see which products in a category they already tried and how they rated them, so they can decide what to buy (or avoid).
+The main use case for the web app is **in-store decision making**: the user is
+in a shop (e.g. supermarket) facing a large selection (wines, coffees,
+cheeses, sausages). They take out their phone, open the app, and want to
+quickly see which products in a category they already tried and how they rated
+them, so they can decide what to buy (or avoid).
+
+The UI supports both **light and dark modes**. In dark mode, all headings,
+labels, links, and paragraph text are tuned to meet **WCAG AAA** contrast
+requirements against their backgrounds so that text remains highly legible in
+low-light conditions.
 
 **Implications:**
 
-- **Lookup-first, not data-entry-first** — Browsing categories and searching products, plus at-a-glance ratings, must be the default. Adding/editing categories, products, purchases, and reviews is secondary and lives behind a menu.
-- **Mobile-first** — One-handed use, large touch targets, minimal chrome, fast load and interaction.
-- **Fast and simple** — Few taps to "category → list of products with clear ratings"; search with quick feedback.
+- **Lookup-first, not data-entry-first** — Browsing categories and searching
+  products, plus at-a-glance ratings, must be the default. Adding/editing
+  categories, products, purchases, and reviews is secondary and lives behind a
+  menu.
+- **Mobile-first** — One-handed use, large touch targets, minimal chrome, fast
+  load and interaction.
+- **Fast and simple** — Few taps to "category → list of products with clear
+  ratings"; search with quick feedback.
 
 **Information architecture**
 

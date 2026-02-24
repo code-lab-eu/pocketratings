@@ -15,20 +15,20 @@
 	{#each items as { category, depth } (category.id)}
 		{#if action}
 			<li
-				class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3"
+				class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
 				style="margin-left: {depth * 1}rem"
 			>
 				{#if basePath === 'manage/categories'}
 					<a
 						href={resolve('/manage/categories/[id]', { id: category.id })}
-						class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline"
+						class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline dark:text-gray-50"
 					>
 						{category.name}
 					</a>
 				{:else}
 					<a
 						href={resolve('/categories/[id]', { id: category.id })}
-						class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline"
+						class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline dark:text-gray-50"
 					>
 						{category.name}
 					</a>
@@ -40,14 +40,14 @@
 				{#if basePath === 'manage/categories'}
 					<a
 						href={resolve('/manage/categories/[id]', { id: category.id })}
-						class="block rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50"
+						class="block rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
 					>
 						{category.name}
 					</a>
 				{:else}
 					<a
 						href={resolve('/categories/[id]', { id: category.id })}
-						class="block rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50"
+						class="block rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700"
 					>
 						{category.name}
 					</a>
