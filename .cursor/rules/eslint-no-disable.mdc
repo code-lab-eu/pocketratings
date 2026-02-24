@@ -1,0 +1,11 @@
+---
+description: Avoid disabling ESLint rules unless strictly necessary
+alwaysApply: true
+---
+
+# Do not disable ESLint unless strictly necessary
+
+- **Prefer fixing the code** so the rule is satisfied (e.g. use direct `resolve()` in `href`, type values properly instead of `any`).
+- **Only add `eslint-disable` or `eslint-disable-next-line`** when the rule cannot be satisfied (e.g. the rule does not support the pattern, or satisfying it would require an unreasonable change). When you do, add a short comment explaining why (e.g. "query params require string concatenation; rule only accepts direct resolve()").
+- **Prefer line-level disables** over file-level when only one or two lines need an exception.
+- **Review existing disables** when touching a file: remove the disable if the code can be refactored to satisfy the rule.

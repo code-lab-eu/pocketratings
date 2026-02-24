@@ -1,5 +1,4 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve -- Add review/purchase links need query params; path uses resolve() */
 	import { resolve } from '$app/paths';
 
 	let { data } = $props();

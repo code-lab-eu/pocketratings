@@ -16,7 +16,7 @@
 	<p class="mt-2">
 		<a
 			href={resolve(
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic route path from caller
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any -- resolve() expects typed Route; generated type is not assignable from string so cast is required
 				action.href as any
 			)}
 			class="text-gray-900 underline hover:no-underline dark:text-gray-200 dark:hover:text-white"
