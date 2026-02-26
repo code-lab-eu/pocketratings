@@ -225,6 +225,43 @@ thresholds can be enforced.
 - Document in the backend QC skill and any CI workflow how to run coverage
   and interpret results.
 
+### 13. Reviews API: include product and user in response
+
+**Goal:** Review list/detail responses include nested `product: { id, brand,
+name }` and `user: { id, name }` so the manage/reviews page and product
+detail can show names without separate `listProducts` or user lookups.
+
+**Tasks:**
+- Backend: JOINs in DB layer (e.g. `list_with_relations` /
+  `get_by_id_with_relations` for reviews); API reuses `ProductRef` and
+  `UserRef` from purchase API.
+- Frontend: remove `listProducts()` and productMap from manage/reviews; use
+  embedded `review.product` and `review.user`.
+- Document in [api.md](api.md).
+
+### 14. Products API: include category in response
+
+**Goal:** Product list and detail responses include nested `category: { id,
+name }` so the product detail page (and any list showing category) can
+display category without a separate `GET /api/v1/categories/:id`.
+
+**Tasks:**
+- Backend: JOIN categories in product DB layer; add `CategoryRef` in API.
+- Frontend: product detail loads only product (and reviews/purchases); use
+  `product.category` for link and label; drop `getCategory(product.category_id)`.
+- Document in [api.md](api.md).
+
+### 15. Category API: include parent in response
+
+**Goal:** Category list/detail include nested `parent: { id, name } | null`
+so breadcrumbs or parent display do not require a separate category fetch.
+
+**Tasks:**
+- Backend: JOIN parent category in list/get; add optional parent ref to
+  category response.
+- Frontend: use `category.parent` where parent name or link is needed.
+- Document in [api.md](api.md).
+
 ---
 
 ## Distant future
