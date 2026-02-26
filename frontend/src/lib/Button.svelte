@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+
 	type Variant = 'primary' | 'secondary' | 'link';
 
 	interface Props {
@@ -7,6 +9,7 @@
 		type?: 'button' | 'submit' | 'reset';
 		disabled?: boolean;
 		class?: string;
+		children?: Snippet;
 	}
 
 	let {
@@ -14,7 +17,8 @@
 		href,
 		type = 'button',
 		disabled = false,
-		class: className = ''
+		class: className = '',
+		children
 	}: Props = $props();
 
 	const baseClass = $derived(
@@ -31,11 +35,11 @@
 {#if href}
 	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is already resolved at callsites or may be external; this component cannot safely call resolve() -->
 	<a href={href} class={classes}>
-		<slot />
+		{@render children?.()}
 	</a>
 {:else}
 	<button type={type} disabled={disabled} class={classes}>
-		<slot />
+		{@render children?.()}
 	</button>
 {/if}
 
