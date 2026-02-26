@@ -1,0 +1,11 @@
+---
+description: Use bun for the frontend; do not use npm or npx
+alwaysApply: true
+---
+
+# Use bun for the frontend
+
+This project uses **bun** for the frontend (`frontend/`).
+
+- Use `bun install`, `bun run build`, `bun run lint`, `bun run test`, `bun run dev` (and `bun x` when running a CLI).
+- Do **not** use `npm` or `npx` for frontend commands.
