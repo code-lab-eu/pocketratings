@@ -107,14 +107,11 @@ pub async fn list(
     // Sort by (brand, name) for stable output.
     products.sort_by(|a, b| (a.brand(), a.name()).cmp(&(b.brand(), b.name())));
 
-    let category_map: HashMap<Uuid, Category> = if include_deleted {
-        db::category::get_all_with_deleted(pool).await?
-    } else {
-        db::category::get_all(pool).await?
-    }
-    .into_iter()
-    .map(|c| (c.id(), c))
-    .collect();
+    let category_map: HashMap<Uuid, Category> = db::category::get_all(pool, include_deleted)
+        .await?
+        .into_iter()
+        .map(|c| (c.id(), c))
+        .collect();
 
     if output_json {
         let items: Vec<serde_json::Value> = products

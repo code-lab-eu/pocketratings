@@ -157,14 +157,14 @@ async fn category_delete_soft_deletes_category() {
         cat.is_none(),
         "soft-deleted category should not be returned by get_by_id"
     );
-    let active = db::category::get_all(&pool).await.expect("get_all");
+    let active = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(
         active.iter().all(|c| c.name() != "ToDelete"),
         "soft-deleted category should not be in get_all"
     );
-    let with_deleted = db::category::get_all_with_deleted(&pool)
+    let with_deleted = db::category::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all with include_deleted");
     assert!(
         with_deleted
             .iter()
@@ -260,9 +260,9 @@ async fn category_delete_force_removes_row() {
         .await
         .expect("get_by_id");
     assert!(cat.is_none());
-    let with_deleted = db::category::get_all_with_deleted(&pool)
+    let with_deleted = db::category::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all with include_deleted");
     assert!(
         !with_deleted.iter().any(|c| c.id().to_string() == id),
         "hard-deleted category should not appear in get_all_with_deleted"

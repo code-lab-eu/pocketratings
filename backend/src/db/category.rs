@@ -2,7 +2,7 @@
 //!
 //! Provides the [`Categories`] tree type, [`Categories::from_list`] that builds a tree from a flat
 //! list, and DB functions: [`get_by_id`], [`get_parent`], [`get_children`], [`get_all`],
-//! [`get_all_with_deleted`], [`insert`], [`update`], and [`soft_delete`].
+//! [`insert`], [`update`], and [`soft_delete`].
 
 use std::collections::HashMap;
 use std::sync::{OnceLock, RwLock};
@@ -27,8 +27,8 @@ pub fn set_running_as_production() {
     RUNNING_AS_PRODUCTION.store(true, std::sync::atomic::Ordering::SeqCst);
 }
 
-// Thread-local: when true in this thread, get_all/get_all_with_deleted use the cache. Lets cache
-// tests enable the cache without affecting parallel tests (they see default false).
+// Thread-local: when true in this thread, get_all(..., include_deleted) uses the cache. Lets
+// cache tests enable the cache without affecting parallel tests (they see default false).
 std::thread_local! {
     static USE_CACHE_IN_TEST: std::sync::atomic::AtomicBool = const { std::sync::atomic::AtomicBool::new(false) };
 }
@@ -42,8 +42,8 @@ pub fn set_use_category_list_cache_for_test(use_cache: bool) {
     USE_CACHE_IN_TEST.with(|v| v.store(use_cache, std::sync::atomic::Ordering::SeqCst));
 }
 
-/// Module-level cache for the full category list (including deleted). Used by `get_all` and
-/// `get_all_with_deleted`.
+/// Module-level cache for the full category list (including deleted). Used by
+/// `get_all(..., include_deleted)`.
 ///
 /// **Disabled in test builds by default:** The cache is a single process-wide static. Unrelated
 /// tests run in parallel with their own DBs; we bypass the cache so they don't see each other's
@@ -64,7 +64,7 @@ pub fn clear_category_list_cache() {
 }
 
 /// Set the category list cache to a specific value. For use by cache tests to verify that
-/// `get_all` / `get_all_with_deleted` return cached data when the cache is populated.
+/// `get_all(..., include_deleted)` returns cached data when the cache is populated.
 pub fn set_category_list_cache_for_test(list: Option<Vec<Category>>) {
     let _ = category_list_cache().write().map(|mut g| *g = list);
 }
@@ -305,7 +305,11 @@ pub async fn get_children(
     Ok(out)
 }
 
-/// Fetch all active categories (flat list). Use with [`Categories::from_list`] for the full tree.
+/// Fetch all categories (flat list). Use with [`Categories::from_list`] for the full tree.
+///
+/// When `include_deleted` is `false`, only active (non-deleted) categories are returned.
+/// When `true`, soft-deleted categories are included. The cache always stores the full list
+/// (including deleted); when `include_deleted` is `false` the result is filtered on read.
 ///
 /// When not in test, results are cached in memory; the cache is invalidated on any category
 /// insert, update, or delete.
@@ -313,12 +317,19 @@ pub async fn get_children(
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbError> {
+pub async fn get_all(
+    pool: &SqlitePool,
+    include_deleted: bool,
+) -> Result<Vec<Category>, crate::db::DbError> {
     if use_cache()
         && let Ok(guard) = category_list_cache().read()
         && let Some(ref list) = *guard
     {
-        return Ok(list.iter().filter(|c| c.is_active()).cloned().collect());
+        return Ok(if include_deleted {
+            list.clone()
+        } else {
+            list.iter().filter(|c| c.is_active()).cloned().collect()
+        });
     }
 
     let list = fetch_all_categories_raw(pool).await?;
@@ -329,34 +340,11 @@ pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbEr
         *guard = Some(list.clone());
     }
 
-    Ok(list.into_iter().filter(Category::is_active).collect())
-}
-
-/// Fetch all categories (active and soft-deleted).
-///
-/// When not in test, results are cached in memory; the cache is invalidated on any category
-/// insert, update, or delete.
-///
-/// # Errors
-///
-/// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_all_with_deleted(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbError> {
-    if use_cache()
-        && let Ok(guard) = category_list_cache().read()
-        && let Some(ref list) = *guard
-    {
-        return Ok(list.clone());
-    }
-
-    let list = fetch_all_categories_raw(pool).await?;
-
-    if use_cache()
-        && let Ok(mut guard) = category_list_cache().write()
-    {
-        *guard = Some(list.clone());
-    }
-
-    Ok(list)
+    Ok(if include_deleted {
+        list
+    } else {
+        list.into_iter().filter(Category::is_active).collect()
+    })
 }
 
 /// Insert a category into the database.

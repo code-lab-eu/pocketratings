@@ -20,6 +20,11 @@ This document tracks planned features and improvements for Pocket Ratings.
   `Category.children`, `flattenCategories`; category listing components
   refactored. Documented in [api.md](api.md).
 
+- **Categories: single list function with `include_deleted` option** —
+  Replaced `get_all()` and `get_all_with_deleted()` with
+  `get_all(pool, include_deleted: bool)`; single cache (full list), filter
+  when `include_deleted == false`. All API and test call sites updated.
+
 ---
 
 ## Planned
@@ -196,22 +201,33 @@ variations.
 - Associate purchases with a product variation (API, DB, frontend).
 - Document in [spec.md](spec.md) and [api.md](api.md).
 
-### 11. Categories: single list function with `include_deleted` option
+### 12. Locations: single list function with `include_deleted` option
 
-**Goal:** Replace `get_all()` and `get_all_with_deleted()` with one function,
-e.g. `get_all(pool, include_deleted: bool)`, to reduce duplication and keep
-caching logic in one place.
+**Goal:** Replace `get_all()` and `get_all_with_deleted()` in the location DB
+layer with one function, e.g. `get_all(pool, include_deleted: bool)`, to reduce
+duplication and keep caching logic in one place (same pattern as categories).
 
 **Tasks:**
-- Add `include_deleted: bool` parameter to the category list function; merge
+- Add `include_deleted: bool` parameter to the location list function; merge
   the two implementations.
 - Update all call sites (API and tests).
-- **Cache:** One cache (full list including deleted) is sufficient: on read
-  when `include_deleted == false`, filter out deleted (O(n) over ~1000
-  categories is cheap). If preferred, keep two cache slots (active vs
-  with-deleted); memory is negligible at this scale.
+- Single cache (full list including deleted); filter when
+  `include_deleted == false`.
 
-### 12. Add cargo-llvm-cov to QA
+### 13. Products: single list function with `include_deleted` option
+
+**Goal:** Same refactor for the product DB layer: one list function (e.g.
+`get_all` or `get_all_filtered`) with `include_deleted: bool`; update call
+sites; cache strategy as for categories/locations.
+
+**Tasks:**
+- Add `include_deleted: bool` to the product list function(s); merge
+  implementations.
+- Update all call sites (API and tests).
+- Single cache (full list including deleted); filter when
+  `include_deleted == false`.
+
+### 14. Add cargo-llvm-cov to QA
 
 **Goal:** Run code coverage (cargo-llvm-cov) as part of backend quality
 assurance so new or changed code is measured and, optionally, coverage
@@ -225,7 +241,7 @@ thresholds can be enforced.
 - Document in the backend QC skill and any CI workflow how to run coverage
   and interpret results.
 
-### 13. Reviews API: include product and user in response
+### 15. Reviews API: include product and user in response
 
 **Goal:** Review list/detail responses include nested `product: { id, brand,
 name }` and `user: { id, name }` so the manage/reviews page and product
@@ -239,7 +255,7 @@ detail can show names without separate `listProducts` or user lookups.
   embedded `review.product` and `review.user`.
 - Document in [api.md](api.md).
 
-### 14. Products API: include category in response
+### 16. Products API: include category in response
 
 **Goal:** Product list and detail responses include nested `category: { id,
 name }` so the product detail page (and any list showing category) can
@@ -251,7 +267,7 @@ display category without a separate `GET /api/v1/categories/:id`.
   `product.category` for link and label; drop `getCategory(product.category_id)`.
 - Document in [api.md](api.md).
 
-### 15. Category API: include parent in response
+### 17. Category API: include parent in response
 
 **Goal:** Category list/detail include nested `parent: { id, name } | null`
 so breadcrumbs or parent display do not require a separate category fetch.

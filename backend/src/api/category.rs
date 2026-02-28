@@ -134,7 +134,7 @@ pub async fn list_categories(
             })
             .collect()
     } else {
-        let all = db::category::get_all(&state.pool)
+        let all = db::category::get_all(&state.pool, false)
             .await
             .map_err(|e| map_db_error(&e))?;
         let root = if let Some(pid) = q.parent_id {
@@ -687,9 +687,7 @@ mod tests {
             active.is_none(),
             "get_by_id must exclude soft-deleted category"
         );
-        let with_deleted = db::category::get_all_with_deleted(&state.pool)
-            .await
-            .expect("db");
+        let with_deleted = db::category::get_all(&state.pool, true).await.expect("db");
         let soft_deleted = with_deleted
             .iter()
             .find(|c| c.id() == uuid)
@@ -741,9 +739,7 @@ mod tests {
             .await
             .expect("db");
         assert!(active.is_none());
-        let with_deleted = db::category::get_all_with_deleted(&state.pool)
-            .await
-            .expect("db");
+        let with_deleted = db::category::get_all(&state.pool, true).await.expect("db");
         assert!(
             !with_deleted.iter().any(|c| c.id() == uuid),
             "hard delete must remove row from database"

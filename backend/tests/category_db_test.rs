@@ -85,7 +85,7 @@ async fn category_get_by_id_get_parent_get_children_get_all_and_get_tree() {
     assert_eq!(roots[0].id(), root_id);
     assert_eq!(roots[0].name(), "Root");
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 2);
 
     let tree = db::category::Categories::from_list(all, None, None, false);
@@ -234,15 +234,15 @@ async fn category_soft_delete_sets_deleted_at_and_excludes_from_get_all() {
     let by_id = db::category::get_by_id(&pool, id).await.expect("get_by_id");
     assert!(by_id.is_none());
 
-    let active = db::category::get_all(&pool).await.expect("get_all");
+    let active = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(
         active.is_empty(),
         "soft-deleted category should not be in get_all"
     );
 
-    let with_deleted = db::category::get_all_with_deleted(&pool)
+    let with_deleted = db::category::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all with include_deleted");
     assert_eq!(with_deleted.len(), 1);
     assert!(!with_deleted[0].is_active());
 }
@@ -339,20 +339,20 @@ async fn category_list_cache_is_warmed_on_first_call_and_used_on_subsequent_call
     let pool = db::create_pool(db_path_str).await.expect("pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(all.is_empty(), "first call: empty DB -> empty list");
 
     let id = Uuid::new_v4();
     let cached = Category::new(id, None, "CachedOnly".to_string(), 1, 1, None).expect("valid");
     db::category::set_category_list_cache_for_test(Some(vec![cached.clone()]));
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 1, "must return cached list, not DB");
     assert_eq!(all[0].name(), "CachedOnly");
 
-    let with_del = db::category::get_all_with_deleted(&pool)
+    let with_del = db::category::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all with include_deleted");
     assert_eq!(with_del.len(), 1);
     assert_eq!(with_del[0].name(), "CachedOnly");
 }
@@ -370,17 +370,17 @@ async fn category_list_cache_invalidated_after_insert() {
     let pool = db::create_pool(db_path_str).await.expect("pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(all.is_empty());
     db::category::set_category_list_cache_for_test(Some(vec![]));
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(all.is_empty(), "cached empty");
 
     let id = Uuid::new_v4();
     let c = Category::new(id, None, "New".to_string(), 1, 1, None).expect("valid");
     db::category::insert(&pool, &c).await.expect("insert");
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 1, "cache must be invalidated after insert");
     assert_eq!(all[0].name(), "New");
 }
@@ -401,20 +401,20 @@ async fn category_list_cache_invalidated_after_update() {
     let id = Uuid::new_v4();
     let c = Category::new(id, None, "Original".to_string(), 1, 1, None).expect("valid");
     db::category::insert(&pool, &c).await.expect("insert");
-    let _ = db::category::get_all(&pool).await.expect("get_all");
+    let _ = db::category::get_all(&pool, false).await.expect("get_all");
 
     let stale =
         Category::new(Uuid::new_v4(), None, "Stale".to_string(), 2, 2, None).expect("valid");
     db::category::set_category_list_cache_for_test(Some(vec![stale]));
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 1);
     assert_eq!(all[0].name(), "Stale", "still cached");
 
     let updated = Category::new(id, None, "Updated".to_string(), 1, 2, None).expect("valid");
     db::category::update(&pool, &updated).await.expect("update");
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 1, "cache must be invalidated after update");
     assert_eq!(all[0].name(), "Updated");
 }
@@ -435,21 +435,21 @@ async fn category_list_cache_invalidated_after_soft_delete() {
     let id = Uuid::new_v4();
     let c = Category::new(id, None, "ToDelete".to_string(), 1, 1, None).expect("valid");
     db::category::insert(&pool, &c).await.expect("insert");
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 1);
 
     db::category::soft_delete(&pool, id)
         .await
         .expect("soft_delete");
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(
         all.is_empty(),
         "cache must be invalidated; get_all shows active only"
     );
-    let with_del = db::category::get_all_with_deleted(&pool)
+    let with_del = db::category::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all with include_deleted");
     assert_eq!(with_del.len(), 1);
 }
 
@@ -469,14 +469,14 @@ async fn category_list_cache_invalidated_after_hard_delete() {
     let id = Uuid::new_v4();
     let c = Category::new(id, None, "ToRemove".to_string(), 1, 1, None).expect("valid");
     db::category::insert(&pool, &c).await.expect("insert");
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 1);
 
     db::category::hard_delete(&pool, id)
         .await
         .expect("hard_delete");
 
-    let all = db::category::get_all(&pool).await.expect("get_all");
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(
         all.is_empty(),
         "cache must be invalidated after hard_delete"

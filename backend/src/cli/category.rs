@@ -78,11 +78,7 @@ pub async fn list(
         None => None,
     };
 
-    let mut cats = if include_deleted {
-        db::category::get_all_with_deleted(pool).await?
-    } else {
-        db::category::get_all(pool).await?
-    };
+    let mut cats = db::category::get_all(pool, include_deleted).await?;
 
     if let Some(pid) = parent_id {
         cats.retain(|c| c.parent_id() == Some(pid));
