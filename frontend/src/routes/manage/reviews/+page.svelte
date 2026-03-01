@@ -8,7 +8,6 @@
 
 	let { data } = $props();
 	let reviews = $derived(data.reviews);
-	let productMap = $derived(data.productMap);
 	let error = $derived(data.error);
 	let deletingId = $state<string | null>(null);
 
@@ -54,12 +53,13 @@
 				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
 					<div class="min-w-0 flex-1">
 						<a
-							href={resolve(`/products/${review.product_id}`)}
+							href={resolve(`/products/${review.product.id}`)}
 							class="font-medium pr-text-body"
 						>
-							{productMap.get(review.product_id)?.name ?? review.product_id}
+							{review.product.name}
 						</a>
 						<span class="pr-text-muted"> — {review.rating}/5</span>
+						<span class="pr-text-muted"> · {review.user.name}</span>
 						{#if review.text}
 							<p class="mt-1 truncate text-sm pr-text-muted">{review.text}</p>
 						{/if}

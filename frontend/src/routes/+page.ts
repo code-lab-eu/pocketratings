@@ -27,9 +27,9 @@ export const load: PageLoad = async ({ url }) => {
 		// Latest review per product
 		const reviewByProductId = new Map<string, Review>();
 		for (const r of reviews) {
-			const existing = reviewByProductId.get(r.product_id);
+			const existing = reviewByProductId.get(r.product.id);
 			if (!existing || r.updated_at > existing.updated_at) {
-				reviewByProductId.set(r.product_id, r);
+				reviewByProductId.set(r.product.id, r);
 			}
 		}
 		const items: ProductWithReview[] = products.map((product) => {

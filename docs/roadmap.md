@@ -25,6 +25,14 @@ This document tracks planned features and improvements for Pocket Ratings.
   `get_all(pool, include_deleted: bool)`; single cache (full list), filter
   when `include_deleted == false`. All API and test call sites updated.
 
+- **Reviews API: include product and user in response** — Review list/detail
+  responses include nested `product: { id, brand, name }` and
+  `user: { id, name }`. Backend: `list_with_relations` / `get_by_id_with_relations`
+  with JOINs; API reuses `ProductRef` and `UserRef`. In-memory cache for
+  review list (invalidated on insert/update/delete). Frontend: manage/reviews
+  uses `review.product` and `review.user`; product detail shows “By
+  {user.name}”. Documented in [api.md](api.md).
+
 ---
 
 ## Planned
@@ -240,20 +248,6 @@ thresholds can be enforced.
   overall line coverage drops below a threshold.
 - Document in the backend QC skill and any CI workflow how to run coverage
   and interpret results.
-
-### 15. Reviews API: include product and user in response
-
-**Goal:** Review list/detail responses include nested `product: { id, brand,
-name }` and `user: { id, name }` so the manage/reviews page and product
-detail can show names without separate `listProducts` or user lookups.
-
-**Tasks:**
-- Backend: JOINs in DB layer (e.g. `list_with_relations` /
-  `get_by_id_with_relations` for reviews); API reuses `ProductRef` and
-  `UserRef` from purchase API.
-- Frontend: remove `listProducts()` and productMap from manage/reviews; use
-  embedded `review.product` and `review.user`.
-- Document in [api.md](api.md).
 
 ### 16. Products API: include category in response
 

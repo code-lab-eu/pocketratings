@@ -25,8 +25,8 @@ const category: Category = {
 
 const review: Review = {
 	id: 'rev-1',
-	product_id: 'prod-1',
-	user_id: 'u1',
+	product: { id: 'prod-1', brand: 'Acme', name: 'Milk' },
+	user: { id: 'u1', name: 'Alice' },
 	rating: 4,
 	text: 'Good product',
 	created_at: 1000,
@@ -75,13 +75,14 @@ describe('Product detail page', () => {
 		expect(homeLink.getAttribute('href')).toContain('/');
 	});
 
-	it('shows reviews section with rating and text', () => {
+	it('shows reviews section with rating, text, and user name', () => {
 		render(ProductDetailPage, {
 			props: { data: defaultData }
 		});
 		expect(screen.getByRole('heading', { name: /reviews/i })).toBeInTheDocument();
 		expect(screen.getByText(/rating: 4\/5/i)).toBeInTheDocument();
 		expect(screen.getByText(/good product/i)).toBeInTheDocument();
+		expect(screen.getByText(/by alice/i)).toBeInTheDocument();
 	});
 
 	it('shows purchase history with date, location, price', () => {

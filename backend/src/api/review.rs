@@ -14,8 +14,11 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::auth::CurrentUserId;
+use crate::api::product::ProductRef;
+use crate::api::user::UserRef;
 use crate::api::{error::ApiError, state::AppState};
 use crate::db;
+use crate::db::review::ReviewWithRelations;
 use crate::domain::review::{Review, ValidationError};
 
 /// Request body for creating a review. Ignores `id`, `user_id`, `created_at`, `updated_at`, `deleted_at`.
@@ -49,12 +52,12 @@ pub struct DeleteReviewQuery {
     pub force: bool,
 }
 
-/// Response body: review with timestamps as i64, rating as number.
+/// Response body: review with nested product and user; timestamps as i64, rating as number.
 #[derive(Debug, serde::Serialize)]
 pub struct ReviewResponse {
     pub id: Uuid,
-    pub product_id: Uuid,
-    pub user_id: Uuid,
+    pub user: UserRef,
+    pub product: ProductRef,
     #[serde(serialize_with = "serialize_rating")]
     pub rating: Decimal,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -73,17 +76,25 @@ where
     s.serialize_f64(d.to_f64().unwrap_or(0.0))
 }
 
-fn review_to_response(r: &Review) -> ReviewResponse {
-    ReviewResponse {
-        id: r.id(),
-        product_id: r.product_id(),
-        user_id: r.user_id(),
-        rating: r.rating(),
-        text: r.text().map(std::string::ToString::to_string),
-        created_at: r.created_at(),
-        updated_at: r.updated_at(),
-        deleted_at: r.deleted_at(),
-    }
+fn review_with_relations_to_response(r: &ReviewWithRelations) -> Result<ReviewResponse, ApiError> {
+    let rating: Decimal = r.rating.parse().map_err(|_| ApiError::Internal)?;
+    Ok(ReviewResponse {
+        id: r.id,
+        user: UserRef {
+            id: r.user_id,
+            name: r.user_name.clone(),
+        },
+        product: ProductRef {
+            id: r.product_id,
+            brand: r.product_brand.clone(),
+            name: r.product_name.clone(),
+        },
+        rating,
+        text: r.text.clone(),
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+        deleted_at: r.deleted_at,
+    })
 }
 
 /// Map `DbError` to `ApiError` for review operations.
@@ -118,10 +129,14 @@ pub async fn list_reviews(
     Query(q): Query<ListReviewsQuery>,
 ) -> Result<Json<Vec<ReviewResponse>>, ApiError> {
     let user_id = q.user_id.or(Some(current_user_id));
-    let list = db::review::list(&state.pool, q.product_id, user_id, false)
+    let list = db::review::list_with_relations(&state.pool, q.product_id, user_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok(Json(list.iter().map(review_to_response).collect()))
+    let responses: Vec<ReviewResponse> = list
+        .iter()
+        .map(review_with_relations_to_response)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(Json(responses))
 }
 
 /// GET /api/v1/reviews/:id — get one review.
@@ -129,11 +144,11 @@ pub async fn get_review(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ReviewResponse>, ApiError> {
-    let review = db::review::get_by_id(&state.pool, id)
+    let review = db::review::get_by_id_with_relations(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
     let review = review.ok_or_else(|| ApiError::NotFound("review not found".to_string()))?;
-    Ok(Json(review_to_response(&review)))
+    Ok(Json(review_with_relations_to_response(&review)?))
 }
 
 /// POST /api/v1/reviews — create a review (`user_id` from JWT).
@@ -175,7 +190,14 @@ pub async fn create_review(
     db::review::insert(&state.pool, &review)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok((StatusCode::CREATED, Json(review_to_response(&review))))
+    let with_relations = db::review::get_by_id_with_relations(&state.pool, id)
+        .await
+        .map_err(|e| map_db_error(&e))?
+        .expect("review just inserted");
+    Ok((
+        StatusCode::CREATED,
+        Json(review_with_relations_to_response(&with_relations)?),
+    ))
 }
 
 /// PATCH /api/v1/reviews/:id — partial update; only owner; only persist if changed.
@@ -205,7 +227,11 @@ pub async fn update_review(
         .or_else(|| existing.text().map(std::string::ToString::to_string));
 
     if existing.rating() == rating && existing.text() == text.as_deref() {
-        return Ok(Json(review_to_response(&existing)));
+        let with_relations = db::review::get_by_id_with_relations(&state.pool, id)
+            .await
+            .map_err(|e| map_db_error(&e))?
+            .expect("review exists");
+        return Ok(Json(review_with_relations_to_response(&with_relations)?));
     }
 
     let updated = Review::new(
@@ -229,7 +255,11 @@ pub async fn update_review(
     db::review::update(&state.pool, &updated)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok(Json(review_to_response(&updated)))
+    let with_relations = db::review::get_by_id_with_relations(&state.pool, id)
+        .await
+        .map_err(|e| map_db_error(&e))?
+        .expect("review just updated");
+    Ok(Json(review_with_relations_to_response(&with_relations)?))
 }
 
 /// DELETE /api/v1/reviews/:id — soft delete, or hard with ?force=true; only owner.
@@ -386,7 +416,10 @@ mod tests {
         let arr = json.as_array().expect("array");
         assert_eq!(arr.len(), 1);
         assert_eq!(
-            arr[0].get("product_id").and_then(|v| v.as_str()),
+            arr[0]
+                .get("product")
+                .and_then(|p| p.get("id"))
+                .and_then(|v| v.as_str()),
             Some(product_id.to_string().as_str())
         );
         assert_eq!(
@@ -452,7 +485,10 @@ mod tests {
         let arr = json.as_array().expect("array");
         assert_eq!(arr.len(), 1, "only current user's review");
         assert_eq!(
-            arr[0].get("user_id").and_then(|v| v.as_str()),
+            arr[0]
+                .get("user")
+                .and_then(|u| u.get("id"))
+                .and_then(|v| v.as_str()),
             Some(user_a.to_string().as_str())
         );
     }
@@ -500,7 +536,10 @@ mod tests {
         let arr = json.as_array().expect("array");
         assert_eq!(arr.len(), 1);
         assert_eq!(
-            arr[0].get("user_id").and_then(|v| v.as_str()),
+            arr[0]
+                .get("user")
+                .and_then(|u| u.get("id"))
+                .and_then(|v| v.as_str()),
             Some(user_b.to_string().as_str())
         );
     }
@@ -630,11 +669,15 @@ mod tests {
             .to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         assert_eq!(
-            json.get("product_id").and_then(|v| v.as_str()),
+            json.get("product")
+                .and_then(|p| p.get("id"))
+                .and_then(|v| v.as_str()),
             Some(product_id.to_string().as_str())
         );
         assert_eq!(
-            json.get("user_id").and_then(|v| v.as_str()),
+            json.get("user")
+                .and_then(|u| u.get("id"))
+                .and_then(|v| v.as_str()),
             Some(user_id.to_string().as_str())
         );
         assert_eq!(

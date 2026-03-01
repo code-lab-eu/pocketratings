@@ -521,8 +521,8 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const review = {
 			id: 'r1',
-			product_id: 'p1',
-			user_id: 'u1',
+			product: { id: 'p1', brand: 'B', name: 'Product' },
+			user: { id: 'u1', name: 'User' },
 			rating: 4,
 			text: 'Good',
 			created_at: 0,
@@ -544,8 +544,8 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const created = {
 			id: 'r1',
-			product_id: 'p1',
-			user_id: 'u1',
+			product: { id: 'p1', brand: 'B', name: 'Product' },
+			user: { id: 'u1', name: 'User' },
 			rating: 4,
 			text: 'Good',
 			created_at: 0,
@@ -569,8 +569,8 @@ describe('api', () => {
 			new Response(
 				JSON.stringify({
 					id: 'r1',
-					product_id: 'p1',
-					user_id: 'u1',
+					product: { id: 'p1', brand: 'B', name: 'Product' },
+					user: { id: 'u1', name: 'User' },
 					rating: 5,
 					text: 'Excellent',
 					created_at: 0,

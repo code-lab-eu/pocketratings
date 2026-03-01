@@ -5,8 +5,8 @@ import type { Review } from '../../src/lib/types';
 
 const review: Review = {
 	id: 'r1',
-	product_id: 'p1',
-	user_id: 'u1',
+	product: { id: 'p1', brand: 'B', name: 'Milk' },
+	user: { id: 'u1', name: 'Alice' },
 	rating: 4,
 	text: 'Good product',
 	created_at: 0,
@@ -20,7 +20,6 @@ describe('Manage reviews list', () => {
 			props: {
 				data: {
 					reviews: [],
-					productMap: new Map(),
 					error: null
 				}
 			}
@@ -34,7 +33,6 @@ describe('Manage reviews list', () => {
 			props: {
 				data: {
 					reviews: [],
-					productMap: new Map(),
 					error: null
 				}
 			}
@@ -43,12 +41,10 @@ describe('Manage reviews list', () => {
 	});
 
 	it('shows review list with product link and delete button', () => {
-		const productMap = new Map([['p1', { id: 'p1', name: 'Milk', brand: 'B', category_id: 'c1', created_at: 0, updated_at: 0, deleted_at: null }]]);
 		render(ReviewsPage, {
 			props: {
 				data: {
 					reviews: [review],
-					productMap,
 					error: null
 				}
 			}

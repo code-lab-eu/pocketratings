@@ -522,6 +522,10 @@ Soft-delete a purchase.
 
 ### Reviews
 
+List and detail responses include nested `product: { id, brand, name }` and
+`user: { id, name }`. The review list is cached in memory and invalidated on
+any review insert, update, or delete.
+
 #### `GET /api/v1/reviews`
 
 List reviews.
@@ -530,14 +534,16 @@ List reviews.
 - `product_id` (optional, UUID): Filter by product
 - `user_id` (optional, UUID): Filter by user
 
-**Response:** `200 OK` — Array of reviews. When there are no matching reviews (e.g. the product exists but has no reviews), the response is `200 OK` with body `[]`.
+**Response:** `200 OK` — Array of reviews. When there are no matching reviews
+(e.g. the product exists but has no reviews), the response is `200 OK` with
+body `[]`.
 
 ```json
 [
   {
     "id": "uuid",
-    "product_id": "uuid",
-    "user_id": "uuid",
+    "product": { "id": "uuid", "brand": "Brand", "name": "Product" },
+    "user": { "id": "uuid", "name": "User Name" },
     "rating": 4.5,
     "text": "Good value.",
     "created_at": 1708012800,
@@ -549,9 +555,9 @@ List reviews.
 
 #### `GET /api/v1/reviews/:id`
 
-Get a single review by ID.
+Get a single review by ID. Response includes nested `product` and `user`.
 
-**Response:** `200 OK` (review object)
+**Response:** `200 OK` (review object, same shape as list items)
 
 **Errors:**
 - `404 Not Found`: Review not found
@@ -576,7 +582,7 @@ Create a new review.
 - `user_id` is automatically set to the current authenticated user
 - Multiple reviews per (user, product) are allowed
 
-**Response:** `201 Created` (review object)
+**Response:** `201 Created` (review object with nested `product` and `user`)
 
 **Errors:**
 - `400 Bad Request`: Validation error (e.g., rating out of range)
@@ -599,7 +605,7 @@ All fields are optional. Only provided fields are updated.
 **Constraints:**
 - Only the review owner can update their review
 
-**Response:** `200 OK` (updated review object)
+**Response:** `200 OK` (updated review object with nested `product` and `user`)
 
 **Errors:**
 - `400 Bad Request`: Validation error

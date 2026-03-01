@@ -71,7 +71,7 @@
 									<p class="mt-1 pr-text-body text-gray-700 dark:text-gray-200">{review.text}</p>
 								{/if}
 								<p class="mt-1 text-sm pr-text-subtle">
-									{formatDate(review.updated_at)}
+									By {review.user.name} · {formatDate(review.updated_at)}
 								</p>
 							</li>
 						{/each}

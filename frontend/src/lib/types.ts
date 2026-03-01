@@ -21,11 +21,11 @@ export interface Product {
 	deleted_at: number | null;
 }
 
-/** Review from GET /api/v1/reviews (and :id). Rating is 1–5. */
+/** Review from GET /api/v1/reviews (and :id). Rating is 1–5. Response includes nested product and user. */
 export interface Review {
 	id: string;
-	product_id: string;
-	user_id: string;
+	product: { id: string; brand: string; name: string };
+	user: { id: string; name: string };
 	rating: number;
 	text: string | null;
 	created_at: number;
