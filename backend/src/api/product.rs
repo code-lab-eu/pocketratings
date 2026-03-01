@@ -9,6 +9,7 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::api::category::CategoryRef;
 use crate::api::{error::ApiError, state::AppState};
 use crate::db;
 use crate::domain::product::Product;
@@ -51,11 +52,11 @@ pub struct DeleteProductQuery {
     pub force: bool,
 }
 
-/// Response body: product with timestamps as i64.
+/// Response body: product with timestamps as i64 and nested category.
 #[derive(Debug, serde::Serialize)]
 pub struct ProductResponse {
     pub id: Uuid,
-    pub category_id: Uuid,
+    pub category: CategoryRef,
     pub brand: String,
     pub name: String,
     pub created_at: i64,
@@ -64,15 +65,18 @@ pub struct ProductResponse {
     pub deleted_at: Option<i64>,
 }
 
-fn product_to_response(p: &Product) -> ProductResponse {
+fn product_with_relations_to_response(p: &db::product::ProductWithRelations) -> ProductResponse {
     ProductResponse {
-        id: p.id(),
-        category_id: p.category_id(),
-        brand: p.brand().to_string(),
-        name: p.name().to_string(),
-        created_at: p.created_at(),
-        updated_at: p.updated_at(),
-        deleted_at: p.deleted_at(),
+        id: p.id,
+        category: CategoryRef {
+            id: p.category_id,
+            name: p.category_name.clone(),
+        },
+        brand: p.brand.clone(),
+        name: p.name.clone(),
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+        deleted_at: p.deleted_at,
     }
 }
 
@@ -112,10 +116,14 @@ pub async fn list_products(
     State(state): State<AppState>,
     Query(q): Query<ListProductsQuery>,
 ) -> Result<Json<Vec<ProductResponse>>, ApiError> {
-    let list = db::product::get_all_filtered(&state.pool, q.category_id, q.q.as_deref())
+    let list = db::product::list_with_relations(&state.pool, q.category_id, q.q.as_deref(), false)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok(Json(list.iter().map(product_to_response).collect()))
+    Ok(Json(
+        list.iter()
+            .map(product_with_relations_to_response)
+            .collect(),
+    ))
 }
 
 /// GET /api/v1/products/:id — get one product.
@@ -123,11 +131,11 @@ pub async fn get_product(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ProductResponse>, ApiError> {
-    let product = db::product::get_by_id(&state.pool, id)
+    let product = db::product::get_by_id_with_relations(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
     let product = product.ok_or_else(|| ApiError::NotFound("product not found".to_string()))?;
-    Ok(Json(product_to_response(&product)))
+    Ok(Json(product_with_relations_to_response(&product)))
 }
 
 /// POST /api/v1/products — create a product.
@@ -164,7 +172,14 @@ pub async fn create_product(
     db::product::insert(&state.pool, &product)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok((StatusCode::CREATED, Json(product_to_response(&product))))
+    let created = db::product::get_by_id_with_relations(&state.pool, id)
+        .await
+        .map_err(|e| map_db_error(&e))?
+        .expect("product just inserted");
+    Ok((
+        StatusCode::CREATED,
+        Json(product_with_relations_to_response(&created)),
+    ))
 }
 
 /// PATCH /api/v1/products/:id — partial update; only persist if something changed.
@@ -207,7 +222,11 @@ pub async fn update_product(
 
     if existing.category_id() == category_id && existing.brand() == brand && existing.name() == name
     {
-        return Ok(Json(product_to_response(&existing)));
+        let current = db::product::get_by_id_with_relations(&state.pool, id)
+            .await
+            .map_err(|e| map_db_error(&e))?
+            .expect("product exists");
+        return Ok(Json(product_with_relations_to_response(&current)));
     }
 
     let updated = Product::new(
@@ -223,7 +242,11 @@ pub async fn update_product(
     db::product::update(&state.pool, &updated)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok(Json(product_to_response(&updated)))
+    let current = db::product::get_by_id_with_relations(&state.pool, id)
+        .await
+        .map_err(|e| map_db_error(&e))?
+        .expect("product exists");
+    Ok(Json(product_with_relations_to_response(&current)))
 }
 
 /// DELETE /api/v1/products/:id — soft delete, or hard with ?force=true.
@@ -365,9 +388,14 @@ mod tests {
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         assert_eq!(json.get("brand").and_then(|v| v.as_str()), Some("Acme"));
         assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("Widget"));
+        let category = json.get("category").expect("category");
         assert_eq!(
-            json.get("category_id").and_then(|v| v.as_str()),
+            category.get("id").and_then(|v| v.as_str()),
             Some(cat_id.to_string().as_str())
+        );
+        assert_eq!(
+            category.get("name").and_then(|v| v.as_str()),
+            Some("Groceries")
         );
         let id_str = json.get("id").and_then(|v| v.as_str()).expect("id");
         assert!(Uuid::parse_str(id_str).is_ok());

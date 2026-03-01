@@ -200,7 +200,7 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const product = {
 			id: 'pid',
-			category_id: 'cid',
+			category: { id: 'cid', name: 'Category' },
 			brand: 'Brand',
 			name: 'Product',
 			created_at: 0,
@@ -386,7 +386,7 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const created = {
 			id: 'p1',
-			category_id: 'c1',
+			category: { id: 'c1', name: 'Groceries' },
 			brand: 'B',
 			name: 'Milk',
 			created_at: 0,
@@ -410,7 +410,7 @@ describe('api', () => {
 			new Response(
 				JSON.stringify({
 					id: 'p1',
-					category_id: 'c1',
+					category: { id: 'c1', name: 'Groceries' },
 					brand: 'B',
 					name: 'Milk 1L',
 					created_at: 0,

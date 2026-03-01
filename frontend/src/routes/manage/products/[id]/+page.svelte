@@ -24,7 +24,7 @@
 		if (product) {
 			name = product.name;
 			brand = product.brand;
-			categoryId = product.category_id;
+			categoryId = product.category.id;
 		}
 	});
 

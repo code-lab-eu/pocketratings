@@ -43,6 +43,13 @@ pub struct DeleteCategoryQuery {
     pub force: bool,
 }
 
+/// Minimal category info for embedding in product (and other) responses.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CategoryRef {
+    pub id: Uuid,
+    pub name: String,
+}
+
 /// Response body: category with timestamps as i64 and optional nested children (list endpoint only).
 #[derive(Debug, serde::Serialize)]
 pub struct CategoryResponse {

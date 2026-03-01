@@ -328,6 +328,8 @@ Soft-delete a location.
 
 ### Products
 
+List, get, create, update, and delete responses use the same product shape: `id`, `category` (nested `{ id, name }`), `brand`, `name`, `created_at`, `updated_at`, and optionally `deleted_at`. The product list is served from an in-memory cache; the cache is invalidated on any product insert, update, soft-delete, or hard-delete.
+
 #### `GET /api/v1/products`
 
 List products.
@@ -341,7 +343,7 @@ List products.
 [
   {
     "id": "uuid",
-    "category_id": "uuid",
+    "category": { "id": "uuid", "name": "Dairy" },
     "brand": "Dairy Co",
     "name": "Organic milk",
     "created_at": 1708012800,
@@ -355,7 +357,7 @@ List products.
 
 Get a single product by ID.
 
-**Response:** `200 OK` (product object, optionally including purchase/review counts or recent items)
+**Response:** `200 OK` (product object with nested `category: { id, name }`)
 
 **Errors:**
 - `404 Not Found`: Product not found
@@ -373,7 +375,7 @@ Create a new product.
 }
 ```
 
-**Response:** `201 Created` (product object)
+**Response:** `201 Created` (product object with nested `category: { id, name }`)
 
 **Errors:**
 - `400 Bad Request`: Validation error
@@ -394,7 +396,7 @@ Update a product.
 
 All fields are optional. Only provided fields are updated.
 
-**Response:** `200 OK` (updated product object)
+**Response:** `200 OK` (updated product object with nested `category: { id, name }`)
 
 **Errors:**
 - `400 Bad Request`: Validation error

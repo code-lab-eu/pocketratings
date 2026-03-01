@@ -2,22 +2,13 @@ import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import ProductDetailPage from '../../src/routes/products/[id]/+page.svelte';
 import type { PageData } from '../../src/routes/products/[id]/$types';
-import type { Category, Product, Purchase, Review } from '../../src/lib/types';
+import type { Product, Purchase, Review } from '../../src/lib/types';
 
 const product: Product = {
 	id: 'prod-1',
-	category_id: 'cat-1',
+	category: { id: 'cat-1', name: 'Dairy' },
 	brand: 'Acme',
 	name: 'Milk',
-	created_at: 0,
-	updated_at: 0,
-	deleted_at: null
-};
-
-const category: Category = {
-	id: 'cat-1',
-	parent_id: null,
-	name: 'Dairy',
 	created_at: 0,
 	updated_at: 0,
 	deleted_at: null
@@ -49,7 +40,6 @@ const defaultData: PageData = {
 	product,
 	reviews: [review],
 	purchases: [purchase],
-	category,
 	notFound: false,
 	error: null
 };
@@ -116,7 +106,6 @@ describe('Product detail page', () => {
 					product: null,
 					reviews: [],
 					purchases: [],
-					category: null,
 					notFound: true,
 					error: null
 				} as unknown as PageData
@@ -136,7 +125,6 @@ describe('Product detail page', () => {
 					product: null,
 					reviews: [],
 					purchases: [],
-					category: null,
 					notFound: false,
 					error: 'Not found'
 				} as PageData
@@ -153,7 +141,6 @@ describe('Product detail page', () => {
 					product: null,
 					reviews: [],
 					purchases: [],
-					category: null,
 					notFound: false,
 					error: null
 				} as unknown as PageData

@@ -72,7 +72,7 @@ describe('Home page', () => {
 	it('shows product list when items are provided', () => {
 		const product: Product = {
 			id: 'prod-1',
-			category_id: 'cat-1',
+			category: { id: 'cat-1', name: 'Groceries' },
 			brand: 'Acme',
 			name: 'Milk',
 			created_at: 0,

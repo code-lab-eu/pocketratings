@@ -28,6 +28,7 @@ impl Write for StderrWriter {
 async fn main() {
     pocketratings::db::category::set_running_as_production();
     pocketratings::db::review::set_running_as_production();
+    pocketratings::db::product::set_running_as_production();
     dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()

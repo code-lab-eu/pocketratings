@@ -17,7 +17,7 @@ describe('Category page', () => {
 		const products: Product[] = [
 			{
 				id: 'prod-1',
-				category_id: 'cat-1',
+				category: { id: 'cat-1', name: 'Beverages' },
 				brand: 'Acme',
 				name: 'Milk',
 				created_at: 0,

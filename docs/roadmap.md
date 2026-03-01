@@ -249,17 +249,9 @@ thresholds can be enforced.
 - Document in the backend QC skill and any CI workflow how to run coverage
   and interpret results.
 
-### 16. Products API: include category in response
+### 16. Products API: include category in response — **Done**
 
-**Goal:** Product list and detail responses include nested `category: { id,
-name }` so the product detail page (and any list showing category) can
-display category without a separate `GET /api/v1/categories/:id`.
-
-**Tasks:**
-- Backend: JOIN categories in product DB layer; add `CategoryRef` in API.
-- Frontend: product detail loads only product (and reviews/purchases); use
-  `product.category` for link and label; drop `getCategory(product.category_id)`.
-- Document in [api.md](api.md).
+**Done:** Product list and detail responses include nested `category: { id, name }`. Backend uses `ProductWithRelations` with a categories JOIN, in-memory product list cache (invalidated on mutations), and `CategoryRef` in the API. Frontend uses `product.category` for the category link and label; product detail page no longer fetches category separately. Documented in [api.md](api.md).
 
 ### 17. Category API: include parent in response
 

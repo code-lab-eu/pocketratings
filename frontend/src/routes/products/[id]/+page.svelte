@@ -6,7 +6,6 @@
 	let product = $derived(data.product);
 	let reviews = $derived(data.reviews);
 	let purchases = $derived(data.purchases);
-	let category = $derived(data.category);
 	let error = $derived(data.error);
 	let notFound = $derived(data.notFound ?? false);
 
@@ -48,8 +47,8 @@
 				{/if}
 				<p class="mt-1 pr-text-muted">
 					Category:
-					<a href={resolve('/categories/[id]', { id: product.category_id })} class="pr-link-inline">
-						{category?.name ?? 'Category'}
+					<a href={resolve('/categories/[id]', { id: product.category.id })} class="pr-link-inline">
+						{product.category.name}
 					</a>
 				</p>
 			</header>

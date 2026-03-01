@@ -10,10 +10,10 @@ export interface Category {
 	children?: Category[];
 }
 
-/** Product from GET /api/v1/products (and :id). */
+/** Product from GET /api/v1/products (and :id). Includes nested category. */
 export interface Product {
 	id: string;
-	category_id: string;
+	category: { id: string; name: string };
 	brand: string;
 	name: string;
 	created_at: number;
