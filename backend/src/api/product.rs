@@ -66,12 +66,22 @@ pub struct ProductResponse {
 }
 
 fn product_with_relations_to_response(p: &db::product::ProductWithRelations) -> ProductResponse {
+    let category = CategoryRef {
+        id: p.category_id,
+        name: p.category_name.clone(),
+        ancestors: p
+            .category_ancestors
+            .iter()
+            .map(|a| CategoryRef {
+                id: a.id,
+                name: a.name.clone(),
+                ancestors: vec![],
+            })
+            .collect(),
+    };
     ProductResponse {
         id: p.id,
-        category: CategoryRef {
-            id: p.category_id,
-            name: p.category_name.clone(),
-        },
+        category,
         brand: p.brand.clone(),
         name: p.name.clone(),
         created_at: p.created_at,
@@ -119,11 +129,11 @@ pub async fn list_products(
     let list = db::product::list_with_relations(&state.pool, q.category_id, q.q.as_deref(), false)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok(Json(
-        list.iter()
-            .map(product_with_relations_to_response)
-            .collect(),
-    ))
+    let mut out = Vec::with_capacity(list.len());
+    for p in &list {
+        out.push(product_with_relations_to_response(p));
+    }
+    Ok(Json(out))
 }
 
 /// GET /api/v1/products/:id — get one product.

@@ -2,7 +2,7 @@
 //!
 //! Provides the [`Categories`] tree type, [`Categories::from_list`] that builds a tree from a flat
 //! list, and DB functions: [`get_by_id`], [`get_parent`], [`get_children`], [`get_all`],
-//! [`insert`], [`update`], and [`soft_delete`].
+//! [`get_ancestors`], [`insert`], [`update`], and [`soft_delete`].
 
 use std::collections::HashMap;
 use std::sync::{OnceLock, RwLock};
@@ -11,6 +11,16 @@ use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
 
 use crate::domain::category::Category;
+
+/// Ancestor entry for breadcrumbs: id and name of a parent category (closest first in a list).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ancestor {
+    pub id: Uuid,
+    pub name: String,
+}
+
+/// Cache entry: full category list plus precomputed ancestor chains per category id.
+type CategoryCacheEntry = (Vec<Category>, HashMap<Uuid, Vec<Ancestor>>);
 
 /// True when the process is the production binary (`main()` has run). False in test binaries so the
 /// cache is off unless a test explicitly enables it via [`set_use_category_list_cache_for_test`].
@@ -42,15 +52,40 @@ pub fn set_use_category_list_cache_for_test(use_cache: bool) {
     USE_CACHE_IN_TEST.with(|v| v.store(use_cache, std::sync::atomic::Ordering::SeqCst));
 }
 
-/// Module-level cache for the full category list (including deleted). Used by
-/// `get_all(..., include_deleted)`.
+/// Build ancestor map from a flat list: for each category, walk `parent_id` toward root,
+/// collecting id+name so the result is ordered closest parent first. Stops at missing
+/// parent (orphan) to avoid infinite loops.
+#[must_use]
+fn build_ancestor_map(list: &[Category]) -> HashMap<Uuid, Vec<Ancestor>> {
+    let by_id: HashMap<Uuid, &Category> = list.iter().map(|c| (c.id(), c)).collect();
+    let mut out = HashMap::new();
+    for cat in list {
+        let mut chain = Vec::new();
+        let mut current_id = cat.parent_id();
+        while let Some(pid) = current_id {
+            let Some(parent) = by_id.get(&pid) else {
+                break;
+            };
+            chain.push(Ancestor {
+                id: parent.id(),
+                name: parent.name().to_string(),
+            });
+            current_id = parent.parent_id();
+        }
+        out.insert(cat.id(), chain);
+    }
+    out
+}
+
+/// Module-level cache for the full category list (including deleted) and ancestor map.
+/// Used by `get_all(..., include_deleted)` and `get_ancestors`.
 ///
 /// **Disabled in test builds by default:** The cache is a single process-wide static. Unrelated
 /// tests run in parallel with their own DBs; we bypass the cache so they don't see each other's
 /// data. Cache tests enable it via [`set_use_category_list_cache_for_test`] and run under
 /// `#[serial]` so only one runs at a time.
-fn category_list_cache() -> &'static RwLock<Option<Vec<Category>>> {
-    static CACHE: OnceLock<RwLock<Option<Vec<Category>>>> = OnceLock::new();
+fn category_list_cache() -> &'static RwLock<Option<CategoryCacheEntry>> {
+    static CACHE: OnceLock<RwLock<Option<CategoryCacheEntry>>> = OnceLock::new();
     CACHE.get_or_init(|| RwLock::new(None))
 }
 
@@ -63,10 +98,12 @@ pub fn clear_category_list_cache() {
     let _ = category_list_cache().write().map(|mut g| *g = None);
 }
 
-/// Set the category list cache to a specific value. For use by cache tests to verify that
-/// `get_all(..., include_deleted)` returns cached data when the cache is populated.
 pub fn set_category_list_cache_for_test(list: Option<Vec<Category>>) {
-    let _ = category_list_cache().write().map(|mut g| *g = list);
+    let entry = list.map(|l| {
+        let map = build_ancestor_map(&l);
+        (l, map)
+    });
+    let _ = category_list_cache().write().map(|mut g| *g = entry);
 }
 
 /// Fetch all categories from the database (active and soft-deleted). Used to fill the cache.
@@ -323,7 +360,7 @@ pub async fn get_all(
 ) -> Result<Vec<Category>, crate::db::DbError> {
     if use_cache()
         && let Ok(guard) = category_list_cache().read()
-        && let Some(ref list) = *guard
+        && let Some((ref list, _)) = *guard
     {
         return Ok(if include_deleted {
             list.clone()
@@ -337,7 +374,8 @@ pub async fn get_all(
     if use_cache()
         && let Ok(mut guard) = category_list_cache().write()
     {
-        *guard = Some(list.clone());
+        let ancestors = build_ancestor_map(&list);
+        *guard = Some((list.clone(), ancestors));
     }
 
     Ok(if include_deleted {
@@ -345,6 +383,33 @@ pub async fn get_all(
     } else {
         list.into_iter().filter(Category::is_active).collect()
     })
+}
+
+/// Return the ancestor chain for a category (closest parent first). Uses the category list
+/// cache when warm; otherwise populates the cache via `get_all` then looks up.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] if the cache cannot be populated (e.g. DB error).
+pub async fn get_ancestors(
+    pool: &SqlitePool,
+    id: Uuid,
+) -> Result<Vec<Ancestor>, crate::db::DbError> {
+    if use_cache() {
+        if let Ok(guard) = category_list_cache().read()
+            && let Some((_, ref ancestors)) = *guard
+        {
+            return Ok(ancestors.get(&id).cloned().unwrap_or_default());
+        }
+        get_all(pool, true).await?;
+        if let Ok(guard) = category_list_cache().read()
+            && let Some((_, ref ancestors)) = *guard
+        {
+            return Ok(ancestors.get(&id).cloned().unwrap_or_default());
+        }
+    }
+    let list = fetch_all_categories_raw(pool).await?;
+    Ok(build_ancestor_map(&list).remove(&id).unwrap_or_default())
 }
 
 /// Insert a category into the database.
@@ -503,6 +568,56 @@ mod tests {
 
     fn make_category(id: Uuid, parent_id: Option<Uuid>, name: &str) -> Category {
         Category::new(id, parent_id, name.to_owned(), 1, 1, None).expect("valid")
+    }
+
+    #[test]
+    fn build_ancestor_map_root_has_empty_ancestors() {
+        let root_id = Uuid::new_v4();
+        let flat = vec![make_category(root_id, None, "Root")];
+        let map = build_ancestor_map(&flat);
+        assert_eq!(map.len(), 1);
+        assert!(map.get(&root_id).unwrap().is_empty());
+    }
+
+    #[test]
+    fn build_ancestor_map_one_level_closest_first() {
+        let root_id = Uuid::new_v4();
+        let child_id = Uuid::new_v4();
+        let flat = vec![
+            make_category(root_id, None, "Root"),
+            make_category(child_id, Some(root_id), "Child"),
+        ];
+        let map = build_ancestor_map(&flat);
+        assert_eq!(map.len(), 2);
+        assert!(map.get(&root_id).unwrap().is_empty());
+        let child_ancestors = map.get(&child_id).unwrap();
+        assert_eq!(child_ancestors.len(), 1);
+        assert_eq!(child_ancestors[0].id, root_id);
+        assert_eq!(child_ancestors[0].name, "Root");
+    }
+
+    #[test]
+    fn build_ancestor_map_two_levels_closest_first() {
+        let root_id = Uuid::new_v4();
+        let mid_id = Uuid::new_v4();
+        let leaf_id = Uuid::new_v4();
+        let flat = vec![
+            make_category(root_id, None, "Root"),
+            make_category(mid_id, Some(root_id), "Mid"),
+            make_category(leaf_id, Some(mid_id), "Leaf"),
+        ];
+        let map = build_ancestor_map(&flat);
+        assert_eq!(map.len(), 3);
+        assert!(map.get(&root_id).unwrap().is_empty());
+        let mid_ancestors = map.get(&mid_id).unwrap();
+        assert_eq!(mid_ancestors.len(), 1);
+        assert_eq!(mid_ancestors[0].name, "Root");
+        let leaf_ancestors = map.get(&leaf_id).unwrap();
+        assert_eq!(leaf_ancestors.len(), 2);
+        assert_eq!(leaf_ancestors[0].id, mid_id);
+        assert_eq!(leaf_ancestors[0].name, "Mid");
+        assert_eq!(leaf_ancestors[1].id, root_id);
+        assert_eq!(leaf_ancestors[1].name, "Root");
     }
 
     #[test]

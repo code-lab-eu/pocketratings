@@ -160,11 +160,12 @@ List categories as a **nested tree**. Each category object includes a `children`
 - `depth` (optional, integer): When `1`, return only one level (roots when no `parent_id`, or direct children of `parent_id`); each item has an empty `children` array. Omit for full tree depth.
 
 **Response:** `200 OK`
+Each category object has shape `{ id, name, ancestors, ... }`; `ancestors` is the breadcrumb (closest parent first), each item is `{ id, name }` only. Also `children` (nested categories). No `parent_id` in responses.
 ```json
 [
   {
     "id": "uuid",
-    "parent_id": null,
+    "ancestors": [],
     "name": "Groceries",
     "created_at": 1708012800,
     "updated_at": 1708012800,
@@ -172,7 +173,7 @@ List categories as a **nested tree**. Each category object includes a `children`
     "children": [
       {
         "id": "uuid",
-        "parent_id": "uuid",
+        "ancestors": [{ "id": "uuid", "name": "Groceries" }],
         "name": "Fruit",
         "created_at": 1708012800,
         "updated_at": 1708012800,
@@ -188,7 +189,13 @@ List categories as a **nested tree**. Each category object includes a `children`
 
 Get a single category by ID.
 
-**Response:** `200 OK` (same format as list item)
+**Query parameters:**
+- `depth` (optional, integer): When **omitted**, the response includes **1 level of children**
+  (default). When `0`, `children` is empty. When `1`, `2`, `3`, ..., the response includes that
+  many levels of nested `children`.
+
+**Response:** `200 OK` (same shape as list item: `id`, `ancestors`, `name`, `created_at`,
+`updated_at`, `deleted_at`, `children`)
 
 **Errors:**
 - `404 Not Found`: Category not found
@@ -328,7 +335,10 @@ Soft-delete a location.
 
 ### Products
 
-List, get, create, update, and delete responses use the same product shape: `id`, `category` (nested `{ id, name }`), `brand`, `name`, `created_at`, `updated_at`, and optionally `deleted_at`. The product list is served from an in-memory cache; the cache is invalidated on any product insert, update, soft-delete, or hard-delete.
+List, get, create, update, and delete responses use the same product shape: `id`, `category`
+(nested `{ id, name, ancestors }`; `ancestors` is the breadcrumb, each item `{ id, name }` only, closest parent first), `brand`, `name`, `created_at`, `updated_at`, and optionally `deleted_at`.
+The product list is served from an in-memory cache; the cache is invalidated on any product
+insert, update, soft-delete, or hard-delete.
 
 #### `GET /api/v1/products`
 
@@ -343,7 +353,7 @@ List products.
 [
   {
     "id": "uuid",
-    "category": { "id": "uuid", "name": "Dairy" },
+    "category": { "id": "uuid", "name": "Dairy", "ancestors": [{ "id": "uuid", "name": "Food" }] },
     "brand": "Dairy Co",
     "name": "Organic milk",
     "created_at": 1708012800,
@@ -357,7 +367,7 @@ List products.
 
 Get a single product by ID.
 
-**Response:** `200 OK` (product object with nested `category: { id, name }`)
+**Response:** `200 OK` (product object with nested `category: { id, name, ancestors }`)
 
 **Errors:**
 - `404 Not Found`: Product not found
@@ -375,7 +385,7 @@ Create a new product.
 }
 ```
 
-**Response:** `201 Created` (product object with nested `category: { id, name }`)
+**Response:** `201 Created` (product object with nested `category: { id, name, ancestors }`)
 
 **Errors:**
 - `400 Bad Request`: Validation error
@@ -396,7 +406,7 @@ Update a product.
 
 All fields are optional. Only provided fields are updated.
 
-**Response:** `200 OK` (updated product object with nested `category: { id, name }`)
+**Response:** `200 OK` (updated product object with nested `category: { id, name, ancestors }`)
 
 **Errors:**
 - `400 Bad Request`: Validation error

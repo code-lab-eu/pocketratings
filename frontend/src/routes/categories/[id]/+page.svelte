@@ -4,7 +4,7 @@
 
 	let { data } = $props();
 	let category = $derived(data.category);
-	let childCategories = $derived(data.childCategories);
+	let childCategories = $derived(category?.children ?? []);
 	let items = $derived(data.items);
 	let error = $derived(data.error);
 	let notFound = $derived(data.notFound ?? false);
@@ -17,12 +17,31 @@
 </svelte:head>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-	<nav class="mb-4">
-		<a
-			href={resolve('/')}
-			class="pr-link-muted"
-			>← Home</a
-		>
+	<nav class="mb-4" aria-label="Breadcrumb">
+		{#if category}
+			<ol class="flex flex-wrap items-center gap-x-1 text-sm pr-text-muted">
+				<li>
+					<a href={resolve('/')} class="pr-link-muted">Home</a>
+				</li>
+				{#each [...(category.ancestors ?? [])].reverse() as ancestor (ancestor.id)}
+					<li class="flex items-center gap-x-1">
+						<span aria-hidden="true">/</span>
+						<a
+							href={resolve(`/categories/${ancestor.id}`)}
+							class="pr-link-muted"
+						>
+							{ancestor.name}
+						</a>
+					</li>
+				{/each}
+				<li class="flex items-center gap-x-1" aria-current="page">
+					<span aria-hidden="true">/</span>
+					<span>{category.name}</span>
+				</li>
+			</ol>
+		{:else}
+			<a href={resolve('/')} class="pr-link-muted">← Home</a>
+		{/if}
 	</nav>
 
 	{#if notFound}

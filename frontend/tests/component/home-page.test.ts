@@ -54,7 +54,7 @@ describe('Home page', () => {
 	it('shows category list when categories are provided', () => {
 		const food: Category = {
 			id: 'cat-1',
-			parent_id: null,
+			ancestors: [],
 			name: 'Food',
 			created_at: 0,
 			updated_at: 0,
@@ -72,7 +72,7 @@ describe('Home page', () => {
 	it('shows product list when items are provided', () => {
 		const product: Product = {
 			id: 'prod-1',
-			category: { id: 'cat-1', name: 'Groceries' },
+			category: { id: 'cat-1', name: 'Groceries', ancestors: [] },
 			brand: 'Acme',
 			name: 'Milk',
 			created_at: 0,

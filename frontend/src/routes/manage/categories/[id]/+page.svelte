@@ -27,7 +27,8 @@
 	$effect(() => {
 		if (category) {
 			name = category.name;
-			parentId = category.parent_id ?? '';
+			// Direct parent is first in ancestors (closest first)
+			parentId = category.ancestors?.length ? category.ancestors[0].id : '';
 		}
 	});
 

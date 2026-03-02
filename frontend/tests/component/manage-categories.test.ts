@@ -5,7 +5,7 @@ import type { Category } from '../../src/lib/types';
 
 const category: Category = {
 	id: 'c1',
-	parent_id: null,
+	ancestors: [],
 	name: 'Food',
 	created_at: 0,
 	updated_at: 0,

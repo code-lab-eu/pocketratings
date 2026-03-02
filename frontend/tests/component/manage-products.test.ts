@@ -5,7 +5,7 @@ import type { Product } from '../../src/lib/types';
 
 const product: Product = {
 	id: 'p1',
-	category: { id: 'c1', name: 'Groceries' },
+	category: { id: 'c1', name: 'Groceries', ancestors: [] },
 	brand: 'Brand',
 	name: 'Milk',
 	created_at: 0,

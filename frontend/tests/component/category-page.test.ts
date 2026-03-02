@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/svelte';
+import { within } from '@testing-library/dom';
 import { describe, expect, it } from 'vitest';
 import CategoryPage from '../../src/routes/categories/[id]/+page.svelte';
 import type { PageData } from '../../src/routes/categories/[id]/$types';
@@ -8,7 +9,7 @@ describe('Category page', () => {
 	it('shows category name and product list', () => {
 		const category: Category = {
 			id: 'cat-1',
-			parent_id: null,
+			ancestors: [],
 			name: 'Beverages',
 			created_at: 0,
 			updated_at: 0,
@@ -17,7 +18,7 @@ describe('Category page', () => {
 		const products: Product[] = [
 			{
 				id: 'prod-1',
-				category: { id: 'cat-1', name: 'Beverages' },
+				category: { id: 'cat-1', name: 'Beverages', ancestors: [] },
 				brand: 'Acme',
 				name: 'Milk',
 				created_at: 0,
@@ -29,7 +30,6 @@ describe('Category page', () => {
 			props: {
 				data: {
 					category,
-					childCategories: [],
 					items: [{ product: products[0], rating: 4, text: 'Good' }],
 					notFound: false,
 					error: null
@@ -44,10 +44,10 @@ describe('Category page', () => {
 		expect(screen.getByText(/rating: 4\/5/i)).toBeInTheDocument();
 	});
 
-	it('shows back link to home', () => {
+	it('shows breadcrumb with Home and category name', () => {
 		const category: Category = {
 			id: 'cat-1',
-			parent_id: null,
+			ancestors: [],
 			name: 'Food',
 			created_at: 0,
 			updated_at: 0,
@@ -55,13 +55,14 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, childCategories: [], items: [], notFound: false, error: null }
+				data: { category, items: [], notFound: false, error: null }
 			}
 		});
 
 		const homeLink = screen.getByRole('link', { name: /home/i });
 		expect(homeLink).toBeInTheDocument();
 		expect(homeLink.getAttribute('href')).toContain('/');
+		expect(screen.getByRole('heading', { name: /food/i })).toBeInTheDocument();
 	});
 
 	it('shows Category not found and back link when notFound is true', () => {
@@ -69,7 +70,6 @@ describe('Category page', () => {
 			props: {
 				data: {
 					category: null,
-					childCategories: [],
 					items: [],
 					notFound: true,
 					error: null
@@ -88,7 +88,6 @@ describe('Category page', () => {
 			props: {
 				data: {
 					category: null,
-					childCategories: [],
 					items: [],
 					notFound: false,
 					error: 'Not found'
@@ -102,7 +101,7 @@ describe('Category page', () => {
 	it('shows empty state when no products', () => {
 		const category: Category = {
 			id: 'cat-1',
-			parent_id: null,
+			ancestors: [],
 			name: 'Empty',
 			created_at: 0,
 			updated_at: 0,
@@ -110,7 +109,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, childCategories: [], items: [], notFound: false, error: null }
+				data: { category, items: [], notFound: false, error: null }
 			}
 		});
 
@@ -121,25 +120,25 @@ describe('Category page', () => {
 	it('shows child categories above product list when present', () => {
 		const category: Category = {
 			id: 'cat-1',
-			parent_id: null,
+			ancestors: [],
 			name: 'Food',
 			created_at: 0,
 			updated_at: 0,
-			deleted_at: null
+			deleted_at: null,
+			children: [
+				{
+					id: 'cat-2',
+					ancestors: [{ id: 'cat-1', name: 'Food' }],
+					name: 'Dairy',
+					created_at: 0,
+					updated_at: 0,
+					deleted_at: null
+				}
+			]
 		};
-		const childCategories: Category[] = [
-			{
-				id: 'cat-2',
-				parent_id: 'cat-1',
-				name: 'Dairy',
-				created_at: 0,
-				updated_at: 0,
-				deleted_at: null
-			}
-		];
 		render(CategoryPage, {
 			props: {
-				data: { category, childCategories, items: [], notFound: false, error: null }
+				data: { category, items: [], notFound: false, error: null }
 			}
 		});
 
@@ -147,5 +146,80 @@ describe('Category page', () => {
 		const childLink = screen.getByRole('link', { name: /dairy/i });
 		expect(childLink).toBeInTheDocument();
 		expect(childLink.getAttribute('href')).toContain('/categories/cat-2');
+	});
+
+	it('shows breadcrumb with ancestor link when category has ancestors', () => {
+		const category: Category = {
+			id: 'cat-2',
+			ancestors: [{ id: 'cat-1', name: 'Food' }],
+			name: 'Dairy',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		render(CategoryPage, {
+			props: {
+				data: { category, items: [], notFound: false, error: null }
+			}
+		});
+
+		const homeLink = screen.getByRole('link', { name: /home/i });
+		expect(homeLink).toBeInTheDocument();
+		const foodLink = screen.getByRole('link', { name: /food/i });
+		expect(foodLink).toBeInTheDocument();
+		expect(foodLink.getAttribute('href')).toContain('/categories/cat-1');
+		expect(screen.getByRole('heading', { name: /dairy/i })).toBeInTheDocument();
+	});
+
+	it('shows full breadcrumb in nav with correct order, links, capitalization and current page', () => {
+		// Deep nesting: Home / Food / Dairy / Cheese / Goat cheese (current)
+		// API returns ancestors closest-first: Cheese, Dairy, Food
+		const category: Category = {
+			id: 'goat-cheese-id',
+			ancestors: [
+				{ id: 'cheese-id', name: 'Cheese' },
+				{ id: 'dairy-id', name: 'Dairy' },
+				{ id: 'food-id', name: 'Food' }
+			],
+			name: 'Goat cheese',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		render(CategoryPage, {
+			props: {
+				data: { category, items: [], notFound: false, error: null }
+			}
+		});
+
+		const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+		expect(nav).toBeInTheDocument();
+
+		// All breadcrumb links must be inside the nav
+		const navWithin = within(nav);
+		const homeLink = navWithin.getByRole('link', { name: 'Home' });
+		expect(homeLink).toHaveAttribute('href', expect.stringContaining('/'));
+
+		const cheeseLink = navWithin.getByRole('link', { name: 'Cheese' });
+		expect(cheeseLink).toHaveAttribute('href', expect.stringContaining('/categories/cheese-id'));
+
+		const dairyLink = navWithin.getByRole('link', { name: 'Dairy' });
+		expect(dairyLink).toHaveAttribute('href', expect.stringContaining('/categories/dairy-id'));
+
+		const foodLink = navWithin.getByRole('link', { name: 'Food' });
+		expect(foodLink).toHaveAttribute('href', expect.stringContaining('/categories/food-id'));
+
+		// Correct order: Home, Food, Dairy, Cheese (links), then current page
+		const links = navWithin.getAllByRole('link');
+		expect(links).toHaveLength(4);
+		expect(links[0]).toHaveAccessibleName('Home');
+		expect(links[1]).toHaveAccessibleName('Food');
+		expect(links[2]).toHaveAccessibleName('Dairy');
+		expect(links[3]).toHaveAccessibleName('Cheese');
+
+		// Current page is indicated with aria-current="page" and correct capitalization
+		const currentItem = navWithin.getByRole('listitem', { current: 'page' });
+		expect(currentItem).toBeInTheDocument();
+		expect(currentItem).toHaveTextContent('Goat cheese');
 	});
 });

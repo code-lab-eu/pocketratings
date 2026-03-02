@@ -36,6 +36,14 @@ pub struct ListCategoriesQuery {
     pub depth: Option<u8>,
 }
 
+/// Query params for GET /api/v1/categories/:id (optional depth for nested children).
+#[derive(Debug, Default, Deserialize)]
+pub struct GetCategoryQuery {
+    /// When omitted, default 1 level of children. When 0, empty children. When 1, 2, 3, ..., that many levels.
+    #[serde(default)]
+    pub depth: Option<u8>,
+}
+
 /// Query params for delete (optional force).
 #[derive(Debug, Default, Deserialize)]
 pub struct DeleteCategoryQuery {
@@ -43,57 +51,72 @@ pub struct DeleteCategoryQuery {
     pub force: bool,
 }
 
-/// Minimal category info for embedding in product (and other) responses.
+/// Minimal category info for embedding in product (and other) responses. Breadcrumb items serialize as `{ id, name }` only (empty `ancestors` omitted).
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct CategoryRef {
     pub id: Uuid,
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub ancestors: Vec<Self>,
 }
 
-/// Response body: category with timestamps as i64 and optional nested children (list endpoint only).
+fn ancestors_to_refs(ancestors: &[db::category::Ancestor]) -> Vec<CategoryRef> {
+    ancestors
+        .iter()
+        .map(|a| CategoryRef {
+            id: a.id,
+            name: a.name.clone(),
+            ancestors: vec![],
+        })
+        .collect()
+}
+
+/// Response body: category with timestamps as i64, ancestors (breadcrumb), and optional nested children.
 #[derive(Debug, serde::Serialize)]
 pub struct CategoryResponse {
     pub id: Uuid,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<Uuid>,
+    pub ancestors: Vec<CategoryRef>,
     pub name: String,
     pub created_at: i64,
     pub updated_at: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<i64>,
-    /// Nested children.
     pub children: Vec<Self>,
 }
 
-fn category_to_response(c: &Category) -> CategoryResponse {
-    CategoryResponse {
+async fn category_to_response(
+    pool: &sqlx::SqlitePool,
+    c: &Category,
+    children: Vec<CategoryResponse>,
+) -> Result<CategoryResponse, ApiError> {
+    let ancestors = db::category::get_ancestors(pool, c.id())
+        .await
+        .map_err(|e| map_db_error(&e))?;
+    Ok(CategoryResponse {
         id: c.id(),
-        parent_id: c.parent_id(),
+        ancestors: ancestors_to_refs(&ancestors),
         name: c.name().to_string(),
         created_at: c.created_at(),
         updated_at: c.updated_at(),
         deleted_at: c.deleted_at(),
-        children: Vec::new(),
-    }
+        children,
+    })
 }
 
-/// Map a slice of tree nodes to response list (recursive).
-fn categories_to_response_list(nodes: &[db::category::Categories]) -> Vec<CategoryResponse> {
-    nodes
-        .iter()
-        .filter_map(|n| {
-            let c = n.category.as_ref()?;
-            Some(CategoryResponse {
-                id: c.id(),
-                parent_id: c.parent_id(),
-                name: c.name().to_string(),
-                created_at: c.created_at(),
-                updated_at: c.updated_at(),
-                deleted_at: c.deleted_at(),
-                children: categories_to_response_list(&n.children),
-            })
-        })
-        .collect()
+async fn categories_to_response_list(
+    pool: &sqlx::SqlitePool,
+    nodes: &[db::category::Categories],
+) -> Result<Vec<CategoryResponse>, ApiError> {
+    let mut out = Vec::with_capacity(nodes.len());
+    for n in nodes {
+        let Some(ref c) = n.category else {
+            continue;
+        };
+        let children = Box::pin(categories_to_response_list(pool, &n.children)).await?;
+        let resp = category_to_response(pool, c, children).await?;
+        out.push(resp);
+    }
+    Ok(out)
 }
 
 /// Map `DbError` to `ApiError` for category operations.
@@ -129,17 +152,12 @@ pub async fn list_categories(
         let list = db::category::get_children(&state.pool, q.parent_id)
             .await
             .map_err(|e| map_db_error(&e))?;
-        list.into_iter()
-            .map(|c| CategoryResponse {
-                id: c.id(),
-                parent_id: c.parent_id(),
-                name: c.name().to_string(),
-                created_at: c.created_at(),
-                updated_at: c.updated_at(),
-                deleted_at: c.deleted_at(),
-                children: Vec::new(),
-            })
-            .collect()
+        let mut out = Vec::with_capacity(list.len());
+        for c in &list {
+            let resp = category_to_response(&state.pool, c, Vec::new()).await?;
+            out.push(resp);
+        }
+        out
     } else {
         let all = db::category::get_all(&state.pool, false)
             .await
@@ -155,22 +173,42 @@ pub async fn list_categories(
             None
         };
         let tree = db::category::Categories::from_list(all, root, depth, false);
-        categories_to_response_list(&tree.children)
+        categories_to_response_list(&state.pool, &tree.children).await?
     };
 
     Ok(Json(response))
 }
 
-/// GET /api/v1/categories/:id — get one category.
+/// GET /api/v1/categories/:id — get one category. Optional `?depth=N`: omitted = 1 level of children, 0 = none, 1+ = N levels.
 pub async fn get_category(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    Query(q): Query<GetCategoryQuery>,
 ) -> Result<Json<CategoryResponse>, ApiError> {
     let category = db::category::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
     let category = category.ok_or_else(|| ApiError::NotFound("category not found".to_string()))?;
-    Ok(Json(category_to_response(&category)))
+
+    let depth = q.depth;
+    let children = if depth == Some(0) {
+        Vec::new()
+    } else {
+        let effective_depth = depth.unwrap_or(1);
+        let all = db::category::get_all(&state.pool, false)
+            .await
+            .map_err(|e| map_db_error(&e))?;
+        let tree = db::category::Categories::from_list(
+            all,
+            Some(category.clone()),
+            Some(effective_depth),
+            false,
+        );
+        categories_to_response_list(&state.pool, &tree.children).await?
+    };
+
+    let resp = category_to_response(&state.pool, &category, children).await?;
+    Ok(Json(resp))
 }
 
 /// POST /api/v1/categories — create a category.
@@ -203,7 +241,8 @@ pub async fn create_category(
     db::category::insert(&state.pool, &category)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok((StatusCode::CREATED, Json(category_to_response(&category))))
+    let resp = category_to_response(&state.pool, &category, Vec::new()).await?;
+    Ok((StatusCode::CREATED, Json(resp)))
 }
 
 /// PATCH /api/v1/categories/:id — partial update; only persist if something changed.
@@ -248,7 +287,8 @@ pub async fn update_category(
     }
 
     if existing.name() == name && existing.parent_id() == parent_id {
-        return Ok(Json(category_to_response(&existing)));
+        let resp = category_to_response(&state.pool, &existing, Vec::new()).await?;
+        return Ok(Json(resp));
     }
 
     let updated = Category::new(
@@ -263,7 +303,8 @@ pub async fn update_category(
     db::category::update(&state.pool, &updated)
         .await
         .map_err(|e| map_db_error(&e))?;
-    Ok(Json(category_to_response(&updated)))
+    let resp = category_to_response(&state.pool, &updated, Vec::new()).await?;
+    Ok(Json(resp))
 }
 
 /// DELETE /api/v1/categories/:id — soft delete, or hard with ?force=true.
@@ -319,6 +360,7 @@ mod tests {
     use axum::http::{Request, StatusCode};
     use http_body_util::BodyExt;
     use tower::ServiceExt;
+    use uuid::Uuid;
 
     use super::*;
     use crate::config::Config;
@@ -399,7 +441,11 @@ mod tests {
         assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("Groceries"));
         let id_str = json.get("id").and_then(|v| v.as_str()).expect("id");
         assert!(Uuid::parse_str(id_str).is_ok());
-        assert!(json.get("parent_id").is_none_or(serde_json::Value::is_null));
+        assert!(
+            json.get("ancestors")
+                .and_then(|v| v.as_array())
+                .is_some_and(Vec::is_empty)
+        );
         assert!(
             json.get("created_at")
                 .and_then(serde_json::Value::as_i64)
@@ -507,7 +553,11 @@ mod tests {
             json.get("name").and_then(|v| v.as_str()),
             Some("Electronics")
         );
-        assert!(json.get("parent_id").is_none_or(serde_json::Value::is_null));
+        assert!(
+            json.get("ancestors")
+                .and_then(|v| v.as_array())
+                .is_some_and(Vec::is_empty)
+        );
         assert!(
             json.get("created_at")
                 .and_then(serde_json::Value::as_i64)
@@ -676,6 +726,7 @@ mod tests {
         let id = created.get("id").and_then(|v| v.as_str()).expect("id");
         let uuid = Uuid::parse_str(id).expect("uuid");
         let response = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .method("DELETE")
@@ -686,7 +737,16 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        // Soft delete: row still exists with deleted_at set; normal get excludes it
+        let get_resp = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/categories/{id}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(get_resp.status(), StatusCode::NOT_FOUND);
         let active = db::category::get_by_id(&state.pool, uuid)
             .await
             .expect("db");
@@ -836,6 +896,15 @@ mod tests {
                 .map(Vec::len),
             Some(0)
         );
+        let child_ancestors = arr[0]
+            .get("ancestors")
+            .and_then(|v| v.as_array())
+            .expect("ancestors");
+        assert_eq!(child_ancestors.len(), 1);
+        assert_eq!(
+            child_ancestors[0].get("id").and_then(|v| v.as_str()),
+            Some(parent_id)
+        );
     }
 
     #[tokio::test]
@@ -955,5 +1024,125 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn get_category_with_depth_0_returns_empty_children() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state.clone());
+        let create_body = serde_json::json!({ "name": "Root" });
+        let create_resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/categories")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&create_body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        let bytes = create_resp
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let id = json.get("id").and_then(|v| v.as_str()).expect("id");
+
+        let get_resp = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/categories/{id}?depth=0"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(get_resp.status(), StatusCode::OK);
+        let bytes = get_resp
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let get_json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        assert_eq!(
+            get_json
+                .get("children")
+                .and_then(|v| v.as_array())
+                .map(Vec::len),
+            Some(0)
+        );
+    }
+
+    #[tokio::test]
+    async fn get_category_without_depth_returns_one_level_of_children() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state.clone());
+        let create_body = serde_json::json!({ "name": "Root" });
+        let create_resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/categories")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&create_body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        let bytes = create_resp
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let root_json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let root_id = root_json.get("id").and_then(|v| v.as_str()).expect("id");
+
+        let child_body = serde_json::json!({ "name": "Child", "parent_id": root_id });
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/categories")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&child_body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        let get_resp = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/categories/{root_id}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(get_resp.status(), StatusCode::OK);
+        let bytes = get_resp
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let get_json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let children = get_json
+            .get("children")
+            .and_then(|v| v.as_array())
+            .expect("children");
+        assert_eq!(children.len(), 1);
+        assert_eq!(
+            children[0].get("name").and_then(|v| v.as_str()),
+            Some("Child")
+        );
     }
 }

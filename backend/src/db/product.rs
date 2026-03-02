@@ -62,12 +62,14 @@ pub fn set_product_list_cache_for_test(list: Option<Vec<ProductWithRelations>>) 
     let _ = product_list_cache().write().map(|mut g| *g = list);
 }
 
-/// One product row with joined category name for API responses.
+/// One product row with joined category name and breadcrumb ancestors for API responses.
 #[derive(Debug, Clone)]
 pub struct ProductWithRelations {
     pub id: Uuid,
     pub category_id: Uuid,
     pub category_name: String,
+    /// Breadcrumb ancestors (closest parent first). Filled by list/get when building from DB.
+    pub category_ancestors: Vec<crate::db::category::Ancestor>,
     pub brand: String,
     pub name: String,
     pub created_at: i64,
@@ -94,6 +96,7 @@ fn row_to_product_with_relations(
         id,
         category_id,
         category_name: category_name.to_owned(),
+        category_ancestors: vec![],
         brand: brand.to_owned(),
         name: name.to_owned(),
         created_at,
@@ -416,7 +419,15 @@ async fn fetch_all_products_with_relations_raw(
             deleted_at,
         )?);
     }
-    Ok(out)
+    let mut enriched = Vec::with_capacity(out.len());
+    for p in out {
+        let category_ancestors = crate::db::category::get_ancestors(pool, p.category_id).await?;
+        enriched.push(ProductWithRelations {
+            category_ancestors,
+            ..p
+        });
+    }
+    Ok(enriched)
 }
 
 /// Filter products in memory by `category_id`, search term (substring on name and brand, case-insensitive),
@@ -513,7 +524,7 @@ pub async fn get_by_id_with_relations(
     let created_at: i64 = row.get("created_at");
     let updated_at: i64 = row.get("updated_at");
     let deleted_at: Option<i64> = row.get("deleted_at");
-    Ok(Some(row_to_product_with_relations(
+    let p = row_to_product_with_relations(
         &id,
         &category_id,
         &category_name,
@@ -522,7 +533,12 @@ pub async fn get_by_id_with_relations(
         created_at,
         updated_at,
         deleted_at,
-    )?))
+    )?;
+    let category_ancestors = crate::db::category::get_ancestors(pool, p.category_id).await?;
+    Ok(Some(ProductWithRelations {
+        category_ancestors,
+        ..p
+    }))
 }
 
 /// Insert a product into the database.

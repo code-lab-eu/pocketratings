@@ -197,9 +197,13 @@ export function listCategories(parentId?: string): Promise<Category[]> {
 	return apiGet<Category[]>(path);
 }
 
-/** Get a single category by id. */
-export function getCategory(id: string): Promise<Category> {
-	return apiGet<Category>(`/api/v1/categories/${encodeURIComponent(id)}`);
+/** Get a single category by id. Optional depth: omitted = 1 level of children, 0 = none, 1+ = N levels. */
+export function getCategory(id: string, options?: { depth?: number }): Promise<Category> {
+	const path =
+		options?.depth !== undefined
+			? `/api/v1/categories/${encodeURIComponent(id)}?depth=${options.depth}`
+			: `/api/v1/categories/${encodeURIComponent(id)}`;
+	return apiGet<Category>(path);
 }
 
 export interface CreateCategoryBody {

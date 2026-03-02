@@ -253,16 +253,41 @@ thresholds can be enforced.
 
 **Done:** Product list and detail responses include nested `category: { id, name }`. Backend uses `ProductWithRelations` with a categories JOIN, in-memory product list cache (invalidated on mutations), and `CategoryRef` in the API. Frontend uses `product.category` for the category link and label; product detail page no longer fetches category separately. Documented in [api.md](api.md).
 
-### 17. Category API: include parent in response
+### 17. Category API: ancestors and breadcrumb — **Done**
 
-**Goal:** Category list/detail include nested `parent: { id, name } | null`
-so breadcrumbs or parent display do not require a separate category fetch.
+**Done:** Category list and detail responses include `ancestors` (array of
+`{ id, name }`, closest parent first) instead of `parent_id`; ancestors are
+computed once when the category list is loaded and stored in the DB-layer
+cache. GET `/api/v1/categories/:id` supports optional `?depth=N` (omitted =
+1 level of children, 0 = none, 1+ = N levels) so the category page uses a
+single request. Product responses include `category: { id, name, ancestors }`.
+Frontend: category page shows breadcrumb (Home → … → current), single
+`getCategory(id)` request, manage category edit derives parent from
+`ancestors[0]`. Documented in [api.md](api.md).
+
+### 18. Category cache: O(1) id-based lookup
+
+**Goal:** Add id→category lookup to the category list cache so GET
+`/api/v1/categories/:id` can be served from cache when warm (no DB
+round-trip for the category row).
 
 **Tasks:**
-- Backend: JOIN parent category in list/get; add optional parent ref to
-  category response.
-- Frontend: use `category.parent` where parent name or link is needed.
-- Document in [api.md](api.md).
+- Backend: when building the category cache, add
+  `HashMap<Uuid, Category>` (or equivalent) alongside the existing list
+  and ancestor map; expose a cache-backed lookup (e.g. get_by_id from
+  cache when warm, else DB and optionally warm cache).
+- GET category by id uses cache when populated for the category row;
+  ancestors already come from cache.
+- Document in [api.md](api.md) if response behaviour changes; update
+  backend cache docs/tests.
+
+### 19. API layer: enforce no database code
+
+**Goal:** Ensure the API module stays free of database logic. No `sqlx::SqlitePool` or direct DB calls in `backend/src/api/`.
+
+**Tasks:**
+- Add a test (or static check) that fails if any file under `backend/src/api/` references `sqlx::SqlitePool` or `sqlx::` in a way that indicates DB access (e.g. pool parameters, `sqlx::query`, etc.). Exclude allowed uses (e.g. error mapping that matches on `sqlx::Error`, or test helpers that need a pool) if documented.
+- Resolve any existing violations by moving DB logic to the DB or service layer so the API only calls into that layer and maps responses.
 
 ---
 

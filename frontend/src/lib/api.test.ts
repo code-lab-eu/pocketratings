@@ -96,7 +96,7 @@ describe('api', () => {
 		vi.mocked(auth.getToken).mockReturnValue('token');
 		const mockFetch = vi.mocked(fetch);
 		const categories = [
-			{ id: 'c1', parent_id: null, name: 'Food', created_at: 0, updated_at: 0, deleted_at: null }
+			{ id: 'c1', ancestors: [], name: 'Food', created_at: 0, updated_at: 0, deleted_at: null }
 		];
 		mockFetch.mockResolvedValueOnce(
 			new Response(JSON.stringify(categories), {
@@ -130,7 +130,7 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const cat = {
 			id: 'cid',
-			parent_id: null,
+			ancestors: [],
 			name: 'Drinks',
 			created_at: 0,
 			updated_at: 0,
@@ -144,6 +144,22 @@ describe('api', () => {
 
 		expect(result).toEqual(cat);
 		expect(String(mockFetch.mock.calls[0][0])).toContain('/api/v1/categories/cid');
+		expect(String(mockFetch.mock.calls[0][0])).not.toContain('depth=');
+	});
+
+	it('getCategory with depth adds query param', async () => {
+		vi.mocked(auth.getToken).mockReturnValue('t');
+		const mockFetch = vi.mocked(fetch);
+		mockFetch.mockResolvedValueOnce(
+			new Response(JSON.stringify({ id: 'c', ancestors: [], name: 'C', created_at: 0, updated_at: 0, deleted_at: null }), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' }
+			})
+		);
+
+		await getCategory('c', { depth: 2 });
+
+		expect(String(mockFetch.mock.calls[0][0])).toContain('depth=2');
 	});
 
 	it('listProducts with category_id fetches with query param', async () => {
@@ -200,7 +216,7 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const product = {
 			id: 'pid',
-			category: { id: 'cid', name: 'Category' },
+			category: { id: 'cid', name: 'Category', ancestors: [] },
 			brand: 'Brand',
 			name: 'Product',
 			created_at: 0,
@@ -275,7 +291,7 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const created = {
 			id: 'c1',
-			parent_id: null,
+			ancestors: [],
 			name: 'Food',
 			created_at: 0,
 			updated_at: 0,
@@ -298,7 +314,7 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const updated = {
 			id: 'c1',
-			parent_id: null,
+			ancestors: [],
 			name: 'Food (renamed)',
 			created_at: 0,
 			updated_at: 0,
@@ -386,7 +402,7 @@ describe('api', () => {
 		const mockFetch = vi.mocked(fetch);
 		const created = {
 			id: 'p1',
-			category: { id: 'c1', name: 'Groceries' },
+			category: { id: 'c1', name: 'Groceries', ancestors: [] },
 			brand: 'B',
 			name: 'Milk',
 			created_at: 0,
@@ -410,7 +426,7 @@ describe('api', () => {
 			new Response(
 				JSON.stringify({
 					id: 'p1',
-					category: { id: 'c1', name: 'Groceries' },
+					category: { id: 'c1', name: 'Groceries', ancestors: [] },
 					brand: 'B',
 					name: 'Milk 1L',
 					created_at: 0,

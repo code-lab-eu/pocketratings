@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types';
-import { ApiClientError, isValidUuid, getCategory, listCategories, listProducts, listReviews } from '$lib/api';
+import { ApiClientError, isValidUuid, getCategory, listProducts, listReviews } from '$lib/api';
 import type { Product, Review } from '$lib/types';
 
 export interface ProductWithReview {
@@ -11,12 +11,11 @@ export interface ProductWithReview {
 export const load: PageLoad = async ({ params }) => {
 	const id = params.id;
 	if (!id || !isValidUuid(id)) {
-		return { category: null, childCategories: [], items: [], notFound: true, error: !id ? 'Missing category id' : null };
+		return { category: null, items: [], notFound: true, error: !id ? 'Missing category id' : null };
 	}
 	try {
-		const [category, childCategories, products, reviews] = await Promise.all([
+		const [category, products, reviews] = await Promise.all([
 			getCategory(id),
-			listCategories(id),
 			listProducts({ category_id: id }),
 			listReviews()
 		]);
@@ -36,12 +35,11 @@ export const load: PageLoad = async ({ params }) => {
 				text: review?.text ?? undefined
 			};
 		});
-		return { category, childCategories, items, notFound: false, error: null };
+		return { category, items, notFound: false, error: null };
 	} catch (e) {
 		const notFound = e instanceof ApiClientError && e.status === 404;
 		return {
 			category: null,
-			childCategories: [],
 			items: [],
 			notFound,
 			error: e instanceof Error ? e.message : String(e)
