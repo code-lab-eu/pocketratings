@@ -1,0 +1,20 @@
+---
+description: Quick add/update of roadmap tasks; use next number, [FE]/[BE]/[FE+BE], SP; mark complete with — DONE
+globs: docs/roadmap.md
+alwaysApply: false
+---
+
+# Roadmap quick edits
+
+When editing the roadmap (add or update tasks only):
+
+- **New task:** Add at the **end** of the Planned list. Use the **next sequential
+  number** (e.g. if last task is 14, new task is ### 15.). Title must end with
+  `[FE]`, `[BE]`, or `[FE+BE]`. First line of the task body must be `**N sp.**`
+  (rough estimate, 1–5) then the goal or first sentence. Do not reorder.
+- **Mark task complete:** Append ` — DONE` to that task's title. Do not remove
+  it; removal happens during roadmap maintenance.
+- **Updating an existing task:** Change goal/tasks/SP as needed; keep the title
+  label and SP format. If scope changes, update [FE]/[BE]/[FE+BE].
+- **Do not:** Reorder the list, remove DONE items, or run the full maintenance
+  workflow. For that, use the roadmap-maintenance skill.

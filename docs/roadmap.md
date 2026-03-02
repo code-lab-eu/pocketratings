@@ -4,71 +4,14 @@ This document tracks planned features and improvements for Pocket Ratings.
 
 ---
 
-## Completed
-
-- **API error responses: JSON and frontend 404** — Backend returns all 4xx/5xx
-  as JSON (`ErrorBody` with `error` + `message`); stable codes (`not_found`,
-  `bad_request`, etc.). Frontend parses JSON, throws `ApiClientError` with
-  status/errorCode; detail pages set `notFound` when status === 404. Documented
-  in [api.md](api.md).
-
-- **Category list: optional `depth` parameter and nested response** — `GET
-  /api/v1/categories` accepts optional `depth` (e.g. `depth=1` for one level)
-  and optional `parent_id`; list response is a nested tree with `children`.
-  Backend: `get_children(pool, Option<parent_id>)`, `Categories::from_list`
-  with depth and include_deleted, in-memory cache in db layer. Frontend:
-  `Category.children`, `flattenCategories`; category listing components
-  refactored. Documented in [api.md](api.md).
-
-- **Categories: single list function with `include_deleted` option** —
-  Replaced `get_all()` and `get_all_with_deleted()` with
-  `get_all(pool, include_deleted: bool)`; single cache (full list), filter
-  when `include_deleted == false`. All API and test call sites updated.
-
-- **Reviews API: include product and user in response** — Review list/detail
-  responses include nested `product: { id, brand, name }` and
-  `user: { id, name }`. Backend: `list_with_relations` / `get_by_id_with_relations`
-  with JOINs; API reuses `ProductRef` and `UserRef`. In-memory cache for
-  review list (invalidated on insert/update/delete). Frontend: manage/reviews
-  uses `review.product` and `review.user`; product detail shows “By
-  {user.name}”. Documented in [api.md](api.md).
-
----
-
 ## Planned
 
-Prioritized: blocking tasks and quick wins first, then items that depend on
-them, then larger improvements.
+Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
+rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Identify reusable frontend components
+### 1. Reusable search on home and category pages [FE]
 
-**Goal:** Systematically find duplicated UI patterns in the frontend that can be
-extracted into reusable components (e.g. in `$lib`), to reduce duplication and
-keep behaviour and styling consistent.
-
-**Tasks:**
-- Audit routes and pages for repeated patterns: forms (inputs, selects,
-  buttons), list rows (links, actions), empty states, navigation chunks.
-- Produce a short list of candidate components with suggested props/slots and
-  consumer pages.
-- Prioritise and implement extractions (or add to this roadmap as separate
-  items). Prefer small, focused components over large ones.
-
-### 2. Purchases API: include location in response — Done
-
-**Goal:** Purchase list/detail responses include location data (e.g. nested
-`"location": { "id", "name" }` or `location_name`) so the frontend can show
-location without a separate `GET /api/v1/locations` call.
-
-**Tasks:**
-- Extend purchase list and detail responses with location; document in
-  [api.md](api.md). Frontend can then drop client-side resolution by id.
-
-**Done:** Backend returns nested `user`, `product`, and `location` on list, get, create, and update; documented in api.md and api.http. Frontend types and pages (manage/purchases, product detail) to be updated per plan.
-
-### 3. Reusable search on home and category pages
-
-**Goal:** The search currently on the homepage is also shown on category pages,
+**3 sp.** The search currently on the homepage is also shown on category pages,
 implemented as a single reusable component.
 
 **Tasks:**
@@ -81,9 +24,59 @@ implemented as a single reusable component.
   behaviour; spec can clarify). Document in [spec.md](spec.md) that search
   appears on both home and category pages.
 
-### 4. Management list UX: edit/delete icons; entity name → view page
+### 2. Locations: single list function with `include_deleted` option [BE]
 
-**Goal:** On management list pages (categories, products, locations, reviews,
+**2 sp.** Replace `get_all()` and `get_all_with_deleted()` in the location DB
+layer with one function, e.g. `get_all(pool, include_deleted: bool)`, to reduce
+duplication and keep caching logic in one place (same pattern as categories).
+
+**Tasks:**
+- Add `include_deleted: bool` parameter to the location list function; merge
+  the two implementations.
+- Update all call sites (API and tests).
+- Single cache (full list including deleted); filter when
+  `include_deleted == false`.
+
+### 3. Products: single list function with `include_deleted` option [BE]
+
+**2 sp.** Same refactor for the product DB layer: one list function (e.g.
+`get_all` or `get_all_filtered`) with `include_deleted: bool`; update call
+sites; cache strategy as for categories/locations.
+
+**Tasks:**
+- Add `include_deleted: bool` to the product list function(s); merge
+  implementations.
+- Update all call sites (API and tests).
+- Single cache (full list including deleted); filter when
+  `include_deleted == false`.
+
+### 4. CLI timestamp management [BE]
+
+**2 sp.** `updated_at` and `deleted_at` set automatically in the database
+layer (like the REST API), not manually in each CLI command.
+
+**Tasks:**
+- Database layer: set `updated_at` on update, `deleted_at` on soft-delete.
+- Remove manual timestamp setting from CLI commands (category, location,
+  product, review, purchase update/delete). Verify `created_at` on create.
+
+### 5. Add cargo-llvm-cov to QA [BE]
+
+**2 sp.** Run code coverage (cargo-llvm-cov) as part of backend quality
+assurance so new or changed code is measured and, optionally, coverage
+thresholds can be enforced.
+
+**Tasks:**
+- Install and run cargo-llvm-cov for the backend (e.g. in CI and/or in the
+  backend QC skill). Generate reports (e.g. `--lcov`, `--html`).
+- Optionally: add `--fail-under-lines` (or similar) to fail the build when
+  overall line coverage drops below a threshold.
+- Document in the backend QC skill and any CI workflow how to run coverage
+  and interpret results.
+
+### 6. Management list UX: edit/delete icons; entity name → view page [FE]
+
+**2 sp.** On management list pages (categories, products, locations, reviews,
 purchases), use separate **Edit** and **Delete** actions as **icons** (not
 text links/buttons). The **entity name** links to the **public entity page**
 when it exists (e.g. category → `/categories/:id`, product → `/products/:id`);
@@ -106,24 +99,83 @@ product/category).
   delete.
 - **Purchases:** No public purchase page → primary text not a link (or link to
   product); add Edit icon → edit purchase; Delete icon → delete.
-- Update [spec.md](spec.md) (Management / list behaviour) to describe: “List
+- Update [spec.md](spec.md) (Management / list behaviour) to describe: "List
   rows: entity name links to view page when it exists; separate Edit and
-  Delete icon actions.”
+  Delete icon actions."
 
-### 5. Category list: immediate children only with inline expand
+### 7. Home page: search by category name [BE]
 
-**Goal:** On the homepage and on category pages, the category list shows only
+**2 sp.** Search on the homepage includes products whose category (or ancestor)
+name matches the search term, not only product name/brand.
+
+**Tasks:**
+- Backend: Extend `GET /api/v1/products?q=...` to include products linked to
+  a category whose name matches `q`. Frontend may need no change if backend
+  handles it.
+
+### 8. Home page: live-updating search [FE]
+
+**2 sp.** Search results update as the user types (e.g. URL + debounced
+refetch), without requiring form submit.
+
+**Tasks:**
+- Keep search on home; update URL (e.g. `replaceState`) and refetch as user
+  types; optional debounce (e.g. 300 ms). Client-side navigation, no full
+  reload.
+
+### 9. Category cache: O(1) id-based lookup [BE]
+
+**2 sp.** Add id→category lookup to the category list cache so GET
+`/api/v1/categories/:id` can be served from cache when warm (no DB
+round-trip for the category row).
+
+**Tasks:**
+- Backend: when building the category cache, add
+  `HashMap<Uuid, Category>` (or equivalent) alongside the existing list
+  and ancestor map; expose a cache-backed lookup (e.g. get_by_id from
+  cache when warm, else DB and optionally warm cache).
+- GET category by id uses cache when populated for the category row;
+  ancestors already come from cache.
+- Document in [api.md](api.md) if response behaviour changes; update
+  backend cache docs/tests.
+
+### 10. API layer: enforce no database code [BE]
+
+**2 sp.** Ensure the API module stays free of database logic. No
+`sqlx::SqlitePool` or direct DB calls in `backend/src/api/`.
+
+**Tasks:**
+- Add a test (or static check) that fails if any file under `backend/src/api/`
+  references `sqlx::SqlitePool` or `sqlx::` in a way that indicates DB access
+  (e.g. pool parameters, `sqlx::query`, etc.). Exclude allowed uses (e.g.
+  error mapping that matches on `sqlx::Error`, or test helpers that need a
+  pool) if documented.
+- Resolve any existing violations by moving DB logic to the DB or service
+  layer so the API only calls into that layer and maps responses.
+
+### 11. Identify reusable frontend components [FE]
+
+**3 sp.** Systematically find duplicated UI patterns in the frontend that can
+be extracted into reusable components (e.g. in `$lib`), to reduce duplication
+and keep behaviour and styling consistent.
+
+**Tasks:**
+- Audit routes and pages for repeated patterns: forms (inputs, selects,
+  buttons), list rows (links, actions), empty states, navigation chunks.
+- Produce a short list of candidate components with suggested props/slots and
+  consumer pages.
+- Prioritise and implement extractions (or add to this roadmap as separate
+  items). Prefer small, focused components over large ones.
+
+### 12. Category list: immediate children only with inline expand [FE+BE]
+
+**3 sp.** On the homepage and on category pages, the category list shows only
 **immediate children** (one level), not the full tree. Each category in the
 list can be **expanded inline** via a link/control that loads and shows its
 children; this expand control is shown **only if the category has children**.
 Requires the REST API to expose a **`has_children: bool`** on each category in
 list/detail responses so the frontend can show/hide the expand link without
-extra requests.
-
-**Ties to:** Category list optional `depth` parameter (completed). — use `depth=1` to
-fetch only direct children for the initial list; when user expands a category,
-fetch its children (e.g. `GET /api/v1/categories?parent_id=<id>&depth=1`) and
-render them inline.
+extra requests. Uses existing `depth=1` and `parent_id` from categories API.
 
 **Tasks:**
 - Backend: Add `has_children: bool` to category payloads returned by the REST
@@ -134,16 +186,14 @@ render them inline.
   level is shown). Render each category with an expand control only when
   `has_children === true`. On expand, fetch children for that category and
   render them inline (nested or indented). Update [spec.md](spec.md) so
-  category list behaviour is “immediate children only; expand to show children
-  inline when present.”
+  category list behaviour is "immediate children only; expand to show children
+  inline when present."
 
-### 6. Category page: products from current category and all child categories
+### 13. Category page: products from current category and all child categories [FE+BE]
 
-**Goal:** On the category page, show all products that belong to the current
+**3 sp.** On the category page, show all products that belong to the current
 category **and** to any descendant category (full subtree). Use a depth limit
-(e.g. depth 5) for “child categories” to avoid unbounded trees.
-
-**Blocked by:** Category list optional `depth` parameter (completed).
+(e.g. depth 5) for "child categories" to avoid unbounded trees.
 
 **Tasks:**
 - Backend (if not already covered): support listing products for a category
@@ -153,41 +203,11 @@ category **and** to any descendant category (full subtree). Use a depth limit
   category IDs (e.g. from categories API with depth, or new endpoint); fetch
   products for that set and merge/deduplicate; show in existing product list.
   Use depth of 5 for subtree. Update [spec.md](spec.md) so category products
-  include “current + all descendant categories” and reference depth.
+  include "current + all descendant categories" and reference depth.
 
-### 7. Home page: search by category name
+### 14. Product variations [FE+BE]
 
-**Goal:** Search on the homepage includes products whose category (or ancestor)
-name matches the search term, not only product name/brand.
-
-**Tasks:**
-- Backend: Extend `GET /api/v1/products?q=...` to include products linked to
-  a category whose name matches `q`. Frontend may need no change if backend
-  handles it.
-
-### 8. Home page: live-updating search
-
-**Goal:** Search results update as the user types (e.g. URL + debounced
-refetch), without requiring form submit.
-
-**Tasks:**
-- Keep search on home; update URL (e.g. `replaceState`) and refetch as user
-  types; optional debounce (e.g. 300 ms). Client-side navigation, no full
-  reload.
-
-### 9. CLI timestamp management
-
-**Goal:** `updated_at` and `deleted_at` set automatically in the database
-layer (like the REST API), not manually in each CLI command.
-
-**Tasks:**
-- Database layer: set `updated_at` on update, `deleted_at` on soft-delete.
-- Remove manual timestamp setting from CLI commands (category, location,
-  product, review, purchase update/delete). Verify `created_at` on create.
-
-### 10. Product variations
-
-**Goal:** Products can be sold in different variations (e.g. mayonnaise in
+**5 sp.** Products can be sold in different variations (e.g. mayonnaise in
 different jar sizes). Purchases track prices, so we need to differentiate
 between buying a big jar or a small jar by associating purchases with product
 variations.
@@ -208,86 +228,6 @@ variations.
 - On product create, create one initial variation.
 - Associate purchases with a product variation (API, DB, frontend).
 - Document in [spec.md](spec.md) and [api.md](api.md).
-
-### 12. Locations: single list function with `include_deleted` option
-
-**Goal:** Replace `get_all()` and `get_all_with_deleted()` in the location DB
-layer with one function, e.g. `get_all(pool, include_deleted: bool)`, to reduce
-duplication and keep caching logic in one place (same pattern as categories).
-
-**Tasks:**
-- Add `include_deleted: bool` parameter to the location list function; merge
-  the two implementations.
-- Update all call sites (API and tests).
-- Single cache (full list including deleted); filter when
-  `include_deleted == false`.
-
-### 13. Products: single list function with `include_deleted` option
-
-**Goal:** Same refactor for the product DB layer: one list function (e.g.
-`get_all` or `get_all_filtered`) with `include_deleted: bool`; update call
-sites; cache strategy as for categories/locations.
-
-**Tasks:**
-- Add `include_deleted: bool` to the product list function(s); merge
-  implementations.
-- Update all call sites (API and tests).
-- Single cache (full list including deleted); filter when
-  `include_deleted == false`.
-
-### 14. Add cargo-llvm-cov to QA
-
-**Goal:** Run code coverage (cargo-llvm-cov) as part of backend quality
-assurance so new or changed code is measured and, optionally, coverage
-thresholds can be enforced.
-
-**Tasks:**
-- Install and run cargo-llvm-cov for the backend (e.g. in CI and/or in the
-  backend QC skill). Generate reports (e.g. `--lcov`, `--html`).
-- Optionally: add `--fail-under-lines` (or similar) to fail the build when
-  overall line coverage drops below a threshold.
-- Document in the backend QC skill and any CI workflow how to run coverage
-  and interpret results.
-
-### 16. Products API: include category in response — **Done**
-
-**Done:** Product list and detail responses include nested `category: { id, name }`. Backend uses `ProductWithRelations` with a categories JOIN, in-memory product list cache (invalidated on mutations), and `CategoryRef` in the API. Frontend uses `product.category` for the category link and label; product detail page no longer fetches category separately. Documented in [api.md](api.md).
-
-### 17. Category API: ancestors and breadcrumb — **Done**
-
-**Done:** Category list and detail responses include `ancestors` (array of
-`{ id, name }`, closest parent first) instead of `parent_id`; ancestors are
-computed once when the category list is loaded and stored in the DB-layer
-cache. GET `/api/v1/categories/:id` supports optional `?depth=N` (omitted =
-1 level of children, 0 = none, 1+ = N levels) so the category page uses a
-single request. Product responses include `category: { id, name, ancestors }`.
-Frontend: category page shows breadcrumb (Home → … → current), single
-`getCategory(id)` request, manage category edit derives parent from
-`ancestors[0]`. Documented in [api.md](api.md).
-
-### 18. Category cache: O(1) id-based lookup
-
-**Goal:** Add id→category lookup to the category list cache so GET
-`/api/v1/categories/:id` can be served from cache when warm (no DB
-round-trip for the category row).
-
-**Tasks:**
-- Backend: when building the category cache, add
-  `HashMap<Uuid, Category>` (or equivalent) alongside the existing list
-  and ancestor map; expose a cache-backed lookup (e.g. get_by_id from
-  cache when warm, else DB and optionally warm cache).
-- GET category by id uses cache when populated for the category row;
-  ancestors already come from cache.
-- Document in [api.md](api.md) if response behaviour changes; update
-  backend cache docs/tests.
-
-### 19. API layer: enforce no database code
-
-**Goal:** Ensure the API module stays free of database logic. No `sqlx::SqlitePool` or direct DB calls in `backend/src/api/`.
-
-**Tasks:**
-- Add a test (or static check) that fails if any file under `backend/src/api/` references `sqlx::SqlitePool` or `sqlx::` in a way that indicates DB access (e.g. pool parameters, `sqlx::query`, etc.). Exclude allowed uses (e.g. error mapping that matches on `sqlx::Error`, or test helpers that need a pool) if documented.
-- Resolve any existing violations by moving DB logic to the DB or service layer so the API only calls into that layer and maps responses.
 
 ---
 
