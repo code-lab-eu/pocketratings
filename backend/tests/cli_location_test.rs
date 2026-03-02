@@ -200,14 +200,14 @@ async fn location_delete_soft_deletes() {
         location.is_none(),
         "soft-deleted location should not be returned by get_by_id"
     );
-    let with_deleted = db::location::get_all_with_deleted(&pool)
+    let with_deleted = db::location::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all(include_deleted: true)");
     assert!(
         with_deleted
             .iter()
             .any(|l| l.id().to_string() == id && !l.is_active()),
-        "deleted location should appear in get_all_with_deleted and be inactive"
+        "deleted location should appear in get_all(include_deleted: true) and be inactive"
     );
 }
 
@@ -242,12 +242,12 @@ async fn location_delete_force_removes_row() {
         .await
         .expect("get_by_id");
     assert!(location.is_none());
-    let with_deleted = db::location::get_all_with_deleted(&pool)
+    let with_deleted = db::location::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all(include_deleted: true)");
     assert!(
         !with_deleted.iter().any(|l| l.id().to_string() == id),
-        "hard-deleted location should not appear in get_all_with_deleted"
+        "hard-deleted location should not appear in get_all(include_deleted: true)"
     );
 }
 

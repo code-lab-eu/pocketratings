@@ -24,7 +24,7 @@ implemented as a single reusable component.
   behaviour; spec can clarify). Document in [spec.md](spec.md) that search
   appears on both home and category pages.
 
-### 2. Locations: single list function with `include_deleted` option [BE]
+### 2. Locations: single list function with `include_deleted` option [BE] — DONE
 
 **2 sp.** Replace `get_all()` and `get_all_with_deleted()` in the location DB
 layer with one function, e.g. `get_all(pool, include_deleted: bool)`, to reduce

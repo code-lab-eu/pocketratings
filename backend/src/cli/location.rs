@@ -56,11 +56,7 @@ pub async fn list(
     stdout: &mut impl Write,
     _stderr: &mut impl Write,
 ) -> Result<(), CliError> {
-    let mut locations = if include_deleted {
-        db::location::get_all_with_deleted(pool).await?
-    } else {
-        db::location::get_all(pool).await?
-    };
+    let mut locations = db::location::get_all(pool, include_deleted).await?;
 
     locations.sort_by_key(|l| l.name().to_string());
 

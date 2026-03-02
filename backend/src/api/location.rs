@@ -91,7 +91,7 @@ where
 pub async fn list_locations(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<LocationResponse>>, ApiError> {
-    let list = db::location::get_all(&state.pool)
+    let list = db::location::get_all(&state.pool, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     Ok(Json(list.iter().map(location_to_response).collect()))
@@ -596,9 +596,7 @@ mod tests {
             active.is_none(),
             "get_by_id must exclude soft-deleted location"
         );
-        let with_deleted = db::location::get_all_with_deleted(&state.pool)
-            .await
-            .expect("db");
+        let with_deleted = db::location::get_all(&state.pool, true).await.expect("db");
         let soft_deleted = with_deleted
             .iter()
             .find(|l| l.id() == uuid)
@@ -650,9 +648,7 @@ mod tests {
             .await
             .expect("db");
         assert!(active.is_none());
-        let with_deleted = db::location::get_all_with_deleted(&state.pool)
-            .await
-            .expect("db");
+        let with_deleted = db::location::get_all(&state.pool, true).await.expect("db");
         assert!(
             !with_deleted.iter().any(|l| l.id() == uuid),
             "hard delete must remove row from database"
