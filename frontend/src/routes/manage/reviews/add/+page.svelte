@@ -41,7 +41,7 @@
 				rating: r,
 				text: text.trim() || undefined
 			});
-			await goto(resolve('/manage/reviews'), { invalidateAll: true });
+			await goto(resolve(`/products/${productId}`), { invalidateAll: true });
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
