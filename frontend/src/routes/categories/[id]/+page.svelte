@@ -57,6 +57,16 @@
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if category}
 		<h1 class="pr-heading-page">{category.name}</h1>
+		<p class="mb-4">
+			<!-- eslint-disable svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
+			<a
+				href={`${resolve('/manage/products/new')}?category_id=${encodeURIComponent(category.id)}`}
+				class="pr-link-inline"
+			>
+				Add product
+			</a>
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
+		</p>
 		{#if childCategories.length > 0}
 			<ul class="mb-6 space-y-2">
 				{#each childCategories as child (child.id)}

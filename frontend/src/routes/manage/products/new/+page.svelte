@@ -11,12 +11,22 @@
 	let categories = $derived(data.categories);
 	let categoryOptions = $derived(flattenCategories(categories));
 	let loadError = $derived(data.error);
+	let initialCategoryId = $derived(data.categoryId ?? null);
 
 	let name = $state('');
 	let brand = $state('');
 	let categoryId = $state('');
 	let submitting = $state(false);
 	let error = $state<string | null>(null);
+
+	// Prefill category when opened with ?category_id= (e.g. from category edit page)
+	$effect(() => {
+		const id = initialCategoryId;
+		const options = categoryOptions;
+		if (id && options.some((o) => o.category.id === id)) {
+			categoryId = id;
+		}
+	});
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();

@@ -44,6 +44,32 @@ describe('Category page', () => {
 		expect(screen.getByText(/rating: 4\/5/i)).toBeInTheDocument();
 	});
 
+	it('shows Add product link with category_id to new product form', () => {
+		const category: Category = {
+			id: 'cat-123',
+			ancestors: [],
+			name: 'Snacks',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		render(CategoryPage, {
+			props: {
+				data: {
+					category,
+					items: [],
+					notFound: false,
+					error: null
+				}
+			}
+		});
+
+		const addProductLink = screen.getByRole('link', { name: /add product/i });
+		expect(addProductLink).toBeInTheDocument();
+		expect(addProductLink.getAttribute('href')).toContain('category_id=cat-123');
+		expect(addProductLink.getAttribute('href')).toContain('/manage/products/new');
+	});
+
 	it('shows breadcrumb with Home and category name', () => {
 		const category: Category = {
 			id: 'cat-1',

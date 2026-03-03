@@ -1,11 +1,16 @@
 import type { PageLoad } from './$types';
 import { listCategories } from '$lib/api';
 
-export const load: PageLoad = async () => {
+export const load: PageLoad = async ({ url }) => {
+	const categoryId = url.searchParams.get('category_id') ?? null;
 	try {
 		const categories = await listCategories();
-		return { categories, error: null };
+		return { categories, categoryId, error: null };
 	} catch (e) {
-		return { categories: [], error: e instanceof Error ? e.message : String(e) };
+		return {
+			categories: [],
+			categoryId,
+			error: e instanceof Error ? e.message : String(e)
+		};
 	}
 };

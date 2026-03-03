@@ -94,11 +94,16 @@ The home screen is **categories + products + search** (one page): categories and
 **Screens**
 
 - **Home:** **Categories** (filtered by search when user types) + **Products** (from API, filtered by `q` when searching) + prominent search bar. If unauthenticated → redirect to Login. No separate search page.
-- **Category products:** **Breadcrumb** (Home → … → current) and **child categories** of the current category listed first (each links to that category’s page). Below that, products in the current category with inline rating (and optional short review). Products and reviews merged client-side.
+- **Category products:** **Breadcrumb** (Home → … → current) and **child
+  categories** of the current category listed first (each links to that
+  category’s page). **Add product** link →
+  `/manage/products/new?category_id=<id>` (form opens with that category
+  prefilled). Below that, products in the current category with inline
+  rating (and optional short review). Products and reviews merged
+  client-side.
 - **Product detail:** Product with **category name**; full review(s); **purchase history** (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`.
 - **Login:** Email + password; store token; redirect to Home.
-- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form. After submitting an add-review
-  form, redirect to the product page.
+- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form. After submitting an add-review form, redirect to the product page.
 
 **Data flow (current API, no backend changes)**
 
@@ -107,7 +112,14 @@ The home screen is **categories + products + search** (one page): categories and
 - **Products on home:** `GET /api/v1/products` (no filter when no search) or `GET /api/v1/products?q=<string>` when user has entered a search query. Merge with all reviews in the frontend and compute per-product average ratings from all matching reviews.
 - **Product search:** `GET /api/v1/products?q=<string>` (name/brand). Used on home when `q` is present.
 - **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id` only for **highlighting** the user's own rating (e.g. badge or secondary indicator). The primary rating shown for each product remains the global average computed from all reviews.
-- **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/categories/:id` (category name), `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (resolve location_id to name for purchase history). Purchase history shows date, location (name), price.
+- **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/categories/:id`
+  (category name), `GET /api/v1/reviews?product_id=:id`, `GET
+  /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (resolve
+  location_id to name for purchase history). Purchase history shows date,
+  location (name), price.
+- **New product form:** Accepts optional `?category_id=<uuid>` in the URL
+  (e.g. from category page "Add product"); category select is prefilled when
+  the id is valid.
 
 Two-call pattern for list views (products + reviews) is sufficient; no new backend endpoint required. The frontend is responsible for computing per-product averages from all reviews it fetches (or using a future backend-provided aggregate field if added).
 
