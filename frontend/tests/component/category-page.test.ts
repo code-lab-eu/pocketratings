@@ -6,6 +6,12 @@ import type { PageData } from '../../src/routes/categories/[id]/$types';
 import type { Category, Product } from '../../src/lib/types';
 
 describe('Category page', () => {
+	const defaultData = {
+		query: '',
+		notFound: false,
+		error: null
+	};
+
 	it('shows category name and product list', () => {
 		const category: Category = {
 			id: 'cat-1',
@@ -31,8 +37,7 @@ describe('Category page', () => {
 				data: {
 					category,
 					items: [{ product: products[0], rating: 4, text: 'Good' }],
-					notFound: false,
-					error: null
+					...defaultData
 				}
 			}
 		});
@@ -55,12 +60,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: {
-					category,
-					items: [],
-					notFound: false,
-					error: null
-				}
+				data: { category, items: [], ...defaultData }
 			}
 		});
 
@@ -81,7 +81,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, items: [], notFound: false, error: null }
+				data: { category, items: [], ...defaultData }
 			}
 		});
 
@@ -97,6 +97,7 @@ describe('Category page', () => {
 				data: {
 					category: null,
 					items: [],
+					query: '',
 					notFound: true,
 					error: null
 				} as unknown as PageData
@@ -115,6 +116,7 @@ describe('Category page', () => {
 				data: {
 					category: null,
 					items: [],
+					query: '',
 					notFound: false,
 					error: 'Not found'
 				}
@@ -135,7 +137,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, items: [], notFound: false, error: null }
+				data: { category, items: [], ...defaultData }
 			}
 		});
 
@@ -164,7 +166,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, items: [], notFound: false, error: null }
+				data: { category, items: [], ...defaultData }
 			}
 		});
 
@@ -185,7 +187,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, items: [], notFound: false, error: null }
+				data: { category, items: [], ...defaultData }
 			}
 		});
 
@@ -214,7 +216,7 @@ describe('Category page', () => {
 		};
 		render(CategoryPage, {
 			props: {
-				data: { category, items: [], notFound: false, error: null }
+				data: { category, items: [], ...defaultData }
 			}
 		});
 
@@ -247,5 +249,44 @@ describe('Category page', () => {
 		const currentItem = navWithin.getByRole('listitem', { current: 'page' });
 		expect(currentItem).toBeInTheDocument();
 		expect(currentItem).toHaveTextContent('Goat cheese');
+	});
+
+	it('shows search form with action to current category', () => {
+		const category: Category = {
+			id: 'cat-search-1',
+			ancestors: [],
+			name: 'Beverages',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		render(CategoryPage, {
+			props: {
+				data: { category, items: [], ...defaultData }
+			}
+		});
+
+		const form = screen.getByRole('search').closest('form');
+		expect(form).toBeInTheDocument();
+		expect(form).toHaveAttribute('action', expect.stringContaining('/categories/cat-search-1'));
+	});
+
+	it('reflects query in search input value on category page', () => {
+		const category: Category = {
+			id: 'cat-1',
+			ancestors: [],
+			name: 'Food',
+			created_at: 0,
+			updated_at: 0,
+			deleted_at: null
+		};
+		render(CategoryPage, {
+			props: {
+				data: { category, items: [], ...defaultData, query: 'milk' }
+			}
+		});
+
+		const input = screen.getByRole('searchbox');
+		expect(input).toHaveValue('milk');
 	});
 });

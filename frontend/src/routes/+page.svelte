@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import CategoryLinkList from '$lib/CategoryLinkList.svelte';
 	import ProductList from '$lib/ProductList.svelte';
+	import SearchForm from '$lib/SearchForm.svelte';
 
 	let { data } = $props();
 	let categories = $derived(data.categories);
@@ -11,23 +12,7 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-	<form
-		action={resolve('/')}
-		method="get"
-		class="mb-6"
-		role="search"
-	>
-		<label for="search-q" class="sr-only">Search categories and products</label>
-		<input
-			id="search-q"
-			type="search"
-			name="q"
-			value={query}
-			placeholder="Search categories and products…"
-			class="pr-input"
-			autocomplete="off"
-		/>
-	</form>
+	<SearchForm actionUrl={resolve('/')} query={query} />
 
 	{#if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>

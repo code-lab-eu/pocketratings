@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Reusable search on home and category pages [FE]
+### 1. Reusable search on home and category pages [FE] — DONE
 
 **3 sp.** The search currently on the homepage is also shown on category pages,
 implemented as a single reusable component.

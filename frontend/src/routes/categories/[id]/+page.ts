@@ -8,15 +8,16 @@ export interface ProductWithReview {
 	text?: string | null;
 }
 
-export const load: PageLoad = async ({ params }) => {
+export const load: PageLoad = async ({ params, url }) => {
 	const id = params.id;
+	const q = url.searchParams.get('q') ?? '';
 	if (!id || !isValidUuid(id)) {
-		return { category: null, items: [], notFound: true, error: !id ? 'Missing category id' : null };
+		return { category: null, items: [], query: q, notFound: true, error: !id ? 'Missing category id' : null };
 	}
 	try {
 		const [category, products, reviews] = await Promise.all([
 			getCategory(id),
-			listProducts({ category_id: id }),
+			listProducts({ category_id: id, ...(q.trim() && { q }) }),
 			listReviews()
 		]);
 		// Latest review per product (if multiple)
@@ -35,12 +36,13 @@ export const load: PageLoad = async ({ params }) => {
 				text: review?.text ?? undefined
 			};
 		});
-		return { category, items, notFound: false, error: null };
+		return { category, items, query: q, notFound: false, error: null };
 	} catch (e) {
 		const notFound = e instanceof ApiClientError && e.status === 404;
 		return {
 			category: null,
 			items: [],
+			query: q,
 			notFound,
 			error: e instanceof Error ? e.message : String(e)
 		};

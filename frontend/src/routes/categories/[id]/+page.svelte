@@ -1,10 +1,19 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ProductList from '$lib/ProductList.svelte';
+	import SearchForm from '$lib/SearchForm.svelte';
 
 	let { data } = $props();
 	let category = $derived(data.category);
-	let childCategories = $derived(category?.children ?? []);
+	let query = $derived(data.query ?? '');
+	let allChildren = $derived(category?.children ?? []);
+	let childCategories = $derived(
+		query.trim() === ''
+			? allChildren
+			: allChildren.filter((child) =>
+					child.name.toLowerCase().includes(query.toLowerCase())
+				)
+	);
 	let items = $derived(data.items);
 	let error = $derived(data.error);
 	let notFound = $derived(data.notFound ?? false);
@@ -56,6 +65,11 @@
 	{:else if error}
 		<p class="text-red-600 dark:text-red-300">{error}</p>
 	{:else if category}
+		<SearchForm
+			actionUrl={resolve(`/categories/${category.id}`)}
+			query={query}
+			placeholder={'Search in category "' + category.name + '"'}
+		/>
 		<h1 class="pr-heading-page">{category.name}</h1>
 		<p class="mb-4">
 			<!-- eslint-disable svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
@@ -80,6 +94,8 @@
 					</li>
 				{/each}
 			</ul>
+		{:else if query.trim() !== ''}
+			<p class="pr-text-muted mb-6">No categories match.</p>
 		{/if}
 		{#if items.length === 0}
 			<p class="pr-text-muted">No products in this category.</p>
