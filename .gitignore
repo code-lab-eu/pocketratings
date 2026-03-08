@@ -1,4 +1,5 @@
 # Rust
+backend/lcov.info
 backend/target/
 backend/**/*.rs.bk
 

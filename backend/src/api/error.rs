@@ -81,3 +81,33 @@ impl IntoResponse for ApiError {
         (self.status(), Json(body)).into_response()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use http_body_util::BodyExt;
+
+    #[tokio::test]
+    async fn forbidden_into_response_returns_403_and_spec_body() {
+        let err = ApiError::Forbidden("not allowed".to_string());
+        let res = err.into_response();
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let (_, body) = res.into_parts();
+        let bytes = body.collect().await.expect("body collect").to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(json["error"], "forbidden");
+        assert_eq!(json["message"], "not allowed");
+    }
+
+    #[tokio::test]
+    async fn internal_into_response_returns_500_and_spec_body_no_message() {
+        let err = ApiError::Internal;
+        let res = err.into_response();
+        assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let (_, body) = res.into_parts();
+        let bytes = body.collect().await.expect("body collect").to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(json["error"], "internal_server_error");
+        assert!(json.get("message").is_none());
+    }
+}

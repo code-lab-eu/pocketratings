@@ -40,6 +40,14 @@ jobs:
         working-directory: backend
         run: cargo test --release
 
+      - name: Install cargo-llvm-cov
+        if: always()
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Coverage
+        if: always()
+        run: ./scripts/backend-coverage.sh
+
   frontend:
     name: Frontend (Svelte)
     runs-on: ubuntu-latest
