@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deleteReview } from '$lib/api';
+	import ManageListRow from '$lib/ManageListRow.svelte';
 	import PageHeading from '$lib/PageHeading.svelte';
 	import Button from '$lib/Button.svelte';
 	import type { Review } from '$lib/types';
@@ -50,30 +51,20 @@
 	{:else}
 		<ul class="space-y-2">
 			{#each reviews as review (review.id)}
-				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-					<div class="min-w-0 flex-1">
-						<a
-							href={resolve(`/products/${review.product.id}`)}
-							class="font-medium pr-text-body"
-						>
-							{review.product.name}
-						</a>
-						<span class="pr-text-muted"> — {review.rating}/5</span>
-						<span class="pr-text-muted"> · {review.user.name}</span>
-						{#if review.text}
-							<p class="mt-1 truncate text-sm pr-text-muted">{review.text}</p>
-						{/if}
-					</div>
-					<button
-						type="button"
-						onclick={() => handleDelete(review)}
-						disabled={deletingId === review.id}
-						class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 dark:text-red-300 dark:hover:text-red-200"
-						aria-label="Delete review"
-					>
-						{deletingId === review.id ? '…' : 'Delete'}
-					</button>
-				</li>
+				<ManageListRow
+					label={review.product.name}
+					viewHref={resolve('/products/[id]', { id: review.product.id })}
+					editHref={resolve('/manage/reviews/[id]', { id: review.id })}
+					deleteLabel="review"
+					onDelete={() => handleDelete(review)}
+					deleting={deletingId === review.id}
+				>
+					<span class="pr-text-muted"> — {review.rating}/5</span>
+					<span class="pr-text-muted"> · {review.user.name}</span>
+					{#if review.text}
+						<p class="mt-1 truncate text-sm pr-text-muted">{review.text}</p>
+					{/if}
+				</ManageListRow>
 			{/each}
 		</ul>
 	{/if}

@@ -29,11 +29,12 @@ describe('Manage products list', () => {
 		expect(screen.getByText(/no products yet/i)).toBeInTheDocument();
 	});
 
-	it('shows product list with edit link and delete button', () => {
+	it('shows product list with view link, edit icon and delete icon', () => {
 		render(ProductsPage, {
 			props: { data: { products: [product], error: null } }
 		});
-		expect(screen.getByRole('link', { name: /milk/i })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Milk — Brand' })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /edit milk — brand/i })).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: /delete milk/i })).toBeInTheDocument();
 	});
 });

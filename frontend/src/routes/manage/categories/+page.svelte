@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { deleteCategory } from '$lib/api';
 	import { flattenCategories } from '$lib/categories';
-	import CategoryLinkList from '$lib/CategoryLinkList.svelte';
+	import ManageListRow from '$lib/ManageListRow.svelte';
 	import EmptyState from '$lib/EmptyState.svelte';
 	import PageHeading from '$lib/PageHeading.svelte';
 	import Button from '$lib/Button.svelte';
@@ -55,21 +55,18 @@
 			action={{ label: 'Add your first category', href: '/manage/categories/new' }}
 		/>
 	{:else}
-		{#snippet deleteButton(category: Category)}
-			<button
-				type="button"
-				onclick={() => handleDelete(category)}
-				disabled={deletingId === category.id}
-				class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 dark:text-red-300 dark:hover:text-red-200"
-				aria-label="Delete {category.name}"
-			>
-				{deletingId === category.id ? '…' : 'Delete'}
-			</button>
-		{/snippet}
-		<CategoryLinkList
-			items={flat}
-			basePath="manage/categories"
-			action={deleteButton}
-		/>
+		<ul class="space-y-2">
+			{#each flat as { category, depth } (category.id)}
+				<ManageListRow
+					label={category.name}
+					viewHref={resolve('/categories/[id]', { id: category.id })}
+					editHref={resolve('/manage/categories/[id]', { id: category.id })}
+					deleteLabel={category.name}
+					onDelete={() => handleDelete(category)}
+					deleting={deletingId === category.id}
+					depth={depth}
+				/>
+			{/each}
+		</ul>
 	{/if}
 </main>

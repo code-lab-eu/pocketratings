@@ -25,11 +25,12 @@ describe('Manage locations list', () => {
 		expect(screen.getByText(/no locations yet/i)).toBeInTheDocument();
 	});
 
-	it('shows location list with edit link and delete button', () => {
+	it('shows location list with name, edit icon and delete icon', () => {
 		render(LocationsPage, {
 			props: { data: { locations: [location], error: null } }
 		});
-		expect(screen.getByRole('link', { name: 'Store A' })).toBeInTheDocument();
+		expect(screen.getByText('Store A')).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /edit store a/i })).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: /delete store a/i })).toBeInTheDocument();
 	});
 });

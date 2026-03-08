@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deleteLocation } from '$lib/api';
+	import ManageListRow from '$lib/ManageListRow.svelte';
 	import PageHeading from '$lib/PageHeading.svelte';
 	import Button from '$lib/Button.svelte';
 	import type { Location } from '$lib/types';
@@ -50,23 +51,13 @@
 	{:else}
 		<ul class="space-y-2">
 			{#each locations as location (location.id)}
-				<li class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-					<a
-						href={resolve(`/manage/locations/${location.id}`)}
-						class="flex-1 text-gray-900 hover:underline dark:text-gray-50"
-					>
-						{location.name}
-					</a>
-					<button
-						type="button"
-						onclick={() => handleDelete(location)}
-						disabled={deletingId === location.id}
-						class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 dark:text-red-300 dark:hover:text-red-200"
-						aria-label="Delete {location.name}"
-					>
-						{deletingId === location.id ? '…' : 'Delete'}
-					</button>
-				</li>
+				<ManageListRow
+					label={location.name}
+					editHref={resolve('/manage/locations/[id]', { id: location.id })}
+					deleteLabel={location.name}
+					onDelete={() => handleDelete(location)}
+					deleting={deletingId === location.id}
+				/>
 			{/each}
 		</ul>
 	{/if}

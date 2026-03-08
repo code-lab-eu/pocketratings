@@ -105,6 +105,13 @@ The home screen is **categories + products + search** (one page): categories and
 - **Product detail:** Product with **category name**; full review(s); **purchase history** (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`.
 - **Login:** Email + password; store token; redirect to Home.
 - **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form. After submitting an add-review form, redirect to the product page.
+- **Management list rows:** On each management list (categories, products,
+  locations, reviews, purchases), rows use a consistent pattern: the **entity
+  name** (or primary label) links to the **public view page** when it exists
+  (category → `/categories/:id`, product → `/products/:id`); otherwise the
+  name is plain text. **Edit** and **Delete** are separate **icon** actions
+  (pencil, trash) with accessible labels; Edit links to the manage edit page,
+  Delete triggers the existing delete flow.
 
 **Data flow (current API, no backend changes)**
 

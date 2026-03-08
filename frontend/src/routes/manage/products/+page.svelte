@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { deleteProduct } from '$lib/api';
+	import ManageListRow from '$lib/ManageListRow.svelte';
 	import PageHeading from '$lib/PageHeading.svelte';
 	import Button from '$lib/Button.svelte';
 	import type { Product } from '$lib/types';
@@ -10,6 +11,10 @@
 	let products = $derived(data.products);
 	let error = $derived(data.error);
 	let deletingId = $state<string | null>(null);
+
+	function productLabel(p: Product): string {
+		return p.brand ? `${p.name} — ${p.brand}` : p.name;
+	}
 
 	async function handleDelete(p: Product) {
 		if (deletingId) return;
@@ -50,26 +55,14 @@
 	{:else}
 		<ul class="space-y-2">
 			{#each products as product (product.id)}
-				<li class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-					<a
-						href={resolve(`/manage/products/${product.id}`)}
-						class="min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline dark:text-gray-50"
-					>
-						<span class="font-medium">{product.name}</span>
-						{#if product.brand}
-							<span class="pr-text-muted"> — {product.brand}</span>
-						{/if}
-					</a>
-					<button
-						type="button"
-						onclick={() => handleDelete(product)}
-						disabled={deletingId === product.id}
-						class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 dark:text-red-300 dark:hover:text-red-200"
-						aria-label="Delete {product.name}"
-					>
-						{deletingId === product.id ? '…' : 'Delete'}
-					</button>
-				</li>
+				<ManageListRow
+					label={productLabel(product)}
+					viewHref={resolve('/products/[id]', { id: product.id })}
+					editHref={resolve('/manage/products/[id]', { id: product.id })}
+					deleteLabel={product.name}
+					onDelete={() => handleDelete(product)}
+					deleting={deletingId === product.id}
+				/>
 			{/each}
 		</ul>
 	{/if}

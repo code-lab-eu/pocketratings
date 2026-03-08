@@ -40,7 +40,7 @@ describe('Manage purchases list', () => {
 		expect(screen.getByText(/no purchases yet/i)).toBeInTheDocument();
 	});
 
-	it('shows purchase list with delete button', () => {
+	it('shows purchase list with edit icon and delete icon', () => {
 		render(PurchasesPage, {
 			props: {
 				data: {
@@ -49,7 +49,8 @@ describe('Manage purchases list', () => {
 				}
 			}
 		});
-		expect(screen.getByText(/milk/i)).toBeInTheDocument();
+		expect(screen.getByText(/milk — b/i)).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /edit milk — b/i })).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: /delete purchase/i })).toBeInTheDocument();
 	});
 });

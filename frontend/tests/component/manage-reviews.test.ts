@@ -40,7 +40,7 @@ describe('Manage reviews list', () => {
 		expect(screen.getByText(/no reviews yet/i)).toBeInTheDocument();
 	});
 
-	it('shows review list with product link and delete button', () => {
+	it('shows review list with product link, edit icon and delete icon', () => {
 		render(ReviewsPage, {
 			props: {
 				data: {
@@ -49,7 +49,8 @@ describe('Manage reviews list', () => {
 				}
 			}
 		});
-		expect(screen.getByRole('link', { name: /milk/i })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Milk' })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Edit Milk' })).toBeInTheDocument();
 		expect(screen.getByText(/4\/5/)).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: /delete review/i })).toBeInTheDocument();
 	});
