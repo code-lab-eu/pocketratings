@@ -452,8 +452,8 @@ async fn fetch_all_products_with_relations_raw(
 }
 
 /// Filter products in memory by `category_ids` (when Some, product's category must be in the set),
-/// search term (substring on name and brand, case-insensitive), and `deleted_at` when
-/// `include_deleted` is false.
+/// search term (case-insensitive substring on name, brand, category name, and ancestor category
+/// names), and `deleted_at` when `include_deleted` is false.
 fn filter_products(
     list: &[ProductWithRelations],
     category_ids: Option<&[Uuid]>,
@@ -477,7 +477,12 @@ fn filter_products(
             if let Some(ref ql) = q_lower {
                 let name_ok = p.name.to_lowercase().contains(ql);
                 let brand_ok = p.brand.to_lowercase().contains(ql);
-                if !name_ok && !brand_ok {
+                let category_ok = p.category_name.to_lowercase().contains(ql);
+                let ancestors_ok = p
+                    .category_ancestors
+                    .iter()
+                    .any(|a| a.name.to_lowercase().contains(ql));
+                if !name_ok && !brand_ok && !category_ok && !ancestors_ok {
                     return false;
                 }
             }

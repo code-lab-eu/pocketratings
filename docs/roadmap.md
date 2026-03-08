@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Management list UX: edit/delete icons; entity name → view page [FE]
+### 1. Management list UX: edit/delete icons; entity name → view page [FE] - DONE
 
 **2 sp.** On management list pages (categories, products, locations, reviews,
 purchases), use separate **Edit** and **Delete** actions as **icons** (not
@@ -38,7 +38,7 @@ product/category).
   rows: entity name links to view page when it exists; separate Edit and
   Delete icon actions."
 
-### 2. Home page: search by category name [BE]
+### 2. Home page: search by category name [BE] - DONE
 
 **2 sp.** Search on the homepage includes products whose category (or ancestor)
 name matches the search term, not only product name/brand.

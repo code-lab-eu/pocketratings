@@ -912,6 +912,72 @@ async fn product_list_with_relations_filter_by_category_id_and_q_and_include_del
         .await
         .expect("list_with_relations");
     assert_eq!(include_deleted.len(), 3);
+
+    // Search by category name: q="Cat1" returns products in Cat1 (p2 is soft-deleted above, so only p1)
+    let by_cat_name = db::product::list_with_relations(&pool, None, Some("Cat1"), false)
+        .await
+        .expect("list_with_relations");
+    assert_eq!(by_cat_name.len(), 1);
+    assert_eq!(by_cat_name[0].name, "P1");
+}
+
+#[tokio::test]
+async fn product_list_with_relations_search_by_category_and_ancestor_name() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_list_search_cat.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let dairy_id = Uuid::new_v4();
+    let milk_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let dairy = pocketratings::domain::category::Category::new(
+        dairy_id,
+        None,
+        "Dairy".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    let milk = pocketratings::domain::category::Category::new(
+        milk_id,
+        Some(dairy_id),
+        "Milk".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &dairy).await.expect("insert");
+    db::category::insert(&pool, &milk).await.expect("insert");
+
+    let product = Product::new(
+        Uuid::new_v4(),
+        milk_id,
+        "FarmCo".to_string(),
+        "Organic Whole Milk".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &product).await.expect("insert");
+
+    // Search by ancestor category name: product name does not contain "Dairy"
+    let by_ancestor = db::product::list_with_relations(&pool, None, Some("Dairy"), false)
+        .await
+        .expect("list_with_relations");
+    assert_eq!(by_ancestor.len(), 1);
+    assert_eq!(by_ancestor[0].id, product.id());
+
+    // Search by direct category name
+    let by_direct = db::product::list_with_relations(&pool, None, Some("Milk"), false)
+        .await
+        .expect("list_with_relations");
+    assert_eq!(by_direct.len(), 1);
+    assert_eq!(by_direct[0].id, product.id());
 }
 
 // --- Product list cache tests (run serially) ---

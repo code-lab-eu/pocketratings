@@ -748,6 +748,50 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_products_with_q_search_by_category_name() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Beverages").await;
+        let app = route().with_state(state);
+        let body = serde_json::json!({
+            "category_id": cat_id.to_string(),
+            "brand": "Generic",
+            "name": "Water"
+        });
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/products?q=Beverages")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0].get("name").and_then(|v| v.as_str()), Some("Water"));
+    }
+
+    #[tokio::test]
     async fn update_product_persists_new_values() {
         let (state, _dir) = test_pool().await;
         let cat_id = insert_category(&state.pool, "Cat").await;

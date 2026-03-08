@@ -348,7 +348,8 @@ List products.
 - `category_id` (optional, UUID): Filter by category. When set, the response includes
   products whose category is that category or any descendant (subtree), up to a fixed
   depth limit (e.g. 5 levels). No extra query parameters; subtree semantics are built in.
-- `q` (optional, string): Search by name or brand
+- `q` (optional, string): Search by product name, brand, or category name
+  (including ancestor categories).
 
 **Response:** `200 OK`
 ```json
