@@ -265,10 +265,7 @@ pub async fn get_all_by_category_id(
     {
         let filtered: Vec<Product> = list
             .iter()
-            .filter(|p| {
-                p.category_id() == category_id
-                    && (include_deleted || p.is_active())
-            })
+            .filter(|p| p.category_id() == category_id && (include_deleted || p.is_active()))
             .cloned()
             .collect();
         return Ok(filtered);
