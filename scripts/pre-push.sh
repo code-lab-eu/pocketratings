@@ -24,6 +24,8 @@ echo "=== Backend: clippy (pedantic, all targets) ==="
 (cd backend && cargo clippy --all-targets -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings)
 echo "=== Backend: test ==="
 (cd backend && cargo test)
+echo "=== Backend: coverage ==="
+./scripts/backend-coverage.sh
 
 # --- Frontend ---
 echo "=== Frontend: lint ==="
