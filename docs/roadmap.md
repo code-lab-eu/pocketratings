@@ -9,35 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Reusable search on home and category pages [FE] — DONE
-
-**3 sp.** The search currently on the homepage is also shown on category pages,
-implemented as a single reusable component.
-
-**Tasks:**
-- Extract the search form/UI from the home page into a reusable component
-  (e.g. in `$lib`), with props for current `q` and form action/base URL (or use
-  client-side navigation + URL so it works on both `/` and `/categories/:id`).
-- Use this component on the home page and on the category page
-  (`/categories/[id]`), so search on category page filters categories/products
-  in the same way (or scoped to that category if we keep current API
-  behaviour; spec can clarify). Document in [spec.md](spec.md) that search
-  appears on both home and category pages.
-
-### 2. Locations: single list function with `include_deleted` option [BE] — DONE
-
-**2 sp.** Replace `get_all()` and `get_all_with_deleted()` in the location DB
-layer with one function, e.g. `get_all(pool, include_deleted: bool)`, to reduce
-duplication and keep caching logic in one place (same pattern as categories).
-
-**Tasks:**
-- Add `include_deleted: bool` parameter to the location list function; merge
-  the two implementations.
-- Update all call sites (API and tests).
-- Single cache (full list including deleted); filter when
-  `include_deleted == false`.
-
-### 3. Products: single list function with `include_deleted` option [BE]
+### 1. Products: single list function with `include_deleted` option [BE]
 
 **2 sp.** Same refactor for the product DB layer: one list function (e.g.
 `get_all` or `get_all_filtered`) with `include_deleted: bool`; update call
@@ -50,7 +22,7 @@ sites; cache strategy as for categories/locations.
 - Single cache (full list including deleted); filter when
   `include_deleted == false`.
 
-### 4. CLI timestamp management [BE]
+### 2. CLI timestamp management [BE]
 
 **2 sp.** `updated_at` and `deleted_at` set automatically in the database
 layer (like the REST API), not manually in each CLI command.
@@ -60,21 +32,7 @@ layer (like the REST API), not manually in each CLI command.
 - Remove manual timestamp setting from CLI commands (category, location,
   product, review, purchase update/delete). Verify `created_at` on create.
 
-### 5. Add cargo-llvm-cov to QA [BE]
-
-**2 sp.** Run code coverage (cargo-llvm-cov) as part of backend quality
-assurance so new or changed code is measured and, optionally, coverage
-thresholds can be enforced.
-
-**Tasks:**
-- Install and run cargo-llvm-cov for the backend (e.g. in CI and/or in the
-  backend QC skill). Generate reports (e.g. `--lcov`, `--html`).
-- Optionally: add `--fail-under-lines` (or similar) to fail the build when
-  overall line coverage drops below a threshold.
-- Document in the backend QC skill and any CI workflow how to run coverage
-  and interpret results.
-
-### 6. Management list UX: edit/delete icons; entity name → view page [FE]
+### 3. Management list UX: edit/delete icons; entity name → view page [FE]
 
 **2 sp.** On management list pages (categories, products, locations, reviews,
 purchases), use separate **Edit** and **Delete** actions as **icons** (not
@@ -103,7 +61,7 @@ product/category).
   rows: entity name links to view page when it exists; separate Edit and
   Delete icon actions."
 
-### 7. Home page: search by category name [BE]
+### 4. Home page: search by category name [BE]
 
 **2 sp.** Search on the homepage includes products whose category (or ancestor)
 name matches the search term, not only product name/brand.
@@ -113,7 +71,7 @@ name matches the search term, not only product name/brand.
   a category whose name matches `q`. Frontend may need no change if backend
   handles it.
 
-### 8. Home page: live-updating search [FE]
+### 5. Home page: live-updating search [FE]
 
 **2 sp.** Search results update as the user types (e.g. URL + debounced
 refetch), without requiring form submit.
@@ -123,7 +81,7 @@ refetch), without requiring form submit.
   types; optional debounce (e.g. 300 ms). Client-side navigation, no full
   reload.
 
-### 9. Category cache: O(1) id-based lookup [BE]
+### 6. Category cache: O(1) id-based lookup [BE]
 
 **2 sp.** Add id→category lookup to the category list cache so GET
 `/api/v1/categories/:id` can be served from cache when warm (no DB
@@ -139,7 +97,7 @@ round-trip for the category row).
 - Document in [api.md](api.md) if response behaviour changes; update
   backend cache docs/tests.
 
-### 10. API layer: enforce no database code [BE]
+### 7. API layer: enforce no database code [BE]
 
 **2 sp.** Ensure the API module stays free of database logic. No
 `sqlx::SqlitePool` or direct DB calls in `backend/src/api/`.
@@ -153,7 +111,7 @@ round-trip for the category row).
 - Resolve any existing violations by moving DB logic to the DB or service
   layer so the API only calls into that layer and maps responses.
 
-### 11. Identify reusable frontend components [FE]
+### 8. Identify reusable frontend components [FE]
 
 **3 sp.** Systematically find duplicated UI patterns in the frontend that can
 be extracted into reusable components (e.g. in `$lib`), to reduce duplication
@@ -167,7 +125,7 @@ and keep behaviour and styling consistent.
 - Prioritise and implement extractions (or add to this roadmap as separate
   items). Prefer small, focused components over large ones.
 
-### 12. Category list: immediate children only with inline expand [FE+BE]
+### 9. Category list: immediate children only with inline expand [FE+BE]
 
 **3 sp.** On the homepage and on category pages, the category list shows only
 **immediate children** (one level), not the full tree. Each category in the
@@ -189,7 +147,7 @@ extra requests. Uses existing `depth=1` and `parent_id` from categories API.
   category list behaviour is "immediate children only; expand to show children
   inline when present."
 
-### 13. Category page: products from current category and all child categories [FE+BE]
+### 10. Category page: products from current category and all child categories [FE+BE]
 
 **3 sp.** On the category page, show all products that belong to the current
 category **and** to any descendant category (full subtree). Use a depth limit
@@ -206,7 +164,7 @@ category **and** to any descendant category (full subtree). Use a depth limit
   "current + all descendant categories" (with depth limit); spec already
   aligned.
 
-### 14. Product variations [FE+BE]
+### 11. Product variations [FE+BE]
 
 **5 sp.** Products can be sold in different variations (e.g. mayonnaise in
 different jar sizes). Purchases track prices, so we need to differentiate
