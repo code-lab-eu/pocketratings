@@ -131,7 +131,9 @@ ln -sf ../../scripts/pre-push.sh .git/hooks/pre-push
 
 Backend coverage requires `cargo-llvm-cov`; install with
 `cargo install cargo-llvm-cov`. To run only backend coverage:
-`./scripts/backend-coverage.sh`.
+`./scripts/backend-coverage.sh`. To list files by uncovered lines (for
+adding tests): run coverage first, then
+`python3 scripts/backend-coverage-report.py backend/lcov.info`.
 
 ## Running with Docker / Podman
 
