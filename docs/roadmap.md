@@ -48,7 +48,7 @@ name matches the search term, not only product name/brand.
   a category whose name matches `q`. Frontend may need no change if backend
   handles it.
 
-### 3. Home page: live-updating search [FE]
+### 3. Home page: live-updating search [FE] - DONE
 
 **2 sp.** Search results update as the user types (e.g. URL + debounced
 refetch), without requiring form submit.

@@ -8,7 +8,8 @@ const defaultData: PageData = {
 	categories: [],
 	items: [],
 	query: '',
-	error: null
+	error: null,
+	fullCategories: []
 };
 
 describe('Home page', () => {

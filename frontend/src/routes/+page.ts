@@ -24,6 +24,7 @@ export const load: PageLoad = async ({ url }) => {
 				: flat.filter(({ category }) =>
 						category.name.toLowerCase().includes(q.toLowerCase())
 					);
+		const fullCategories = flat;
 		// Latest review per product
 		const reviewByProductId = new Map<string, Review>();
 		for (const r of reviews) {
@@ -40,13 +41,14 @@ export const load: PageLoad = async ({ url }) => {
 				text: review?.text ?? undefined
 			};
 		});
-		return { categories, items, query: q, error: null };
+		return { categories, items, query: q, error: null, fullCategories };
 	} catch (e) {
 		return {
 			categories: [],
 			items: [],
 			query: q,
-			error: e instanceof Error ? e.message : String(e)
+			error: e instanceof Error ? e.message : String(e),
+			fullCategories: []
 		};
 	}
 };
