@@ -221,7 +221,6 @@ pub async fn update(
     let new_text = text
         .map(str::to_owned)
         .or_else(|| existing.text().map(str::to_owned));
-    let now = Utc::now().timestamp();
 
     let updated = Review::new(
         existing.id(),
@@ -230,7 +229,7 @@ pub async fn update(
         new_rating,
         new_text,
         existing.created_at(),
-        now,
+        existing.updated_at(),
         existing.deleted_at(),
     )
     .map_err(|e| map_validation_error(&e))?;

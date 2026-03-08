@@ -574,6 +574,7 @@ pub async fn get_by_id_with_relations(
 ///
 /// Returns [`crate::db::DbError`] on query failure (e.g. foreign key violation).
 pub async fn insert(pool: &SqlitePool, product: &Product) -> Result<(), crate::db::DbError> {
+    let now = chrono::Utc::now().timestamp();
     sqlx::query(
         "INSERT INTO products (id, category_id, brand, name, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
@@ -581,8 +582,8 @@ pub async fn insert(pool: &SqlitePool, product: &Product) -> Result<(), crate::d
     .bind(product.category_id().to_string())
     .bind(product.brand())
     .bind(product.name())
-    .bind(product.created_at())
-    .bind(product.updated_at())
+    .bind(now)
+    .bind(now)
     .bind(product.deleted_at())
     .execute(pool)
     .await?;
@@ -590,20 +591,20 @@ pub async fn insert(pool: &SqlitePool, product: &Product) -> Result<(), crate::d
     Ok(())
 }
 
-/// Update an existing product.
+/// Update an existing product. Sets `updated_at` to current time; does not change `created_at`.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query failure.
 pub async fn update(pool: &SqlitePool, product: &Product) -> Result<(), crate::db::DbError> {
+    let now = chrono::Utc::now().timestamp();
     sqlx::query(
-        "UPDATE products SET category_id = ?, brand = ?, name = ?, created_at = ?, updated_at = ?, deleted_at = ? WHERE id = ?",
+        "UPDATE products SET category_id = ?, brand = ?, name = ?, updated_at = ?, deleted_at = ? WHERE id = ?",
     )
     .bind(product.category_id().to_string())
     .bind(product.brand())
     .bind(product.name())
-    .bind(product.created_at())
-    .bind(product.updated_at())
+    .bind(now)
     .bind(product.deleted_at())
     .bind(product.id().to_string())
     .execute(pool)

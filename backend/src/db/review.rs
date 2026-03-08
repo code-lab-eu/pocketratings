@@ -383,6 +383,7 @@ pub async fn get_by_id_with_relations(
 ///
 /// Returns [`crate::db::DbError`] on query failure.
 pub async fn insert(pool: &SqlitePool, review: &Review) -> Result<(), crate::db::DbError> {
+    let now = chrono::Utc::now().timestamp();
     sqlx::query(
         "INSERT INTO reviews (id, product_id, user_id, rating, text, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
@@ -391,8 +392,8 @@ pub async fn insert(pool: &SqlitePool, review: &Review) -> Result<(), crate::db:
     .bind(review.user_id().to_string())
     .bind(review.rating().to_string())
     .bind(review.text())
-    .bind(review.created_at())
-    .bind(review.updated_at())
+    .bind(now)
+    .bind(now)
     .bind(review.deleted_at())
     .execute(pool)
     .await?;
@@ -400,18 +401,19 @@ pub async fn insert(pool: &SqlitePool, review: &Review) -> Result<(), crate::db:
     Ok(())
 }
 
-/// Update an existing review (rating, text, `updated_at`).
+/// Update an existing review (rating, text). Sets `updated_at` to current time.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query failure.
 pub async fn update(pool: &SqlitePool, review: &Review) -> Result<(), crate::db::DbError> {
+    let now = chrono::Utc::now().timestamp();
     sqlx::query(
         "UPDATE reviews SET rating = ?, text = ?, updated_at = ?, deleted_at = ? WHERE id = ?",
     )
     .bind(review.rating().to_string())
     .bind(review.text())
-    .bind(review.updated_at())
+    .bind(now)
     .bind(review.deleted_at())
     .bind(review.id().to_string())
     .execute(pool)
@@ -420,7 +422,7 @@ pub async fn update(pool: &SqlitePool, review: &Review) -> Result<(), crate::db:
     Ok(())
 }
 
-/// Soft-delete a review by id. Sets `deleted_at` to the current time.
+/// Soft-delete a review by id. Sets `deleted_at` and `updated_at` to the current time.
 ///
 /// # Errors
 ///
@@ -429,12 +431,14 @@ pub async fn update(pool: &SqlitePool, review: &Review) -> Result<(), crate::db:
 pub async fn soft_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::DbError> {
     let id_str = id.to_string();
     let now = chrono::Utc::now().timestamp();
-    let result =
-        sqlx::query("UPDATE reviews SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL")
-            .bind(now)
-            .bind(&id_str)
-            .execute(pool)
-            .await?;
+    let result = sqlx::query(
+        "UPDATE reviews SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(now)
+    .bind(now)
+    .bind(&id_str)
+    .execute(pool)
+    .await?;
 
     if result.rows_affected() == 0 {
         return Err(crate::db::DbError::InvalidData(format!(

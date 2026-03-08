@@ -241,7 +241,7 @@ pub async fn update_review(
         rating,
         text,
         existing.created_at(),
-        chrono::Utc::now().timestamp(),
+        existing.updated_at(),
         existing.deleted_at(),
     )
     .map_err(|e: ValidationError| {

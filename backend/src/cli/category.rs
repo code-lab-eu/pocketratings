@@ -186,14 +186,13 @@ pub async fn update(
         ),
         None => existing.parent_id(),
     };
-    let now = Utc::now().timestamp();
 
     let updated = Category::new(
         existing.id(),
         new_parent_id,
         new_name,
         existing.created_at(),
-        now,
+        existing.updated_at(),
         existing.deleted_at(),
     )
     .map_err(|e| map_validation_error(&e))?;

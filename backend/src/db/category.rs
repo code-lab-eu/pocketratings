@@ -521,14 +521,15 @@ fn filter_ids_by_active_if_needed(
 ///
 /// Returns [`crate::db::DbError`] on query failure (e.g. duplicate name under parent).
 pub async fn insert(pool: &SqlitePool, category: &Category) -> Result<(), crate::db::DbError> {
+    let now = chrono::Utc::now().timestamp();
     sqlx::query(
         "INSERT INTO categories (id, parent_id, name, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?)",
     )
     .bind(category.id().to_string())
     .bind(category.parent_id().map(|id| id.to_string()))
     .bind(category.name())
-    .bind(category.created_at())
-    .bind(category.updated_at())
+    .bind(now)
+    .bind(now)
     .bind(category.deleted_at())
     .execute(pool)
     .await?;
@@ -536,19 +537,20 @@ pub async fn insert(pool: &SqlitePool, category: &Category) -> Result<(), crate:
     Ok(())
 }
 
-/// Update an existing category's parent, name, and timestamps.
+/// Update an existing category's parent, name, `updated_at`, and `deleted_at`.
+/// Does not change `created_at`.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query failure (e.g. duplicate name under parent).
 pub async fn update(pool: &SqlitePool, category: &Category) -> Result<(), crate::db::DbError> {
+    let now = chrono::Utc::now().timestamp();
     sqlx::query(
-        "UPDATE categories SET parent_id = ?, name = ?, created_at = ?, updated_at = ?, deleted_at = ? WHERE id = ?",
+        "UPDATE categories SET parent_id = ?, name = ?, updated_at = ?, deleted_at = ? WHERE id = ?",
     )
     .bind(category.parent_id().map(|id| id.to_string()))
     .bind(category.name())
-    .bind(category.created_at())
-    .bind(category.updated_at())
+    .bind(now)
     .bind(category.deleted_at())
     .bind(category.id().to_string())
     .execute(pool)

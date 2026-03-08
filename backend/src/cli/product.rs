@@ -228,7 +228,6 @@ pub async fn update(
             .map_err(|_| CliError::Validation(format!("invalid category_id: {s}")))?,
         None => existing.category_id(),
     };
-    let now = Utc::now().timestamp();
 
     let updated = Product::new(
         existing.id(),
@@ -236,7 +235,7 @@ pub async fn update(
         new_brand,
         new_name,
         existing.created_at(),
-        now,
+        existing.updated_at(),
         existing.deleted_at(),
     )
     .map_err(|e| map_validation_error(&e))?;

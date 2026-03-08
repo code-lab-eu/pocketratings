@@ -262,7 +262,7 @@ pub async fn update_product(
         brand,
         name,
         existing.created_at(),
-        chrono::Utc::now().timestamp(),
+        existing.updated_at(),
         existing.deleted_at(),
     )
     .map_err(|e| ApiError::BadRequest(e.to_string()))?;

@@ -22,7 +22,7 @@ sites; cache strategy as for categories/locations.
 - Single cache (full list including deleted); filter when
   `include_deleted == false`.
 
-### 2. CLI timestamp management [BE]
+### 2. CLI timestamp management [BE] — DONE
 
 **2 sp.** `updated_at` and `deleted_at` set automatically in the database
 layer (like the REST API), not manually in each CLI command.

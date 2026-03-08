@@ -296,7 +296,7 @@ pub async fn update_category(
         parent_id,
         name,
         existing.created_at(),
-        chrono::Utc::now().timestamp(),
+        existing.updated_at(),
         existing.deleted_at(),
     )
     .map_err(|e| ApiError::BadRequest(e.to_string()))?;
