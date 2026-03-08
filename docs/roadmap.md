@@ -175,6 +175,25 @@ variations.
 - Associate purchases with a product variation (API, DB, frontend).
 - Document in [spec.md](spec.md) and [api.md](api.md).
 
+### 11. ProductList: review score and price from products API [FE+BE]
+
+**3 sp.** When showing products in `ProductList`, include a review score and a
+price. Both values are returned in the product data for `GET
+/api/v1/products`, so the frontend does not need a separate call to
+`/api/v1/reviews`. Review score is the **median** review score; price is the
+**lowest** price. Both are computed on the backend when populating the
+products cache.
+
+**Tasks:**
+- Backend: When building the products cache, compute per product (1) median
+  review score from reviews, (2) lowest price from purchases (or relevant
+  price source). Add `review_score` (or equivalent) and `price` (or
+  `lowest_price`) to the product payload for `GET /api/v1/products`. Document
+  in [api.md](api.md).
+- Frontend: Update `ProductList` to display review score and price from the
+  product data; remove any separate fetch to `/api/v1/reviews` for list
+  display. Update [spec.md](spec.md) if list behaviour is specified there.
+
 ---
 
 ## Distant future
