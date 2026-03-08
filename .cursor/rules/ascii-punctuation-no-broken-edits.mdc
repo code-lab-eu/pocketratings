@@ -1,0 +1,20 @@
+---
+description: Use ASCII punctuation and avoid leaving broken or half-replaced text when editing
+alwaysApply: true
+---
+
+# ASCII punctuation and complete edits
+
+## Punctuation
+
+- **Use ASCII only** when writing or rewriting content: straight double quote `"`, straight single quote `'`, hyphen-minus `-`. Do not use curly/smart quotes (`"` `"`) or en/em dashes (`–` `—`) in code, config, or documentation.
+- This keeps search_replace reliable and avoids mismatches when the file already contains Unicode punctuation.
+
+## Edits
+
+- **Do not leave broken or half-updated text.** If a search_replace would change only part of a sentence or leave redundant/duplicate phrasing (e.g. "for \"very responsive\" **debounceMs**"), fix the whole span in one go or use Read + Write for the affected section.
+- When a replace fails repeatedly (e.g. due to Unicode), do not retry with hex dumps or scripts. Prefer: (1) replace a smaller ASCII-only substring, or (2) Read the file and Write the corrected version with ASCII punctuation throughout.
+
+## For markdown and plan files
+
+See [edit-markdown-plans](edit-markdown-plans.mdc) for targeted strategy (replace boundaries, minimal replace, when to Read+Write).
