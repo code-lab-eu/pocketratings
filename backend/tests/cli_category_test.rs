@@ -316,3 +316,196 @@ async fn category_delete_fails_when_category_has_children() {
         "delete should fail when category has child categories"
     );
 }
+
+#[tokio::test]
+async fn category_create_without_json_outputs_human_readable() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_create_human.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (result, stdout, stderr) =
+        run_category(&pool, &["category", "create", "--name", "Groceries"]).await;
+    assert!(result.is_ok(), "stderr: {stderr}");
+    assert!(
+        stdout.contains("Category created:") && stdout.contains("Groceries"),
+        "stdout: {stdout}"
+    );
+}
+
+#[tokio::test]
+async fn category_create_fails_with_empty_name() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_create_empty_name.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (result, _stdout, _stderr) =
+        run_category(&pool, &["category", "create", "--name", ""]).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn category_create_fails_with_invalid_parent_id() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_create_bad_parent.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (result, _stdout, _stderr) = run_category(
+        &pool,
+        &[
+            "category",
+            "create",
+            "--name",
+            "Child",
+            "--parent-id",
+            "not-a-uuid",
+        ],
+    )
+    .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn category_list_human_readable_and_include_deleted() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_list_human.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (create_res, create_stdout, _) = run_category(
+        &pool,
+        &["category", "create", "--name", "Root", "--output", "json"],
+    )
+    .await;
+    assert!(create_res.is_ok());
+    let root_id: String = create_stdout
+        .lines()
+        .next()
+        .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .and_then(|j| j.get("id").and_then(|v| v.as_str()).map(String::from))
+        .expect("root id");
+
+    let (list_res, list_stdout, list_stderr) = run_category(&pool, &["category", "list"]).await;
+    assert!(list_res.is_ok(), "stderr: {list_stderr}");
+    assert!(
+        list_stdout.contains("Root") && list_stdout.contains(&root_id),
+        "stdout: {list_stdout}"
+    );
+
+    let (del_res, _, _) = run_category(&pool, &["category", "delete", &root_id]).await;
+    assert!(del_res.is_ok());
+    let (list_after_res, list_after_stdout, list_after_stderr) =
+        run_category(&pool, &["category", "list", "--include-deleted"]).await;
+    assert!(list_after_res.is_ok(), "stderr: {list_after_stderr}");
+    assert!(
+        list_after_stdout.contains("Root"),
+        "include-deleted should show deleted: {list_after_stdout}"
+    );
+}
+
+#[tokio::test]
+async fn category_show_human_readable_and_not_found() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_show_human.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (create_res, create_stdout, _) = run_category(
+        &pool,
+        &["category", "create", "--name", "ShowMe", "--output", "json"],
+    )
+    .await;
+    assert!(create_res.is_ok());
+    let id = create_stdout
+        .lines()
+        .next()
+        .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .and_then(|j| j.get("id").and_then(|v| v.as_str()).map(String::from))
+        .expect("id");
+
+    let (show_res, show_stdout, show_stderr) =
+        run_category(&pool, &["category", "show", &id]).await;
+    assert!(show_res.is_ok(), "stderr: {show_stderr}");
+    assert!(
+        show_stdout.contains("Category ") && show_stdout.contains("ShowMe"),
+        "stdout: {show_stdout}"
+    );
+
+    let (show_bad_res, _stdout, _stderr) =
+        run_category(&pool, &["category", "show", "not-a-uuid"]).await;
+    assert!(show_bad_res.is_err());
+
+    let nonexistent_id = uuid::Uuid::new_v4().to_string();
+    let (show_missing_res, _stdout, _stderr) =
+        run_category(&pool, &["category", "show", &nonexistent_id]).await;
+    assert!(show_missing_res.is_err());
+}
+
+#[tokio::test]
+async fn category_update_changes_name_and_outputs_human_readable() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_update.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (create_res, create_stdout, _) = run_category(
+        &pool,
+        &[
+            "category", "create", "--name", "Original", "--output", "json",
+        ],
+    )
+    .await;
+    assert!(create_res.is_ok());
+    let id: String = create_stdout
+        .lines()
+        .next()
+        .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .and_then(|j| j.get("id").and_then(|v| v.as_str()).map(String::from))
+        .expect("id");
+
+    let (update_res, update_stdout, update_stderr) =
+        run_category(&pool, &["category", "update", &id, "--name", "Updated"]).await;
+    assert!(update_res.is_ok(), "stderr: {update_stderr}");
+    assert!(
+        update_stdout.contains("Category updated:") && update_stdout.contains("Updated"),
+        "stdout: {update_stdout}"
+    );
+
+    let (show_res, show_stdout, _) =
+        run_category(&pool, &["category", "show", &id, "--output", "json"]).await;
+    assert!(show_res.is_ok());
+    let show_json: serde_json::Value =
+        serde_json::from_str(show_stdout.lines().next().expect("line")).expect("json");
+    assert_eq!(
+        show_json.get("name").and_then(|v| v.as_str()),
+        Some("Updated")
+    );
+}
+
+#[tokio::test]
+async fn category_delete_invalid_id_fails() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_category_delete_invalid.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let (result, _stdout, _stderr) =
+        run_category(&pool, &["category", "delete", "not-a-uuid"]).await;
+    assert!(result.is_err());
+}

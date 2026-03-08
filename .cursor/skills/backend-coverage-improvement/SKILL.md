@@ -37,16 +37,25 @@ Or omit the path to use the default `backend/lcov.info`:
 python3 scripts/backend-coverage-report.py
 ```
 
-The script prints a table: **path** (under `backend/src`), **line_cov%**,
-**uncovered** (count of lines not covered), **lines** (total). Files are
-**sorted by uncovered count descending** so the highest-impact targets
-appear first.
+The script prints two sections:
+
+1. **High-value targets (api/, auth/, db/, domain/)** — API layer,
+   authentication, database layer, and domain logic. These are critical for
+   application behavior, security, and correctness. Sorted by uncovered
+   count descending.
+2. **Other (cli/, main, config/, etc.)** — CLI wiring, entry points, config.
+   Often harder to test and less critical; deprioritize these.
+
+Each table has **path**, **line_cov%**, **uncovered**, **lines**.
 
 ### 3. Choose targets and add coverage
 
-Pick one or more files from the top of the list (or all files below the
-project’s line-coverage threshold; see `scripts/backend-coverage.sh` for
-the current threshold). For each target:
+**Prefer the high-value section.** Choose one or more files from the **top
+of the high-value targets** list (api/, auth/, db/, domain/). These are the
+most critical for the application. Only if that section is empty or you need
+more coverage should you consider the "Other" list; avoid prioritizing
+cli/, main.rs, and config/. Do not pick files far down the list. For each
+target:
 
 - Add or extend **unit tests** (in the same crate, `#[cfg(test)]` or
   `tests/` as appropriate) and/or **API/integration tests** (in

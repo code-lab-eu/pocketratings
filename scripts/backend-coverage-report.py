@@ -80,17 +80,28 @@ def main() -> None:
     # Sort by uncovered count descending (highest impact first)
     rows.sort(key=lambda r: (-r[2], r[0]))
 
-    # Table header
-    col_path = "path"
-    col_pct = "line_cov%"
-    col_uncovered = "uncovered"
-    col_total = "lines"
-    w_path = max(len(col_path), max(len(r[0]) for r in rows))
-    print(f"{col_path:<{w_path}}  {col_pct:>8}  {col_uncovered:>9}  {col_total:>5}")
-    print("-" * (w_path + 2 + 8 + 2 + 9 + 2 + 5))
+    # High-value paths: api/, auth/, db/, domain/ — critical for application behavior
+    high_value_prefixes = ("api/", "auth/", "db/", "domain/")
+    high_value = [r for r in rows if r[0].startswith(high_value_prefixes)]
+    other = [r for r in rows if not r[0].startswith(high_value_prefixes)]
 
-    for short, pct, uncovered, lf in rows:
-        print(f"{short:<{w_path}}  {pct:>7}%  {uncovered:>9}  {lf:>5}")
+    def print_table(rows_block: list[tuple[str, int, int, int]], title: str) -> None:
+        if not rows_block:
+            return
+        col_path = "path"
+        col_pct = "line_cov%"
+        col_uncovered = "uncovered"
+        col_total = "lines"
+        w_path = max(len(col_path), max(len(r[0]) for r in rows_block))
+        print(title)
+        print(f"{col_path:<{w_path}}  {col_pct:>8}  {col_uncovered:>9}  {col_total:>5}")
+        print("-" * (w_path + 2 + 8 + 2 + 9 + 2 + 5))
+        for short, pct, uncovered, lf in rows_block:
+            print(f"{short:<{w_path}}  {pct:>7}%  {uncovered:>9}  {lf:>5}")
+        print()
+
+    print_table(high_value, "High-value targets (api/, auth/, db/, domain/) — by uncovered count:")
+    print_table(other, "Other (cli/, main, config/, etc.) — by uncovered count:")
 
 
 if __name__ == "__main__":

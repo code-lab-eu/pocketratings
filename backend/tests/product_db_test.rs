@@ -615,6 +615,153 @@ async fn product_hard_delete_fails_when_product_has_purchases() {
     );
 }
 
+#[tokio::test]
+async fn product_get_all_by_category_ids_empty_returns_empty() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_by_category_ids_empty.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let empty = db::product::get_all_by_category_ids(&pool, &[], false)
+        .await
+        .expect("get_all_by_category_ids");
+    assert!(empty.is_empty());
+}
+
+#[tokio::test]
+async fn product_get_all_by_category_ids_include_deleted() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_by_category_ids_deleted.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let cat = pocketratings::domain::category::Category::new(
+        cat_id,
+        None,
+        "C".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &cat).await.expect("insert");
+
+    let product_id = Uuid::new_v4();
+    let product = Product::new(
+        product_id,
+        cat_id,
+        "B".to_string(),
+        "P".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &product).await.expect("insert");
+    db::product::soft_delete(&pool, product_id)
+        .await
+        .expect("soft_delete");
+
+    let active_only = db::product::get_all_by_category_ids(&pool, &[cat_id], false)
+        .await
+        .expect("get_all_by_category_ids");
+    assert!(active_only.is_empty());
+
+    let with_deleted = db::product::get_all_by_category_ids(&pool, &[cat_id], true)
+        .await
+        .expect("get_all_by_category_ids");
+    assert_eq!(with_deleted.len(), 1);
+    assert_eq!(with_deleted[0].id(), product_id);
+}
+
+#[tokio::test]
+async fn product_get_by_id_with_relations_returns_none_for_nonexistent() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_get_by_id_rel_missing.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let missing_id = Uuid::new_v4();
+    let result = db::product::get_by_id_with_relations(&pool, missing_id)
+        .await
+        .expect("get_by_id_with_relations");
+    assert!(result.is_none());
+}
+
+#[tokio::test]
+async fn product_get_by_id_with_relations_returns_none_for_deleted_product() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_get_by_id_rel_deleted.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let cat = pocketratings::domain::category::Category::new(
+        cat_id,
+        None,
+        "C".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &cat).await.expect("insert");
+
+    let product_id = Uuid::new_v4();
+    let product = Product::new(
+        product_id,
+        cat_id,
+        "B".to_string(),
+        "P".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &product).await.expect("insert");
+    db::product::soft_delete(&pool, product_id)
+        .await
+        .expect("soft_delete");
+
+    let result = db::product::get_by_id_with_relations(&pool, product_id)
+        .await
+        .expect("get_by_id_with_relations");
+    assert!(result.is_none());
+}
+
+#[tokio::test]
+async fn product_soft_delete_fails_when_not_found() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_soft_delete_not_found.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let missing_id = Uuid::new_v4();
+    let result = db::product::soft_delete(&pool, missing_id).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn product_hard_delete_fails_when_not_found() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_hard_delete_not_found.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let missing_id = Uuid::new_v4();
+    let result = db::product::hard_delete(&pool, missing_id).await;
+    assert!(result.is_err());
+}
+
 // --- list_with_relations and get_by_id_with_relations ---
 
 #[tokio::test]
