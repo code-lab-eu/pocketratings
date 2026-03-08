@@ -119,14 +119,14 @@ async fn product_get_all_and_get_all_by_category_id() {
     db::product::insert(&pool, &p2).await.expect("insert");
     db::product::insert(&pool, &p3).await.expect("insert");
 
-    let all = db::product::get_all(&pool).await.expect("get_all");
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
     assert_eq!(all.len(), 3);
 
-    let in_cat1 = db::product::get_all_by_category_id(&pool, cat1)
+    let in_cat1 = db::product::get_all_by_category_id(&pool, cat1, false)
         .await
         .expect("get_all_by_category_id");
     assert_eq!(in_cat1.len(), 2);
-    let in_cat2 = db::product::get_all_by_category_id(&pool, cat2)
+    let in_cat2 = db::product::get_all_by_category_id(&pool, cat2, false)
         .await
         .expect("get_all_by_category_id");
     assert_eq!(in_cat2.len(), 1);
@@ -200,41 +200,41 @@ async fn product_get_all_filtered() {
     db::product::insert(&pool, &p2).await.expect("insert");
     db::product::insert(&pool, &p3).await.expect("insert");
 
-    let no_filter = db::product::get_all_filtered(&pool, None, None)
+    let no_filter = db::product::get_all_filtered(&pool, None, None, false)
         .await
         .expect("get_all_filtered");
     assert_eq!(no_filter.len(), 3);
 
-    let by_cat = db::product::get_all_filtered(&pool, Some(cat1), None)
+    let by_cat = db::product::get_all_filtered(&pool, Some(cat1), None, false)
         .await
         .expect("get_all_filtered");
     assert_eq!(by_cat.len(), 2);
 
-    let by_q_name = db::product::get_all_filtered(&pool, None, Some("Milk"))
+    let by_q_name = db::product::get_all_filtered(&pool, None, Some("Milk"), false)
         .await
         .expect("get_all_filtered");
     assert_eq!(by_q_name.len(), 2);
     assert!(by_q_name.iter().any(|p| p.name() == "Milk"));
 
-    let by_q_brand = db::product::get_all_filtered(&pool, None, Some("DairyCo"))
+    let by_q_brand = db::product::get_all_filtered(&pool, None, Some("DairyCo"), false)
         .await
         .expect("get_all_filtered");
     assert_eq!(by_q_brand.len(), 1);
     assert_eq!(by_q_brand[0].brand(), "DairyCo");
 
-    let both = db::product::get_all_filtered(&pool, Some(cat1), Some("Milk"))
+    let both = db::product::get_all_filtered(&pool, Some(cat1), Some("Milk"), false)
         .await
         .expect("get_all_filtered");
     assert_eq!(both.len(), 1);
     assert_eq!(both[0].name(), "Milk");
     assert_eq!(both[0].brand(), "B2");
 
-    let no_match = db::product::get_all_filtered(&pool, None, Some("nomatch"))
+    let no_match = db::product::get_all_filtered(&pool, None, Some("nomatch"), false)
         .await
         .expect("get_all_filtered");
     assert!(no_match.is_empty());
 
-    let empty_q = db::product::get_all_filtered(&pool, None, Some("  "))
+    let empty_q = db::product::get_all_filtered(&pool, None, Some("  "), false)
         .await
         .expect("get_all_filtered");
     assert_eq!(empty_q.len(), 3);
@@ -274,19 +274,19 @@ async fn product_get_all_with_deleted() {
     .expect("valid");
     db::product::insert(&pool, &p).await.expect("insert");
 
-    let active = db::product::get_all(&pool).await.expect("get_all");
+    let active = db::product::get_all(&pool, false).await.expect("get_all");
     assert_eq!(active.len(), 1);
 
     db::product::soft_delete(&pool, p.id())
         .await
         .expect("soft_delete");
 
-    let active_after = db::product::get_all(&pool).await.expect("get_all");
+    let active_after = db::product::get_all(&pool, false).await.expect("get_all");
     assert!(active_after.is_empty());
 
-    let with_deleted = db::product::get_all_with_deleted(&pool)
+    let with_deleted = db::product::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all(include_deleted: true)");
     assert_eq!(with_deleted.len(), 1);
     assert!(!with_deleted[0].is_active());
 }
@@ -390,9 +390,9 @@ async fn product_soft_delete_sets_deleted_at_and_excludes_from_get_by_id() {
         .expect("get_by_id");
     assert!(by_id.is_none());
 
-    let with_deleted = db::product::get_all_with_deleted(&pool)
+    let with_deleted = db::product::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all(include_deleted: true)");
     assert_eq!(with_deleted.len(), 1);
     assert!(!with_deleted[0].is_active());
 }
@@ -440,9 +440,9 @@ async fn product_hard_delete_removes_row() {
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
-    let with_deleted = db::product::get_all_with_deleted(&pool)
+    let with_deleted = db::product::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all(include_deleted: true)");
     assert!(with_deleted.is_empty());
 }
 
@@ -920,10 +920,296 @@ struct ProductCacheTestGuard;
 
 impl Drop for ProductCacheTestGuard {
     fn drop(&mut self) {
+        db::product::clear_simple_product_list_cache();
         db::product::clear_product_list_cache();
         db::product::set_use_product_list_cache_for_test(false);
     }
 }
+
+#[tokio::test]
+#[serial]
+async fn product_simple_list_cache_is_warmed_on_first_call_and_used_on_subsequent_calls() {
+    db::product::clear_simple_product_list_cache();
+    db::product::set_use_product_list_cache_for_test(true);
+    let _guard = ProductCacheTestGuard;
+
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_simple_cache_warm.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert!(all.is_empty(), "first call: empty DB -> empty list");
+
+    let cat_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let cat = pocketratings::domain::category::Category::new(
+        cat_id,
+        None,
+        "C".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &cat).await.expect("insert");
+
+    let cached = Product::new(
+        Uuid::new_v4(),
+        cat_id,
+        "CachedBrand".to_string(),
+        "CachedProduct".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::set_simple_product_list_cache_for_test(Some(vec![cached.clone()]));
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert_eq!(all.len(), 1, "must return cached list, not DB");
+    assert_eq!(all[0].name(), "CachedProduct");
+
+    let with_del = db::product::get_all(&pool, true)
+        .await
+        .expect("get_all with include_deleted");
+    assert_eq!(with_del.len(), 1);
+    assert_eq!(with_del[0].name(), "CachedProduct");
+}
+
+#[tokio::test]
+#[serial]
+async fn product_simple_list_cache_invalidated_after_insert() {
+    db::product::clear_simple_product_list_cache();
+    db::product::set_use_product_list_cache_for_test(true);
+    let _guard = ProductCacheTestGuard;
+
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_simple_cache_insert.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let cat = pocketratings::domain::category::Category::new(
+        cat_id,
+        None,
+        "C".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &cat).await.expect("insert");
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert!(all.is_empty());
+    db::product::set_simple_product_list_cache_for_test(Some(vec![]));
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert!(all.is_empty(), "cached empty");
+
+    let product_id = Uuid::new_v4();
+    let product = Product::new(
+        product_id,
+        cat_id,
+        "B".to_string(),
+        "P".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &product).await.expect("insert");
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert_eq!(all.len(), 1, "cache must be invalidated after insert");
+    assert_eq!(all[0].name(), "P");
+}
+
+#[tokio::test]
+#[serial]
+async fn product_simple_list_cache_invalidated_after_update() {
+    db::product::clear_simple_product_list_cache();
+    db::product::set_use_product_list_cache_for_test(true);
+    let _guard = ProductCacheTestGuard;
+
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_simple_cache_update.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let cat = pocketratings::domain::category::Category::new(
+        cat_id,
+        None,
+        "C".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &cat).await.expect("insert");
+
+    let product_id = Uuid::new_v4();
+    let product = Product::new(
+        product_id,
+        cat_id,
+        "OldBrand".to_string(),
+        "OldName".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &product).await.expect("insert");
+    let _ = db::product::get_all(&pool, false).await.expect("get_all");
+
+    let stale = Product::new(
+        Uuid::new_v4(),
+        cat_id,
+        "StaleBrand".to_string(),
+        "StaleName".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::set_simple_product_list_cache_for_test(Some(vec![stale]));
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert_eq!(all.len(), 1);
+    assert_eq!(all[0].name(), "StaleName", "still cached");
+
+    let updated = Product::new(
+        product_id,
+        cat_id,
+        "NewBrand".to_string(),
+        "NewName".to_string(),
+        now,
+        now + 10,
+        None,
+    )
+    .expect("valid");
+    db::product::update(&pool, &updated).await.expect("update");
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert_eq!(all.len(), 1, "cache must be invalidated after update");
+    assert_eq!(all[0].name(), "NewName");
+}
+
+#[tokio::test]
+#[serial]
+async fn product_simple_list_cache_invalidated_after_soft_delete() {
+    db::product::clear_simple_product_list_cache();
+    db::product::set_use_product_list_cache_for_test(true);
+    let _guard = ProductCacheTestGuard;
+
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_simple_cache_soft_delete.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let cat = pocketratings::domain::category::Category::new(
+        cat_id,
+        None,
+        "C".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &cat).await.expect("insert");
+
+    let product_id = Uuid::new_v4();
+    let product = Product::new(
+        product_id,
+        cat_id,
+        "B".to_string(),
+        "ToDelete".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &product).await.expect("insert");
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert_eq!(all.len(), 1);
+
+    db::product::soft_delete(&pool, product_id)
+        .await
+        .expect("soft_delete");
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert!(
+        all.is_empty(),
+        "cache must be invalidated; get_all shows active only"
+    );
+    let with_del = db::product::get_all(&pool, true)
+        .await
+        .expect("get_all with include_deleted");
+    assert_eq!(with_del.len(), 1);
+}
+
+#[tokio::test]
+#[serial]
+async fn product_simple_list_cache_invalidated_after_hard_delete() {
+    db::product::clear_simple_product_list_cache();
+    db::product::set_use_product_list_cache_for_test(true);
+    let _guard = ProductCacheTestGuard;
+
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_simple_cache_hard_delete.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let cat = pocketratings::domain::category::Category::new(
+        cat_id,
+        None,
+        "C".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::category::insert(&pool, &cat).await.expect("insert");
+
+    let product_id = Uuid::new_v4();
+    let product = Product::new(
+        product_id,
+        cat_id,
+        "B".to_string(),
+        "ToRemove".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(&pool, &product).await.expect("insert");
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert_eq!(all.len(), 1);
+
+    db::product::hard_delete(&pool, product_id)
+        .await
+        .expect("hard_delete");
+
+    let all = db::product::get_all(&pool, false).await.expect("get_all");
+    assert!(
+        all.is_empty(),
+        "cache must be invalidated after hard_delete"
+    );
+}
+
+// --- ProductWithRelations list cache tests ---
 
 #[tokio::test]
 #[serial]

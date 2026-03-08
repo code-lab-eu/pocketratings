@@ -970,7 +970,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
         let active = db::product::get_by_id(&state.pool, uuid).await.expect("db");
         assert!(active.is_none(), "get_by_id must exclude soft-deleted");
-        let with_deleted = db::product::get_all_with_deleted(&state.pool)
+        let with_deleted = db::product::get_all(&state.pool, true)
             .await
             .expect("db");
         let soft_deleted = with_deleted
@@ -1027,7 +1027,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
         let active = db::product::get_by_id(&state.pool, uuid).await.expect("db");
         assert!(active.is_none());
-        let with_deleted = db::product::get_all_with_deleted(&state.pool)
+        let with_deleted = db::product::get_all(&state.pool, true)
             .await
             .expect("db");
         assert!(

@@ -106,10 +106,8 @@ pub async fn list(
             return Err(CliError::Validation(format!("category not found: {s}")));
         }
         db::product::get_all_by_category_ids(pool, &category_ids, include_deleted).await?
-    } else if include_deleted {
-        db::product::get_all_with_deleted(pool).await?
     } else {
-        db::product::get_all(pool).await?
+        db::product::get_all(pool, include_deleted).await?
     };
 
     // Sort by (brand, name) for stable output.

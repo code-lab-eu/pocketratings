@@ -429,14 +429,14 @@ async fn product_delete_soft_deletes() {
         product.is_none(),
         "soft-deleted product should not be returned by get_by_id"
     );
-    let with_deleted = db::product::get_all_with_deleted(&pool)
+    let with_deleted = db::product::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all(include_deleted: true)");
     assert!(
         with_deleted
             .iter()
             .any(|p| p.id().to_string() == id && !p.is_active()),
-        "deleted product should appear in get_all_with_deleted and be inactive"
+        "deleted product should appear in get_all(include_deleted: true) and be inactive"
     );
 }
 
@@ -481,12 +481,12 @@ async fn product_delete_force_removes_row() {
         .await
         .expect("get_by_id");
     assert!(product.is_none());
-    let with_deleted = db::product::get_all_with_deleted(&pool)
+    let with_deleted = db::product::get_all(&pool, true)
         .await
-        .expect("get_all_with_deleted");
+        .expect("get_all(include_deleted: true)");
     assert!(
         !with_deleted.iter().any(|p| p.id().to_string() == id),
-        "hard-deleted product should not appear in get_all_with_deleted"
+        "hard-deleted product should not appear in get_all(include_deleted: true)"
     );
 }
 

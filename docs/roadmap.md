@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Products: single list function with `include_deleted` option [BE]
+### 1. Products: single list function with `include_deleted` option [BE] — DONE
 
 **2 sp.** Same refactor for the product DB layer: one list function (e.g.
 `get_all` or `get_all_filtered`) with `include_deleted: bool`; update call

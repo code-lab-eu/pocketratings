@@ -1,9 +1,8 @@
 //! Product persistence.
 //!
 //! Provides DB functions: [`get_by_id`], [`get_by_id_with_relations`], [`get_all`],
-//! [`get_all_with_deleted`], [`get_all_by_category_id`], [`get_all_by_category_id_with_deleted`],
-//! [`get_all_filtered`], [`list_with_relations`], [`insert`], [`update`], [`soft_delete`], and
-//! [`hard_delete`].
+//! [`get_all_by_category_id`], [`get_all_filtered`], [`list_with_relations`], [`insert`],
+//! [`update`], [`soft_delete`], and [`hard_delete`].
 
 use std::sync::{OnceLock, RwLock};
 
@@ -40,6 +39,17 @@ pub fn set_use_product_list_cache_for_test(use_cache: bool) {
     USE_CACHE_IN_TEST.with(|v| v.store(use_cache, std::sync::atomic::Ordering::SeqCst));
 }
 
+/// Module-level cache for the full product list (plain [`Product`], including deleted). Used by
+/// [`get_all`]. When `include_deleted` is false the result is filtered on read.
+fn simple_product_list_cache() -> &'static RwLock<Option<Vec<Product>>> {
+    static CACHE: OnceLock<RwLock<Option<Vec<Product>>>> = OnceLock::new();
+    CACHE.get_or_init(|| RwLock::new(None))
+}
+
+fn invalidate_simple_product_list_cache() {
+    let _ = simple_product_list_cache().write().map(|mut g| *g = None);
+}
+
 /// Module-level cache for the full product list with relations (including deleted). Used by
 /// `list_with_relations`.
 fn product_list_cache() -> &'static RwLock<Option<Vec<ProductWithRelations>>> {
@@ -51,15 +61,31 @@ fn invalidate_product_list_cache() {
     let _ = product_list_cache().write().map(|mut g| *g = None);
 }
 
+/// Invalidate both product caches. Call on insert, update, `soft_delete`, `hard_delete`.
+fn invalidate_all_product_caches() {
+    invalidate_simple_product_list_cache();
+    invalidate_product_list_cache();
+}
+
 /// Clear the product list cache. For use by cache tests so they start from a known state.
 pub fn clear_product_list_cache() {
     let _ = product_list_cache().write().map(|mut g| *g = None);
+}
+
+/// Clear the simple product list cache (used by [`get_all`]). For use by cache tests.
+pub fn clear_simple_product_list_cache() {
+    let _ = simple_product_list_cache().write().map(|mut g| *g = None);
 }
 
 /// Set the product list cache to a specific value. For use by cache tests to verify that
 /// `list_with_relations` returns cached data when the cache is populated.
 pub fn set_product_list_cache_for_test(list: Option<Vec<ProductWithRelations>>) {
     let _ = product_list_cache().write().map(|mut g| *g = list);
+}
+
+/// Set the simple product list cache. For use by cache tests that verify [`get_all`] uses cache.
+pub fn set_simple_product_list_cache_for_test(list: Option<Vec<Product>>) {
+    let _ = simple_product_list_cache().write().map(|mut g| *g = list);
 }
 
 /// One product row with joined category name and breadcrumb ancestors for API responses.
@@ -168,77 +194,62 @@ pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Option<Product>, c
     Ok(Some(product))
 }
 
-/// Fetch all active products.
-///
-/// # Errors
-///
-/// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Product>, crate::db::DbError> {
-    let rows = sqlx::query(
-        "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE deleted_at IS NULL",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let mut out = Vec::with_capacity(rows.len());
-    for row in rows {
-        let id: String = row.get("id");
-        let category_id: String = row.get("category_id");
-        let brand: String = row.get("brand");
-        let name: String = row.get("name");
-        let created_at: i64 = row.get("created_at");
-        let updated_at: i64 = row.get("updated_at");
-        let deleted_at: Option<i64> = row.get("deleted_at");
-        let product = row_to_product(
-            &id,
-            &category_id,
-            &brand,
-            &name,
-            created_at,
-            updated_at,
-            deleted_at,
-        )?;
-        out.push(product);
-    }
-    Ok(out)
-}
-
-/// Fetch all products (active and soft-deleted).
-///
-/// # Errors
-///
-/// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_all_with_deleted(pool: &SqlitePool) -> Result<Vec<Product>, crate::db::DbError> {
+/// Fetch all products from the database (active and soft-deleted). Used to fill the cache.
+async fn fetch_all_products_raw(pool: &SqlitePool) -> Result<Vec<Product>, crate::db::DbError> {
     let rows = sqlx::query(
         "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products",
     )
     .fetch_all(pool)
     .await?;
-
-    let mut out = Vec::with_capacity(rows.len());
-    for row in rows {
-        let id: String = row.get("id");
-        let category_id: String = row.get("category_id");
-        let brand: String = row.get("brand");
-        let name: String = row.get("name");
-        let created_at: i64 = row.get("created_at");
-        let updated_at: i64 = row.get("updated_at");
-        let deleted_at: Option<i64> = row.get("deleted_at");
-        let product = row_to_product(
-            &id,
-            &category_id,
-            &brand,
-            &name,
-            created_at,
-            updated_at,
-            deleted_at,
-        )?;
-        out.push(product);
-    }
-    Ok(out)
+    rows_to_products(rows)
 }
 
-/// Fetch all active products in a category.
+/// Fetch all products (flat list).
+///
+/// When `include_deleted` is `false`, only active (non-deleted) products are returned. When
+/// `true`, soft-deleted products are included. The cache always stores the full list (including
+/// deleted); when `include_deleted` is `false` the result is filtered on read.
+///
+/// When not in test, results are cached in memory; the cache is invalidated on any product
+/// insert, update, or delete.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query or row mapping failure.
+pub async fn get_all(
+    pool: &SqlitePool,
+    include_deleted: bool,
+) -> Result<Vec<Product>, crate::db::DbError> {
+    if use_cache()
+        && let Ok(guard) = simple_product_list_cache().read()
+        && let Some(ref list) = *guard
+    {
+        return Ok(if include_deleted {
+            list.clone()
+        } else {
+            list.iter().filter(|p| p.is_active()).cloned().collect()
+        });
+    }
+
+    let list = fetch_all_products_raw(pool).await?;
+
+    if use_cache()
+        && let Ok(mut guard) = simple_product_list_cache().write()
+    {
+        *guard = Some(list.clone());
+    }
+
+    Ok(if include_deleted {
+        list
+    } else {
+        list.into_iter().filter(Product::is_active).collect()
+    })
+}
+
+/// Fetch all products in a category.
+///
+/// When `include_deleted` is `false`, only active products are returned. When cache is enabled
+/// and warm, uses [`get_all`] and filters by `category_id`; otherwise runs a single query.
 ///
 /// # Errors
 ///
@@ -246,76 +257,31 @@ pub async fn get_all_with_deleted(pool: &SqlitePool) -> Result<Vec<Product>, cra
 pub async fn get_all_by_category_id(
     pool: &SqlitePool,
     category_id: Uuid,
+    include_deleted: bool,
 ) -> Result<Vec<Product>, crate::db::DbError> {
-    let cat_str = category_id.to_string();
-    let rows = sqlx::query(
-        "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id = ? AND deleted_at IS NULL",
-    )
-    .bind(&cat_str)
-    .fetch_all(pool)
-    .await?;
-
-    let mut out = Vec::with_capacity(rows.len());
-    for row in rows {
-        let id: String = row.get("id");
-        let category_id: String = row.get("category_id");
-        let brand: String = row.get("brand");
-        let name: String = row.get("name");
-        let created_at: i64 = row.get("created_at");
-        let updated_at: i64 = row.get("updated_at");
-        let deleted_at: Option<i64> = row.get("deleted_at");
-        let product = row_to_product(
-            &id,
-            &category_id,
-            &brand,
-            &name,
-            created_at,
-            updated_at,
-            deleted_at,
-        )?;
-        out.push(product);
+    if use_cache()
+        && let Ok(guard) = simple_product_list_cache().read()
+        && let Some(ref list) = *guard
+    {
+        let filtered: Vec<Product> = list
+            .iter()
+            .filter(|p| {
+                p.category_id() == category_id
+                    && (include_deleted || p.is_active())
+            })
+            .cloned()
+            .collect();
+        return Ok(filtered);
     }
-    Ok(out)
-}
 
-/// Fetch all products in a category (active and soft-deleted).
-///
-/// # Errors
-///
-/// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_all_by_category_id_with_deleted(
-    pool: &SqlitePool,
-    category_id: Uuid,
-) -> Result<Vec<Product>, crate::db::DbError> {
     let cat_str = category_id.to_string();
-    let rows = sqlx::query(
-        "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id = ?",
-    )
-    .bind(&cat_str)
-    .fetch_all(pool)
-    .await?;
-
-    let mut out = Vec::with_capacity(rows.len());
-    for row in rows {
-        let id: String = row.get("id");
-        let category_id: String = row.get("category_id");
-        let brand: String = row.get("brand");
-        let name: String = row.get("name");
-        let created_at: i64 = row.get("created_at");
-        let updated_at: i64 = row.get("updated_at");
-        let deleted_at: Option<i64> = row.get("deleted_at");
-        let product = row_to_product(
-            &id,
-            &category_id,
-            &brand,
-            &name,
-            created_at,
-            updated_at,
-            deleted_at,
-        )?;
-        out.push(product);
-    }
-    Ok(out)
+    let sql = if include_deleted {
+        "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id = ?"
+    } else {
+        "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id = ? AND deleted_at IS NULL"
+    };
+    let rows = sqlx::query(sql).bind(&cat_str).fetch_all(pool).await?;
+    rows_to_products(rows)
 }
 
 /// Fetch all products whose category is in the given set. When `include_deleted` is false, only
@@ -370,10 +336,11 @@ pub async fn get_all_by_category_ids(
     Ok(out)
 }
 
-/// Fetch all active products, optionally filtered by category and/or search on name/brand.
+/// Fetch all products, optionally filtered by category and/or search on name/brand.
 ///
 /// - `category_id`: if `Some`, only products in that category.
 /// - `q`: if non-empty after trim, only products where `name` or `brand` contains the string (case-sensitive LIKE).
+/// - `include_deleted`: when `false`, only active products are returned.
 ///
 /// # Errors
 ///
@@ -382,35 +349,40 @@ pub async fn get_all_filtered(
     pool: &SqlitePool,
     category_id: Option<Uuid>,
     q: Option<&str>,
+    include_deleted: bool,
 ) -> Result<Vec<Product>, crate::db::DbError> {
     let search = q.map(str::trim).filter(|s| !s.is_empty());
     match (category_id, search) {
-        (None, None) => return get_all(pool).await,
-        (Some(cid), None) => return get_all_by_category_id(pool, cid).await,
+        (None, None) => get_all(pool, include_deleted).await,
+        (Some(cid), None) => get_all_by_category_id(pool, cid, include_deleted).await,
         (None, Some(term)) => {
             let pattern = format!("%{term}%");
-            let rows = sqlx::query(
-                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products \
-                 WHERE deleted_at IS NULL AND (name LIKE ? OR brand LIKE ?)",
-            )
-            .bind(&pattern)
-            .bind(&pattern)
-            .fetch_all(pool)
-            .await?;
+            let sql = if include_deleted {
+                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE (name LIKE ? OR brand LIKE ?)"
+            } else {
+                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE deleted_at IS NULL AND (name LIKE ? OR brand LIKE ?)"
+            };
+            let rows = sqlx::query(sql)
+                .bind(&pattern)
+                .bind(&pattern)
+                .fetch_all(pool)
+                .await?;
             rows_to_products(rows)
         }
         (Some(cid), Some(term)) => {
             let cat_str = cid.to_string();
             let pattern = format!("%{term}%");
-            let rows = sqlx::query(
-                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products \
-                 WHERE category_id = ? AND deleted_at IS NULL AND (name LIKE ? OR brand LIKE ?)",
-            )
-            .bind(&cat_str)
-            .bind(&pattern)
-            .bind(&pattern)
-            .fetch_all(pool)
-            .await?;
+            let sql = if include_deleted {
+                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id = ? AND (name LIKE ? OR brand LIKE ?)"
+            } else {
+                "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id = ? AND deleted_at IS NULL AND (name LIKE ? OR brand LIKE ?)"
+            };
+            let rows = sqlx::query(sql)
+                .bind(&cat_str)
+                .bind(&pattern)
+                .bind(&pattern)
+                .fetch_all(pool)
+                .await?;
             rows_to_products(rows)
         }
     }
@@ -617,7 +589,7 @@ pub async fn insert(pool: &SqlitePool, product: &Product) -> Result<(), crate::d
     .bind(product.deleted_at())
     .execute(pool)
     .await?;
-    invalidate_product_list_cache();
+    invalidate_all_product_caches();
     Ok(())
 }
 
@@ -639,7 +611,7 @@ pub async fn update(pool: &SqlitePool, product: &Product) -> Result<(), crate::d
     .bind(product.id().to_string())
     .execute(pool)
     .await?;
-    invalidate_product_list_cache();
+    invalidate_all_product_caches();
     Ok(())
 }
 
@@ -688,7 +660,7 @@ pub async fn soft_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
         )));
     }
 
-    invalidate_product_list_cache();
+    invalidate_all_product_caches();
     Ok(())
 }
 
@@ -715,6 +687,6 @@ pub async fn hard_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
         )));
     }
 
-    invalidate_product_list_cache();
+    invalidate_all_product_caches();
     Ok(())
 }
