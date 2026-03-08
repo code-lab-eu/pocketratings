@@ -196,14 +196,15 @@ category **and** to any descendant category (full subtree). Use a depth limit
 (e.g. depth 5) for "child categories" to avoid unbounded trees.
 
 **Tasks:**
-- Backend (if not already covered): support listing products for a category
-  subtree (e.g. new query param or multiple category IDs); document in
-  [api.md](api.md).
-- Frontend: category page data load uses current category + descendant
-  category IDs (e.g. from categories API with depth, or new endpoint); fetch
-  products for that set and merge/deduplicate; show in existing product list.
-  Use depth of 5 for subtree. Update [spec.md](spec.md) so category products
-  include "current + all descendant categories" and reference depth.
+- Backend: **Done.** The API supports subtree via
+  `GET /api/v1/products?category_id=<uuid>` (no new query params): products
+  whose category is that category or any descendant, up to a named constant
+  depth; 404 when category not found or deleted. Documented in [api.md](api.md).
+- Frontend: category page keeps a single request
+  `GET /api/v1/products?category_id=<id>`; no need to fetch descendant IDs or
+  merge. Update [spec.md](spec.md) so category products are described as
+  "current + all descendant categories" (with depth limit); spec already
+  aligned.
 
 ### 14. Product variations [FE+BE]
 

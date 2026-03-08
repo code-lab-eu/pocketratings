@@ -738,7 +738,7 @@ async fn product_list_with_relations_filter_by_category_id_and_q_and_include_del
         .expect("list_with_relations");
     assert_eq!(all.len(), 3);
 
-    let by_cat = db::product::list_with_relations(&pool, Some(cat1), None, false)
+    let by_cat = db::product::list_with_relations(&pool, Some(vec![cat1]), None, false)
         .await
         .expect("list_with_relations");
     assert_eq!(by_cat.len(), 2);
@@ -748,7 +748,7 @@ async fn product_list_with_relations_filter_by_category_id_and_q_and_include_del
         .expect("list_with_relations");
     assert_eq!(by_q.len(), 2);
 
-    let both = db::product::list_with_relations(&pool, Some(cat1), Some("Milk"), false)
+    let both = db::product::list_with_relations(&pool, Some(vec![cat1]), Some("Milk"), false)
         .await
         .expect("list_with_relations");
     assert_eq!(both.len(), 1);

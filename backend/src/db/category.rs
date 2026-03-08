@@ -4,7 +4,7 @@
 //! list, and DB functions: [`get_by_id`], [`get_parent`], [`get_children`], [`get_all`],
 //! [`get_ancestors`], [`insert`], [`update`], and [`soft_delete`].
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{OnceLock, RwLock};
 
 use sqlx::{Row, SqlitePool};
@@ -19,8 +19,11 @@ pub struct Ancestor {
     pub name: String,
 }
 
-/// Cache entry: full category list plus precomputed ancestor chains per category id.
-type CategoryCacheEntry = (Vec<Category>, HashMap<Uuid, Vec<Ancestor>>);
+/// Maximum depth for "category + descendants" when listing products (API and CLI cap).
+pub const MAX_CATEGORY_DEPTH: u8 = 5;
+
+/// Cache entry: full category list, precomputed ancestor chains, and full tree for descendant resolution.
+type CategoryCacheEntry = (Vec<Category>, HashMap<Uuid, Vec<Ancestor>>, Categories);
 
 /// True when the process is the production binary (`main()` has run). False in test binaries so the
 /// cache is off unless a test explicitly enables it via [`set_use_category_list_cache_for_test`].
@@ -101,7 +104,8 @@ pub fn clear_category_list_cache() {
 pub fn set_category_list_cache_for_test(list: Option<Vec<Category>>) {
     let entry = list.map(|l| {
         let map = build_ancestor_map(&l);
-        (l, map)
+        let tree = Categories::from_list(l.clone(), None, None, true);
+        (l, map, tree)
     });
     let _ = category_list_cache().write().map(|mut g| *g = entry);
 }
@@ -206,6 +210,41 @@ impl Categories {
                 children: children_for(Some(r.id()), &map, depth),
             },
         )
+    }
+
+    /// Find the subtree rooted at the category with the given id. Walks the tree (virtual root or
+    /// any node). Returns `None` if no category has that id.
+    #[must_use]
+    pub fn find_subtree_by_id(&self, id: Uuid) -> Option<&Self> {
+        if self.category.as_ref().map(Category::id) == Some(id) {
+            return Some(self);
+        }
+        for child in &self.children {
+            if let Some(found) = child.find_subtree_by_id(id) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    /// Collect category ids from this node and descendants up to the given depth. Depth 1 = only
+    /// this node's category id (if present). Depth 2 = self + direct children. Depth 3 = + grandchildren, etc.
+    #[must_use]
+    pub fn collect_ids_to_depth(&self, depth: u8) -> Vec<Uuid> {
+        if depth == 0 {
+            return Vec::new();
+        }
+        let mut ids = Vec::new();
+        if let Some(ref c) = self.category {
+            ids.push(c.id());
+        }
+        if depth >= 2 {
+            let child_depth = depth.saturating_sub(1);
+            for child in &self.children {
+                ids.extend(child.collect_ids_to_depth(child_depth));
+            }
+        }
+        ids
     }
 }
 
@@ -360,7 +399,7 @@ pub async fn get_all(
 ) -> Result<Vec<Category>, crate::db::DbError> {
     if use_cache()
         && let Ok(guard) = category_list_cache().read()
-        && let Some((ref list, _)) = *guard
+        && let Some((ref list, _, _)) = *guard
     {
         return Ok(if include_deleted {
             list.clone()
@@ -375,7 +414,8 @@ pub async fn get_all(
         && let Ok(mut guard) = category_list_cache().write()
     {
         let ancestors = build_ancestor_map(&list);
-        *guard = Some((list.clone(), ancestors));
+        let tree = Categories::from_list(list.clone(), None, None, true);
+        *guard = Some((list.clone(), ancestors, tree));
     }
 
     Ok(if include_deleted {
@@ -397,19 +437,82 @@ pub async fn get_ancestors(
 ) -> Result<Vec<Ancestor>, crate::db::DbError> {
     if use_cache() {
         if let Ok(guard) = category_list_cache().read()
-            && let Some((_, ref ancestors)) = *guard
+            && let Some((_, ref ancestors, _)) = *guard
         {
             return Ok(ancestors.get(&id).cloned().unwrap_or_default());
         }
         get_all(pool, true).await?;
         if let Ok(guard) = category_list_cache().read()
-            && let Some((_, ref ancestors)) = *guard
+            && let Some((_, ref ancestors, _)) = *guard
         {
             return Ok(ancestors.get(&id).cloned().unwrap_or_default());
         }
     }
     let list = fetch_all_categories_raw(pool).await?;
     Ok(build_ancestor_map(&list).remove(&id).unwrap_or_default())
+}
+
+/// Return the given category id and all its descendant ids up to `max_depth` levels.
+///
+/// Depth 1 = self only, depth 2 = self + direct children, etc. When `include_deleted` is false,
+/// only ids of active (non–soft-deleted) categories are returned. When the category is not in the
+/// tree (e.g. invalid or deleted and filtered out), returns an empty vec.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] if the cache cannot be populated (e.g. DB error).
+pub async fn get_category_and_descendant_ids(
+    pool: &SqlitePool,
+    category_id: Uuid,
+    max_depth: u8,
+    include_deleted: bool,
+) -> Result<Vec<Uuid>, crate::db::DbError> {
+    let depth = std::cmp::min(max_depth, MAX_CATEGORY_DEPTH);
+    if use_cache() {
+        if let Ok(guard) = category_list_cache().read()
+            && let Some((ref list, _, ref tree)) = *guard
+        {
+            let ids = tree
+                .find_subtree_by_id(category_id)
+                .map(|sub| sub.collect_ids_to_depth(depth))
+                .unwrap_or_default();
+            return Ok(filter_ids_by_active_if_needed(ids, list, include_deleted));
+        }
+        get_all(pool, true).await?;
+        if let Ok(guard) = category_list_cache().read()
+            && let Some((ref list, _, ref tree)) = *guard
+        {
+            let ids = tree
+                .find_subtree_by_id(category_id)
+                .map(|sub| sub.collect_ids_to_depth(depth))
+                .unwrap_or_default();
+            return Ok(filter_ids_by_active_if_needed(ids, list, include_deleted));
+        }
+    }
+    let list = fetch_all_categories_raw(pool).await?;
+    let tree = Categories::from_list(list.clone(), None, None, true);
+    let ids = tree
+        .find_subtree_by_id(category_id)
+        .map(|sub| sub.collect_ids_to_depth(depth))
+        .unwrap_or_default();
+    Ok(filter_ids_by_active_if_needed(ids, &list, include_deleted))
+}
+
+#[must_use]
+fn filter_ids_by_active_if_needed(
+    ids: Vec<Uuid>,
+    list: &[Category],
+    include_deleted: bool,
+) -> Vec<Uuid> {
+    if include_deleted {
+        return ids;
+    }
+    let active: HashSet<Uuid> = list
+        .iter()
+        .filter(|c| c.is_active())
+        .map(Category::id)
+        .collect();
+    ids.into_iter().filter(|id| active.contains(id)).collect()
 }
 
 /// Insert a category into the database.
@@ -774,5 +877,59 @@ mod tests {
             Some(root_cat.id())
         );
         assert!(tree.children.is_empty());
+    }
+
+    #[test]
+    fn find_subtree_by_id_returns_subtree_when_found() {
+        let root_id = Uuid::new_v4();
+        let child_id = Uuid::new_v4();
+        let flat = vec![
+            make_category(root_id, None, "Root"),
+            make_category(child_id, Some(root_id), "Child"),
+        ];
+        let tree = Categories::from_list(flat, None, None, false);
+        let found = tree.find_subtree_by_id(child_id).unwrap();
+        assert_eq!(found.category.as_ref().map(Category::name), Some("Child"));
+        assert!(found.children.is_empty());
+        let found_root = tree.find_subtree_by_id(root_id).unwrap();
+        assert_eq!(found_root.children.len(), 1);
+    }
+
+    #[test]
+    fn find_subtree_by_id_returns_none_when_not_found() {
+        let root_id = Uuid::new_v4();
+        let flat = vec![make_category(root_id, None, "Root")];
+        let tree = Categories::from_list(flat, None, None, false);
+        assert!(tree.find_subtree_by_id(Uuid::new_v4()).is_none());
+    }
+
+    #[test]
+    fn collect_ids_to_depth_1_returns_self_only() {
+        let root_id = Uuid::new_v4();
+        let child_id = Uuid::new_v4();
+        let flat = vec![
+            make_category(root_id, None, "Root"),
+            make_category(child_id, Some(root_id), "Child"),
+        ];
+        let tree = Categories::from_list(flat, None, None, false);
+        let sub = tree.find_subtree_by_id(root_id).unwrap();
+        let ids = sub.collect_ids_to_depth(1);
+        assert_eq!(ids, vec![root_id]);
+    }
+
+    #[test]
+    fn collect_ids_to_depth_2_returns_self_and_children() {
+        let root_id = Uuid::new_v4();
+        let child_id = Uuid::new_v4();
+        let flat = vec![
+            make_category(root_id, None, "Root"),
+            make_category(child_id, Some(root_id), "Child"),
+        ];
+        let tree = Categories::from_list(flat, None, None, false);
+        let sub = tree.find_subtree_by_id(root_id).unwrap();
+        let ids = sub.collect_ids_to_depth(2);
+        assert_eq!(ids.len(), 2);
+        assert!(ids.contains(&root_id));
+        assert!(ids.contains(&child_id));
     }
 }

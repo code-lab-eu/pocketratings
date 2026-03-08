@@ -81,10 +81,11 @@ pub async fn create(
     Ok(())
 }
 
-/// List products (optionally by category, optionally including soft-deleted).
+/// List products (optionally by category with subtree depth, optionally including soft-deleted).
 pub async fn list(
     pool: &SqlitePool,
     category_id_str: Option<&str>,
+    depth: u8,
     output_json: bool,
     include_deleted: bool,
     stdout: &mut impl Write,
@@ -93,11 +94,18 @@ pub async fn list(
     let mut products = if let Some(s) = category_id_str {
         let category_id = Uuid::parse_str(s)
             .map_err(|_| CliError::Validation(format!("invalid category_id: {s}")))?;
-        if include_deleted {
-            db::product::get_all_by_category_id_with_deleted(pool, category_id).await?
-        } else {
-            db::product::get_all_by_category_id(pool, category_id).await?
+        let effective_depth = std::cmp::min(depth, db::category::MAX_CATEGORY_DEPTH);
+        let category_ids = db::category::get_category_and_descendant_ids(
+            pool,
+            category_id,
+            effective_depth,
+            include_deleted,
+        )
+        .await?;
+        if category_ids.is_empty() {
+            return Err(CliError::Validation(format!("category not found: {s}")));
         }
+        db::product::get_all_by_category_ids(pool, &category_ids, include_deleted).await?
     } else if include_deleted {
         db::product::get_all_with_deleted(pool).await?
     } else {

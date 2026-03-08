@@ -141,6 +141,9 @@ pub struct ProductCreateOpts {
 pub struct ProductListOpts {
     #[arg(long)]
     pub category_id: Option<String>,
+    /// When filtering by category, depth of subtree: 1 = current category only, 2 = self + children, …; defaults to 5 (full subtree). Values above the maximum are capped.
+    #[arg(long, default_value = "5")]
+    pub depth: u8,
     #[arg(long, default_value = "human", value_parser = ["human", "json"])]
     pub output: String,
     /// Include soft-deleted products in the list.
@@ -699,6 +702,7 @@ pub async fn run(
                 product_cli::list(
                     pool,
                     opts.category_id.as_deref(),
+                    opts.depth,
                     output_json,
                     opts.include_deleted,
                     stdout,

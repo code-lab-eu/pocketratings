@@ -30,5 +30,6 @@ When you or the user make or implement a **decision that changes functionality**
 1. After making or implementing a functional/API/product decision, identify which of the above are affected.
 2. Update each affected artifact so it matches the decision (same URIs, same behavior, same scope).
 3. If a decision is recorded in only one place (e.g. a phase plan), add it to the main plan and spec as well so future work and other readers see it.
+4. When editing README or files under **docs/** (including roadmap, spec, api), wrap prose and list text to **80 characters** per line (see [readme-docs-line-width](.cursor/rules/readme-docs-line-width.mdc)).
 
 Existing rules (e.g. API endpoint documentation) still apply; this rule ensures **all** such decisions flow through to the right docs, not only new endpoints.

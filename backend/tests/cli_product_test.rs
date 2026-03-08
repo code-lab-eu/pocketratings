@@ -166,6 +166,102 @@ async fn product_list_filters_by_category_id() {
     assert_eq!(arr.len(), 2);
 }
 
+async fn create_child_category_and_get_id(
+    pool: &sqlx::SqlitePool,
+    name: &str,
+    parent_id: &str,
+) -> String {
+    let (res, stdout, _) = run_product(
+        pool,
+        &[
+            "category",
+            "create",
+            "--name",
+            name,
+            "--parent-id",
+            parent_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(res.is_ok());
+    let json: serde_json::Value =
+        serde_json::from_str(stdout.lines().next().expect("line")).expect("json");
+    json.get("id")
+        .and_then(|v| v.as_str())
+        .expect("id in response")
+        .to_string()
+}
+
+#[tokio::test]
+async fn product_list_by_category_includes_products_in_child_categories() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_list_subtree.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let parent_id = create_category_and_get_id(&pool, "Wine").await;
+    let child_id = create_child_category_and_get_id(&pool, "Red wine", &parent_id).await;
+
+    let (create_res, _, _) = run_product(
+        &pool,
+        &[
+            "product",
+            "create",
+            "--name",
+            "Merlot",
+            "--brand",
+            "Vineyard",
+            "--category-id",
+            &child_id,
+        ],
+    )
+    .await;
+    assert!(create_res.is_ok());
+
+    let (list_res, list_stdout, list_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "list",
+            "--category-id",
+            &parent_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(list_res.is_ok(), "stderr: {list_stderr}");
+    let line = list_stdout.lines().next().expect("list line");
+    let arr: Vec<serde_json::Value> = serde_json::from_str(line).expect("json array");
+    assert_eq!(arr.len(), 1);
+    assert_eq!(arr[0].get("name").and_then(|v| v.as_str()), Some("Merlot"));
+}
+
+#[tokio::test]
+async fn product_list_with_nonexistent_category_id_fails() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_list_bad_cat.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let nonexistent_id = uuid::Uuid::new_v4().to_string();
+    let (list_res, _, _) = run_product(
+        &pool,
+        &["product", "list", "--category-id", &nonexistent_id],
+    )
+    .await;
+    assert!(
+        list_res.is_err(),
+        "expected list to fail for nonexistent category"
+    );
+}
+
 #[tokio::test]
 async fn product_list_include_deleted() {
     let dir = tempfile::tempdir().expect("temp dir");

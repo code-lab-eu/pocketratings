@@ -345,7 +345,9 @@ insert, update, soft-delete, or hard-delete.
 List products.
 
 **Query parameters:**
-- `category_id` (optional, UUID): Filter by category
+- `category_id` (optional, UUID): Filter by category. When set, the response includes
+  products whose category is that category or any descendant (subtree), up to a fixed
+  depth limit (e.g. 5 levels). No extra query parameters; subtree semantics are built in.
 - `q` (optional, string): Search by name or brand
 
 **Response:** `200 OK`
@@ -362,6 +364,10 @@ List products.
   }
 ]
 ```
+
+**Errors:**
+- `404 Not Found`: When `category_id` is set but the category does not exist or refers
+  to a soft-deleted category.
 
 #### `GET /api/v1/products/:id`
 

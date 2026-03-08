@@ -121,12 +121,29 @@ where
     Ok(s.to_lowercase() == "true" || s == "1")
 }
 
-/// GET /api/v1/products — list products, optionally filtered by `category_id` and/or `q` (search).
+/// GET /api/v1/products — list products, optionally filtered by `category_id` (subtree) and/or `q` (search).
+/// When `category_id` is set, returns products in that category or any descendant; 404 if category not found or deleted.
 pub async fn list_products(
     State(state): State<AppState>,
     Query(q): Query<ListProductsQuery>,
 ) -> Result<Json<Vec<ProductResponse>>, ApiError> {
-    let list = db::product::list_with_relations(&state.pool, q.category_id, q.q.as_deref(), false)
+    let category_ids = if let Some(cat_id) = q.category_id {
+        let ids = db::category::get_category_and_descendant_ids(
+            &state.pool,
+            cat_id,
+            db::category::MAX_CATEGORY_DEPTH,
+            false,
+        )
+        .await
+        .map_err(|e| map_db_error(&e))?;
+        if ids.is_empty() {
+            return Err(ApiError::NotFound("category not found".to_string()));
+        }
+        Some(ids)
+    } else {
+        None
+    };
+    let list = db::product::list_with_relations(&state.pool, category_ids, q.q.as_deref(), false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let mut out = Vec::with_capacity(list.len());
@@ -332,10 +349,18 @@ mod tests {
     }
 
     async fn insert_category(pool: &SqlitePool, name: &str) -> Uuid {
+        insert_category_with_parent(pool, name, None).await
+    }
+
+    async fn insert_category_with_parent(
+        pool: &SqlitePool,
+        name: &str,
+        parent_id: Option<Uuid>,
+    ) -> Uuid {
         let id = Uuid::new_v4();
         let now = chrono::Utc::now().timestamp();
         let cat =
-            Category::new(id, None, name.to_string(), now, now, None).expect("valid category");
+            Category::new(id, parent_id, name.to_string(), now, now, None).expect("valid category");
         db::category::insert(pool, &cat)
             .await
             .expect("insert category");
@@ -614,6 +639,68 @@ mod tests {
         let arr = json.as_array().expect("array");
         assert_eq!(arr.len(), 1);
         assert_eq!(arr[0].get("name").and_then(|v| v.as_str()), Some("P"));
+    }
+
+    #[tokio::test]
+    async fn list_products_with_category_id_includes_products_in_child_categories() {
+        let (state, _dir) = test_pool().await;
+        let parent_id = insert_category(&state.pool, "Wine").await;
+        let child_id = insert_category_with_parent(&state.pool, "Red wine", Some(parent_id)).await;
+        let app = route().with_state(state);
+        let body = serde_json::json!({
+            "category_id": child_id.to_string(),
+            "brand": "Vineyard",
+            "name": "Merlot"
+        });
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products?category_id={parent_id}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0].get("name").and_then(|v| v.as_str()), Some("Merlot"));
+    }
+
+    #[tokio::test]
+    async fn list_products_with_category_id_returns_404_when_category_not_found() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state);
+        let nonexistent_id = Uuid::new_v4();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products?category_id={nonexistent_id}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]

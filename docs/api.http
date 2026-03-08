@@ -169,7 +169,7 @@ Authorization: Bearer {{token}}
 
 ### Products
 
-# GET /api/v1/products — List all. Optional: ?category_id=uuid, ?q=search (name/brand)
+# GET /api/v1/products — List all. Optional: ?category_id=uuid (subtree: category + descendants), ?q=search (name/brand)
 GET {{baseUrl}}/api/v1/products
 Authorization: Bearer {{token}}
 

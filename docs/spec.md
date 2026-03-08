@@ -99,9 +99,9 @@ The home screen is **categories + products + search** (one page): categories and
   **child categories** of the current category listed first (each links to
   that category’s page). **Add product** link →
   `/manage/products/new?category_id=<id>` (form opens with that category
-  prefilled). Below that, products in the current category with inline
-  rating (and optional short review). Products and reviews merged
-  client-side.
+  prefilled). Below that, products in the current category and all its
+  descendant categories (with a depth limit) with inline rating (and
+  optional short review). Products and reviews merged client-side.
 - **Product detail:** Product with **category name**; full review(s); **purchase history** (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`.
 - **Login:** Email + password; store token; redirect to Home.
 - **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form. After submitting an add-review form, redirect to the product page.
@@ -109,7 +109,12 @@ The home screen is **categories + products + search** (one page): categories and
 **Data flow (current API, no backend changes)**
 
 - **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree). Category and product responses include `ancestors` (breadcrumb: closest parent first). On a category page, use `GET /api/v1/categories/:id` (default: one level of children) for the category, its breadcrumb, and child categories in one request. Home uses no `parent_id` (root categories); when the user searches (`?q=...` on home), filter the category list **client-side** by name (e.g. case-insensitive match). Cache after first load for speed.
-- **Products in category:** `GET /api/v1/products?category_id=<uuid>`. When the user searches on the category page (`?q=...`), use `GET /api/v1/products?category_id=<id>&q=<string>`; child categories are filtered **client-side** by name (case-insensitive match).
+- **Products in category:** `GET /api/v1/products?category_id=<uuid>`. The API returns
+  products whose category is that category or any descendant (subtree), up to a fixed
+  depth limit. When the user searches on the category page (`?q=...`), use
+  `GET /api/v1/products?category_id=<id>&q=<string>`; child categories are filtered
+  **client-side** by name (case-insensitive match). If the category does not exist or
+  is deleted, the API returns 404.
 - **Products on home:** `GET /api/v1/products` (no filter when no search) or `GET /api/v1/products?q=<string>` when user has entered a search query. Merge with all reviews in the frontend and compute per-product average ratings from all matching reviews.
 - **Product search:** `GET /api/v1/products?q=<string>` (name/brand). Used on home when `q` is present; on category page combined with `category_id`.
 - **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id` only for **highlighting** the user's own rating (e.g. badge or secondary indicator). The primary rating shown for each product remains the global average computed from all reviews.

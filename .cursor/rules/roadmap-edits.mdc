@@ -16,5 +16,7 @@ When editing the roadmap (add or update tasks only):
   it; removal happens during roadmap maintenance.
 - **Updating an existing task:** Change goal/tasks/SP as needed; keep the title
   label and SP format. If scope changes, update [FE]/[BE]/[FE+BE].
+- **Line width:** Wrap prose and list text to **80 characters** per line (see
+  [readme-docs-line-width](.cursor/rules/readme-docs-line-width.mdc)).
 - **Do not:** Reorder the list, remove DONE items, or run the full maintenance
   workflow. For that, use the roadmap-maintenance skill.

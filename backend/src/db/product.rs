@@ -318,6 +318,58 @@ pub async fn get_all_by_category_id_with_deleted(
     Ok(out)
 }
 
+/// Fetch all products whose category is in the given set. When `include_deleted` is false, only
+/// active products are returned. When `ids` is empty, returns an empty vec.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query or row mapping failure.
+pub async fn get_all_by_category_ids(
+    pool: &SqlitePool,
+    ids: &[Uuid],
+    include_deleted: bool,
+) -> Result<Vec<Product>, crate::db::DbError> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+    let sql = if include_deleted {
+        format!(
+            "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id IN ({placeholders})"
+        )
+    } else {
+        format!(
+            "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id IN ({placeholders}) AND deleted_at IS NULL"
+        )
+    };
+    let mut query = sqlx::query(&sql);
+    for id in ids {
+        query = query.bind(id.to_string());
+    }
+    let rows = query.fetch_all(pool).await?;
+    let mut out = Vec::with_capacity(rows.len());
+    for row in rows {
+        let id: String = row.get("id");
+        let category_id: String = row.get("category_id");
+        let brand: String = row.get("brand");
+        let name: String = row.get("name");
+        let created_at: i64 = row.get("created_at");
+        let updated_at: i64 = row.get("updated_at");
+        let deleted_at: Option<i64> = row.get("deleted_at");
+        let product = row_to_product(
+            &id,
+            &category_id,
+            &brand,
+            &name,
+            created_at,
+            updated_at,
+            deleted_at,
+        )?;
+        out.push(product);
+    }
+    Ok(out)
+}
+
 /// Fetch all active products, optionally filtered by category and/or search on name/brand.
 ///
 /// - `category_id`: if `Some`, only products in that category.
@@ -430,23 +482,26 @@ async fn fetch_all_products_with_relations_raw(
     Ok(enriched)
 }
 
-/// Filter products in memory by `category_id`, search term (substring on name and brand, case-insensitive),
-/// and `deleted_at` when `include_deleted` is false.
+/// Filter products in memory by `category_ids` (when Some, product's category must be in the set),
+/// search term (substring on name and brand, case-insensitive), and `deleted_at` when
+/// `include_deleted` is false.
 fn filter_products(
     list: &[ProductWithRelations],
-    category_id: Option<Uuid>,
+    category_ids: Option<&[Uuid]>,
     q: Option<&str>,
     include_deleted: bool,
 ) -> Vec<ProductWithRelations> {
     let search = q.map(str::trim).filter(|s| !s.is_empty());
     let q_lower = search.map(str::to_lowercase);
+    let category_set: Option<std::collections::HashSet<Uuid>> =
+        category_ids.map(|ids| ids.iter().copied().collect());
     list.iter()
         .filter(|p| {
             if !include_deleted && p.deleted_at.is_some() {
                 return false;
             }
-            if let Some(ref cid) = category_id
-                && p.category_id != *cid
+            if let Some(ref set) = category_set
+                && !set.contains(&p.category_id)
             {
                 return false;
             }
@@ -463,24 +518,27 @@ fn filter_products(
         .collect()
 }
 
-/// List products with category name, optionally filtered by category and/or search. Excludes
-/// soft-deleted unless `include_deleted`. When cache is enabled, uses cached full list and filters
-/// in memory.
+/// List products with category name, optionally filtered by category set and/or search.
+///
+/// When `category_ids` is `Some(ids)`, only products whose category is in `ids` are returned
+/// (e.g. from [`crate::db::category::get_category_and_descendant_ids`]). Excludes soft-deleted
+/// unless `include_deleted`. When cache is enabled, uses cached full list and filters in memory.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
 pub async fn list_with_relations(
     pool: &SqlitePool,
-    category_id: Option<Uuid>,
+    category_ids: Option<Vec<Uuid>>,
     q: Option<&str>,
     include_deleted: bool,
 ) -> Result<Vec<ProductWithRelations>, crate::db::DbError> {
+    let cat_ids_ref = category_ids.as_deref();
     if use_cache()
         && let Ok(guard) = product_list_cache().read()
         && let Some(ref list) = *guard
     {
-        return Ok(filter_products(list, category_id, q, include_deleted));
+        return Ok(filter_products(list, cat_ids_ref, q, include_deleted));
     }
 
     let list = fetch_all_products_with_relations_raw(pool).await?;
@@ -491,7 +549,7 @@ pub async fn list_with_relations(
         *guard = Some(list.clone());
     }
 
-    Ok(filter_products(&list, category_id, q, include_deleted))
+    Ok(filter_products(&list, cat_ids_ref, q, include_deleted))
 }
 
 /// Fetch a product by id (active only) with category name.
