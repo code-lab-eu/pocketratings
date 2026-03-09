@@ -74,20 +74,6 @@ round-trip for the category row).
 - Document in [api.md](api.md) if response behaviour changes; update
   backend cache docs/tests.
 
-### 5. API layer: enforce no database code [BE]
-
-**2 sp.** Ensure the API module stays free of database logic. No
-`sqlx::SqlitePool` or direct DB calls in `backend/src/api/`.
-
-**Tasks:**
-- Add a test (or static check) that fails if any file under `backend/src/api/`
-  references `sqlx::SqlitePool` or `sqlx::` in a way that indicates DB access
-  (e.g. pool parameters, `sqlx::query`, etc.). Exclude allowed uses (e.g.
-  error mapping that matches on `sqlx::Error`, or test helpers that need a
-  pool) if documented.
-- Resolve any existing violations by moving DB logic to the DB or service
-  layer so the API only calls into that layer and maps responses.
-
 ### 6. Frontend: require 2 spaces indentation [FE] - DONE
 
 **2 sp.** Standardise frontend code on 2 spaces for indentation instead of
@@ -230,3 +216,7 @@ Ideas to revisit later (v2 or when requirements grow). No commitment to order.
   average ratings by category, price tracking.
 - **Barcode scanning** — Product lookup via barcode (browser API; spec lists as
   non-goal for v1; fallback to manual entry).
+- **DB layer: global/singleton pool** — Encapsulate the database inside the
+  `db` module by having it own the pool in a process-wide global (e.g.
+  `db::init(path)` at startup; API/CLI call `db::category::get_by_id(id)` with
+  no db parameter). Revisit when multi-DB support becomes a priority.
