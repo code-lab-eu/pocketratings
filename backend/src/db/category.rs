@@ -22,8 +22,14 @@ pub struct Ancestor {
 /// Maximum depth for "category + descendants" when listing products (API and CLI cap).
 pub const MAX_CATEGORY_DEPTH: u8 = 5;
 
-/// Cache entry: full category list, precomputed ancestor chains, and full tree for descendant resolution.
-type CategoryCacheEntry = (Vec<Category>, HashMap<Uuid, Vec<Ancestor>>, Categories);
+/// Cache entry: full category list, precomputed ancestor chains, full tree for descendant
+/// resolution, and id-to-index map for O(1) `get_by_id` when warm.
+type CategoryCacheEntry = (
+    Vec<Category>,
+    HashMap<Uuid, Vec<Ancestor>>,
+    Categories,
+    HashMap<Uuid, usize>,
+);
 
 /// True when the process is the production binary (`main()` has run). False in test binaries so the
 /// cache is off unless a test explicitly enables it via [`set_use_category_list_cache_for_test`].
@@ -80,8 +86,10 @@ fn build_ancestor_map(list: &[Category]) -> HashMap<Uuid, Vec<Ancestor>> {
     out
 }
 
-/// Module-level cache for the full category list (including deleted) and ancestor map.
-/// Used by `get_all(..., include_deleted)` and `get_ancestors`.
+/// Module-level cache for the full category list (including deleted), ancestor map, tree, and
+/// id-to-index map. Used by `get_all(..., include_deleted)`, `get_ancestors`,
+/// `get_category_and_descendant_ids`, and `get_by_id`. When the cache is warm, `get_by_id` looks
+/// up the category via the id-to-index map (no DB round-trip; active-only semantics preserved).
 ///
 /// **Disabled in test builds by default:** The cache is a single process-wide static. Unrelated
 /// tests run in parallel with their own DBs; we bypass the cache so they don't see each other's
@@ -105,7 +113,8 @@ pub fn set_category_list_cache_for_test(list: Option<Vec<Category>>) {
     let entry = list.map(|l| {
         let map = build_ancestor_map(&l);
         let tree = Categories::from_list(l.clone(), None, None, true);
-        (l, map, tree)
+        let by_id: HashMap<Uuid, usize> = l.iter().enumerate().map(|(i, c)| (c.id(), i)).collect();
+        (l, map, tree, by_id)
     });
     let _ = category_list_cache().write().map(|mut g| *g = entry);
 }
@@ -275,7 +284,8 @@ fn row_to_category(
     .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
 
-/// Fetch a category by id (active only).
+/// Fetch a category by id (active only). When the category list cache is warm, the category
+/// row is read from the cache via the id-to-index map (no DB round-trip).
 ///
 /// # Errors
 ///
@@ -284,6 +294,19 @@ pub async fn get_by_id(
     pool: &SqlitePool,
     id: Uuid,
 ) -> Result<Option<Category>, crate::db::DbError> {
+    if use_cache()
+        && let Ok(guard) = category_list_cache().read()
+        && let Some((ref list, _, _, ref by_id)) = *guard
+    {
+        if let Some(&index) = by_id.get(&id)
+            && let Some(c) = list.get(index)
+            && c.is_active()
+        {
+            return Ok(Some(c.clone()));
+        }
+        return Ok(None);
+    }
+
     let id_str = id.to_string();
     let row = sqlx::query(
         "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE id = ? AND deleted_at IS NULL",
@@ -399,7 +422,7 @@ pub async fn get_all(
 ) -> Result<Vec<Category>, crate::db::DbError> {
     if use_cache()
         && let Ok(guard) = category_list_cache().read()
-        && let Some((ref list, _, _)) = *guard
+        && let Some((ref list, _, _, _)) = *guard
     {
         return Ok(if include_deleted {
             list.clone()
@@ -415,7 +438,9 @@ pub async fn get_all(
     {
         let ancestors = build_ancestor_map(&list);
         let tree = Categories::from_list(list.clone(), None, None, true);
-        *guard = Some((list.clone(), ancestors, tree));
+        let by_id: HashMap<Uuid, usize> =
+            list.iter().enumerate().map(|(i, c)| (c.id(), i)).collect();
+        *guard = Some((list.clone(), ancestors, tree, by_id));
     }
 
     Ok(if include_deleted {
@@ -437,13 +462,13 @@ pub async fn get_ancestors(
 ) -> Result<Vec<Ancestor>, crate::db::DbError> {
     if use_cache() {
         if let Ok(guard) = category_list_cache().read()
-            && let Some((_, ref ancestors, _)) = *guard
+            && let Some((_, ref ancestors, _, _)) = *guard
         {
             return Ok(ancestors.get(&id).cloned().unwrap_or_default());
         }
         get_all(pool, true).await?;
         if let Ok(guard) = category_list_cache().read()
-            && let Some((_, ref ancestors, _)) = *guard
+            && let Some((_, ref ancestors, _, _)) = *guard
         {
             return Ok(ancestors.get(&id).cloned().unwrap_or_default());
         }
@@ -470,7 +495,7 @@ pub async fn get_category_and_descendant_ids(
     let depth = std::cmp::min(max_depth, MAX_CATEGORY_DEPTH);
     if use_cache() {
         if let Ok(guard) = category_list_cache().read()
-            && let Some((ref list, _, ref tree)) = *guard
+            && let Some((ref list, _, ref tree, _)) = *guard
         {
             let ids = tree
                 .find_subtree_by_id(category_id)
@@ -480,7 +505,7 @@ pub async fn get_category_and_descendant_ids(
         }
         get_all(pool, true).await?;
         if let Ok(guard) = category_list_cache().read()
-            && let Some((ref list, _, ref tree)) = *guard
+            && let Some((ref list, _, ref tree, _)) = *guard
         {
             let ids = tree
                 .find_subtree_by_id(category_id)

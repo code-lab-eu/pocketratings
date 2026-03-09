@@ -483,6 +483,54 @@ async fn category_list_cache_invalidated_after_hard_delete() {
     );
 }
 
+#[tokio::test]
+#[serial]
+async fn category_get_by_id_uses_cache_when_warm() {
+    db::category::clear_category_list_cache();
+    db::category::set_use_category_list_cache_for_test(true);
+    let _guard = CacheTestGuard;
+
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("category_get_by_id_cache.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let active_id = Uuid::new_v4();
+    let active =
+        Category::new(active_id, None, "ActiveCached".to_string(), 1, 1, None).expect("valid");
+    let deleted_id = Uuid::new_v4();
+    let deleted =
+        Category::new(deleted_id, None, "DeletedCached".to_string(), 1, 1, Some(2)).expect("valid");
+    db::category::set_category_list_cache_for_test(Some(vec![active.clone(), deleted.clone()]));
+
+    let got = db::category::get_by_id(&pool, active_id)
+        .await
+        .expect("get_by_id");
+    assert_eq!(
+        got.as_ref().map(Category::name),
+        Some("ActiveCached"),
+        "get_by_id must return active category from cache without DB"
+    );
+
+    let got_deleted = db::category::get_by_id(&pool, deleted_id)
+        .await
+        .expect("get_by_id");
+    assert!(
+        got_deleted.is_none(),
+        "get_by_id must return None for soft-deleted category in cache"
+    );
+
+    let unknown_id = Uuid::new_v4();
+    let got_unknown = db::category::get_by_id(&pool, unknown_id)
+        .await
+        .expect("get_by_id");
+    assert!(
+        got_unknown.is_none(),
+        "get_by_id must return None for id not in cache"
+    );
+}
+
 struct CacheTestGuard;
 
 impl Drop for CacheTestGuard {

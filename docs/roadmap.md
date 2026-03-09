@@ -58,7 +58,7 @@ refetch), without requiring form submit.
   types; optional debounce (e.g. 300 ms). Client-side navigation, no full
   reload.
 
-### 4. Category cache: O(1) id-based lookup [BE]
+### 4. Category cache: O(1) id-based lookup [BE] - DONE
 
 **2 sp.** Add id→category lookup to the category list cache so GET
 `/api/v1/categories/:id` can be served from cache when warm (no DB
@@ -196,6 +196,31 @@ breadcrumb component so behaviour and styling stay consistent.
   classes and aria. Prefer extraction if it keeps a single source of truth.
 - Replace the product page "← Home" link with the full breadcrumb nav.
 - Update [spec.md](spec.md) if product page navigation is described there.
+
+### 13. DB get_by_id: support retrieving soft-deleted entities [BE]
+
+**2 sp.** Today, `get_by_id` (and `get_by_id_with_relations` where present) exclude
+soft-deleted rows in all six entity modules (category, product, user, location,
+purchase, review). There is no standard way to load a soft-deleted entity by ID
+(e.g. for restore, audit, or admin "show deleted"). List-style functions already
+use `include_deleted: bool`; get-by-id does not.
+
+**Tasks:**
+- Refactor so callers can retrieve any entity by ID (including soft-deleted)
+  without changing API or CLI behaviour. Options: (1) add
+  `include_deleted: bool` (default false) to `get_by_id` and
+  `get_by_id_with_relations` so existing callers keep active-only semantics and
+  new code can pass `true`; or (2) make get-by-id return all rows and have API/CLI
+  treat soft-deleted as not found (single consistent check at call sites).
+- Apply the same convention to all entity types: category, product, user,
+  location, purchase, review (and relation variants where they exist).
+- Category cache: when serving get_by_id from cache, honour the same
+  include_deleted semantics so behaviour is consistent with the DB path.
+- Update tests that assert "get_by_id must exclude soft-deleted" to match the
+  chosen design; add tests that verify soft-deleted entities can be retrieved
+  when requested.
+- Document the chosen contract in the db module docs (and [api.md](api.md) only
+  if REST behaviour or docs reference it).
 
 ---
 
