@@ -194,6 +194,23 @@ products cache.
   product data; remove any separate fetch to `/api/v1/reviews` for list
   display. Update [spec.md](spec.md) if list behaviour is specified there.
 
+### 12. Product page: breadcrumbs with full category path [FE]
+
+**2 sp.** On the product page, show breadcrumbs for the full category path
+(Home → ancestor categories → current category → product name), matching the
+pattern used on category pages. Reuse the same markup or extract a shared
+breadcrumb component so behaviour and styling stay consistent.
+
+**Tasks:**
+- Product API already returns `product.category.ancestors`; use it to render
+  Home → ancestors (reversed) → category name → product (current page).
+- Reuse category-page breadcrumb code: either extract a small `Breadcrumb`
+  component (e.g. accepts segments or category + current label) used by both
+  category and product pages, or duplicate the nav structure with the same
+  classes and aria. Prefer extraction if it keeps a single source of truth.
+- Replace the product page "← Home" link with the full breadcrumb nav.
+- Update [spec.md](spec.md) if product page navigation is described there.
+
 ---
 
 ## Distant future
