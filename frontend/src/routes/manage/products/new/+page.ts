@@ -2,15 +2,15 @@ import type { PageLoad } from './$types';
 import { listCategories } from '$lib/api';
 
 export const load: PageLoad = async ({ url }) => {
-	const categoryId = url.searchParams.get('category_id') ?? null;
-	try {
-		const categories = await listCategories();
-		return { categories, categoryId, error: null };
-	} catch (e) {
-		return {
-			categories: [],
-			categoryId,
-			error: e instanceof Error ? e.message : String(e)
-		};
-	}
+  const categoryId = url.searchParams.get('category_id') ?? null;
+  try {
+    const categories = await listCategories();
+    return { categories, categoryId, error: null };
+  } catch (e) {
+    return {
+      categories: [],
+      categoryId,
+      error: e instanceof Error ? e.message : String(e)
+    };
+  }
 };

@@ -88,7 +88,7 @@ round-trip for the category row).
 - Resolve any existing violations by moving DB logic to the DB or service
   layer so the API only calls into that layer and maps responses.
 
-### 6. Frontend: require 2 spaces indentation [FE]
+### 6. Frontend: require 2 spaces indentation [FE] - DONE
 
 **2 sp.** Standardise frontend code on 2 spaces for indentation instead of
 tabs, so diffs and terminal viewing are consistent.

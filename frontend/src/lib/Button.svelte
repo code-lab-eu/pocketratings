@@ -1,45 +1,45 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+  import type { Snippet } from 'svelte';
 
-	type Variant = 'primary' | 'secondary' | 'link';
+  type Variant = 'primary' | 'secondary' | 'link';
 
-	interface Props {
-		variant?: Variant;
-		href?: string;
-		type?: 'button' | 'submit' | 'reset';
-		disabled?: boolean;
-		class?: string;
-		children?: Snippet;
-	}
+  interface Props {
+    variant?: Variant;
+    href?: string;
+    type?: 'button' | 'submit' | 'reset';
+    disabled?: boolean;
+    class?: string;
+    children?: Snippet;
+  }
 
-	let {
-		variant = 'primary',
-		href,
-		type = 'button',
-		disabled = false,
-		class: className = '',
-		children
-	}: Props = $props();
+  let {
+    variant = 'primary',
+    href,
+    type = 'button',
+    disabled = false,
+    class: className = '',
+    children
+  }: Props = $props();
 
-	const baseClass = $derived(
-		variant === 'secondary'
-			? 'pr-btn-secondary'
-			: variant === 'link'
-				? 'pr-link-inline'
-				: 'pr-btn-primary'
-	);
+  const baseClass = $derived(
+    variant === 'secondary'
+      ? 'pr-btn-secondary'
+      : variant === 'link'
+        ? 'pr-link-inline'
+        : 'pr-btn-primary'
+  );
 
-	const classes = $derived(className ? `${baseClass} ${className}` : baseClass);
+  const classes = $derived(className ? `${baseClass} ${className}` : baseClass);
 </script>
 
 {#if href}
-	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is already resolved at callsites or may be external; this component cannot safely call resolve() -->
-	<a href={href} class={classes}>
-		{@render children?.()}
-	</a>
+  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is already resolved at callsites or may be external; this component cannot safely call resolve() -->
+  <a href={href} class={classes}>
+    {@render children?.()}
+  </a>
 {:else}
-	<button type={type} disabled={disabled} class={classes}>
-		{@render children?.()}
-	</button>
+  <button type={type} disabled={disabled} class={classes}>
+    {@render children?.()}
+  </button>
 {/if}
 

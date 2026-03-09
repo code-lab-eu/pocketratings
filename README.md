@@ -22,7 +22,7 @@ you paid.
 
 ## Prerequisites
 
-- **Rust** (stable, 1.85+ for edition 2024)
+- **Rust** (stable, 1.85+)
 - **Bun** (latest)
 - **Node.js** 24 LTS
 
@@ -36,11 +36,9 @@ cd backend
 cp .env.example .env
 ```
 
-Edit `.env` to set at least `JWT_SECRET` (required). You can change
-`DB_PATH` and `BIND` if needed. The backend loads `.env` from its current
-working directory, so run the backend from `backend/` (e.g. `cargo run`).
-In production, set the variables in the environment instead of using a
-file.
+Edit `.env` to set at least `JWT_SECRET` (required). Run the backend from
+`backend/` so it finds `.env`. In production, set the variables in the
+environment instead of using a file.
 
 ## Building for production
 
@@ -60,9 +58,6 @@ cd frontend
 bun install
 bun run build
 ```
-
-The built site output location depends on the Svelte setup (e.g.
-`frontend/build` for SvelteKit static build).
 
 ## Development
 
@@ -100,10 +95,7 @@ The dev server will start at `http://localhost:3000`.
 ## Lint
 
 ```bash
-# Backend (all targets: lib, bin, tests, examples)
 cd backend && cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings
-
-# Frontend
 cd frontend && bun run lint
 ```
 
@@ -112,10 +104,7 @@ cd frontend && bun run lint
 Run tests for both backend and frontend:
 
 ```bash
-# Backend
 cd backend && cargo test --release
-
-# Frontend (Vitest: unit and component tests)
 cd frontend && bun run test
 ```
 
@@ -129,11 +118,8 @@ a git hook so it runs before every push:
 ln -sf ../../scripts/pre-push.sh .git/hooks/pre-push
 ```
 
-Backend coverage requires `cargo-llvm-cov`; install with
-`cargo install cargo-llvm-cov`. To run only backend coverage:
-`./scripts/backend-coverage.sh`. To list files by uncovered lines (for
-adding tests): run coverage first, then
-`python3 scripts/backend-coverage-report.py backend/lcov.info`.
+Backend coverage (run by the pre-push script) requires
+`cargo install cargo-llvm-cov`.
 
 ## Running with Docker / Podman
 
@@ -237,9 +223,8 @@ docker compose exec backend cat /data/pocketratings.db \
      alpine sh -c "cp /backup/backup-YYYYMMDD-HHMMSS.db /data/pocketratings.db \
        && chown 1000:1000 /data/pocketratings.db"
    ```
-   For Podman use `podman run`. Replace `backup-YYYYMMDD-HHMMSS.db` with
-   your backup filename. The volume name is `pocketratings_pocketratings_db`
-   (Compose project prefix + volume name from compose.yaml).
+For Podman use `podman run`. Replace `backup-YYYYMMDD-HHMMSS.db` with
+your backup filename. The volume name is `pocketratings_pocketratings_db`.
 
 3. Start the backend again:
    ```bash

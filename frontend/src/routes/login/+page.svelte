@@ -1,87 +1,87 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { resolve } from '$app/paths';
-	import { getToken, setToken } from '$lib/auth';
-	import { login } from '$lib/api';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { resolve } from '$app/paths';
+  import { getToken, setToken } from '$lib/auth';
+  import { login } from '$lib/api';
 
-	let email = $state('');
-	let password = $state('');
-	let error = $state('');
-	let loading = $state(false);
+  let email = $state('');
+  let password = $state('');
+  let error = $state('');
+  let loading = $state(false);
 
-	const sessionExpired = $derived($page?.url?.searchParams?.get('expired') === '1');
+  const sessionExpired = $derived($page?.url?.searchParams?.get('expired') === '1');
 
-	// If already logged in, go home (client-only)
-	$effect(() => {
-		if (typeof window !== 'undefined' && getToken()) {
-			goto(resolve('/'));
-		}
-	});
+  // If already logged in, go home (client-only)
+  $effect(() => {
+    if (typeof window !== 'undefined' && getToken()) {
+      goto(resolve('/'));
+    }
+  });
 
-	async function handleSubmit(e: Event) {
-		e.preventDefault();
-		error = '';
-		loading = true;
-		try {
-			const { token } = await login(email, password);
-			setToken(token);
-			goto(resolve('/'));
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Login failed';
-		} finally {
-			loading = false;
-		}
-	}
+  async function handleSubmit(e: Event) {
+    e.preventDefault();
+    error = '';
+    loading = true;
+    try {
+      const { token } = await login(email, password);
+      setToken(token);
+      goto(resolve('/'));
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Login failed';
+    } finally {
+      loading = false;
+    }
+  }
 </script>
 
 <svelte:head>
-	<title>Login — Pocket Ratings</title>
+  <title>Login — Pocket Ratings</title>
 </svelte:head>
 
 <main class="mx-auto max-w-sm px-4 py-12">
-	<h1 class="pr-heading-page mb-6">Pocket Ratings</h1>
-	{#if sessionExpired}
-		<p class="mb-4 text-sm text-amber-700 dark:text-amber-300" role="alert">
-			Session expired. Please sign in again.
-		</p>
-	{/if}
-	<p class="mb-6 pr-text-muted">
-		Sign in to view your categories and product ratings.
-	</p>
+  <h1 class="pr-heading-page mb-6">Pocket Ratings</h1>
+  {#if sessionExpired}
+    <p class="mb-4 text-sm text-amber-700 dark:text-amber-300" role="alert">
+      Session expired. Please sign in again.
+    </p>
+  {/if}
+  <p class="mb-6 pr-text-muted">
+    Sign in to view your categories and product ratings.
+  </p>
 
-	<form onsubmit={handleSubmit} class="space-y-4">
-		<div>
-			<label for="email" class="mb-1 block pr-text-label">Email</label>
-			<input
-				id="email"
-				type="email"
-				required
-				autocomplete="email"
-				bind:value={email}
-				class="pr-input"
-			/>
-		</div>
-		<div>
-			<label for="password" class="mb-1 block pr-text-label">Password</label>
-			<input
-				id="password"
-				type="password"
-				required
-				autocomplete="current-password"
-				bind:value={password}
-				class="pr-input"
-			/>
-		</div>
-		{#if error}
-			<p class="text-sm text-red-600 dark:text-red-300" role="alert">{error}</p>
-		{/if}
-		<button
-			type="submit"
-			disabled={loading}
-			class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-		>
-			{loading ? 'Signing in…' : 'Sign in'}
-		</button>
-	</form>
+  <form onsubmit={handleSubmit} class="space-y-4">
+    <div>
+      <label for="email" class="mb-1 block pr-text-label">Email</label>
+      <input
+        id="email"
+        type="email"
+        required
+        autocomplete="email"
+        bind:value={email}
+        class="pr-input"
+      />
+    </div>
+    <div>
+      <label for="password" class="mb-1 block pr-text-label">Password</label>
+      <input
+        id="password"
+        type="password"
+        required
+        autocomplete="current-password"
+        bind:value={password}
+        class="pr-input"
+      />
+    </div>
+    {#if error}
+      <p class="text-sm text-red-600 dark:text-red-300" role="alert">{error}</p>
+    {/if}
+    <button
+      type="submit"
+      disabled={loading}
+      class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+    >
+      {loading ? 'Signing in…' : 'Sign in'}
+    </button>
+  </form>
 </main>
