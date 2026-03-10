@@ -88,8 +88,9 @@ fn build_ancestor_map(list: &[Category]) -> HashMap<Uuid, Vec<Ancestor>> {
 
 /// Module-level cache for the full category list (including deleted), ancestor map, tree, and
 /// id-to-index map. Used by `get_all(..., include_deleted)`, `get_ancestors`,
-/// `get_category_and_descendant_ids`, and `get_by_id`. When the cache is warm, `get_by_id` looks
-/// up the category via the id-to-index map (no DB round-trip; active-only semantics preserved).
+/// `get_category_and_descendant_ids`, and `get_by_id`. When the cache is warm, `get_by_id(..., include_deleted)`
+/// looks up the category via the id-to-index map (no DB round-trip) and honours `include_deleted`:
+/// returns the category when active or when `include_deleted` is true.
 ///
 /// **Disabled in test builds by default:** The cache is a single process-wide static. Unrelated
 /// tests run in parallel with their own DBs; we bypass the cache so they don't see each other's
@@ -284,8 +285,13 @@ fn row_to_category(
     .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
 
-/// Fetch a category by id (active only). When the category list cache is warm, the category
-/// row is read from the cache via the id-to-index map (no DB round-trip).
+/// Fetch a category by id.
+///
+/// When `include_deleted` is `false`, only active categories (`deleted_at` IS NULL) are returned.
+/// When `true`, the row may be soft-deleted.
+///
+/// When the category list cache is warm, the category is read from the cache via the id-to-index
+/// map (no DB round-trip); the cache honours `include_deleted`.
 ///
 /// # Errors
 ///
@@ -293,27 +299,36 @@ fn row_to_category(
 pub async fn get_by_id(
     pool: &SqlitePool,
     id: Uuid,
+    include_deleted: bool,
 ) -> Result<Option<Category>, crate::db::DbError> {
     if use_cache()
         && let Ok(guard) = category_list_cache().read()
         && let Some((ref list, _, _, ref by_id)) = *guard
+        && let Some(&index) = by_id.get(&id)
+        && let Some(c) = list.get(index)
     {
-        if let Some(&index) = by_id.get(&id)
-            && let Some(c) = list.get(index)
-            && c.is_active()
-        {
+        if include_deleted || c.is_active() {
             return Ok(Some(c.clone()));
         }
         return Ok(None);
     }
 
     let id_str = id.to_string();
-    let row = sqlx::query(
-        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE id = ? AND deleted_at IS NULL",
-    )
-    .bind(&id_str)
-    .fetch_optional(pool)
-    .await?;
+    let row = if include_deleted {
+        sqlx::query(
+            "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE id = ?",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    } else {
+        sqlx::query(
+            "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE id = ? AND deleted_at IS NULL",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    };
 
     let Some(row) = row else {
         return Ok(None);
@@ -346,13 +361,13 @@ pub async fn get_parent(
     pool: &SqlitePool,
     category_id: Uuid,
 ) -> Result<Option<Category>, crate::db::DbError> {
-    let Some(cat) = get_by_id(pool, category_id).await? else {
+    let Some(cat) = get_by_id(pool, category_id, false).await? else {
         return Ok(None);
     };
     let Some(pid) = cat.parent_id() else {
         return Ok(None);
     };
-    get_by_id(pool, pid).await
+    get_by_id(pool, pid, false).await
 }
 
 /// Fetch direct children of a category, or root categories when `parent_id` is `None` (active only).

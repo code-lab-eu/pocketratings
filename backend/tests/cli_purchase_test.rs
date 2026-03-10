@@ -381,7 +381,7 @@ async fn purchase_delete_soft_deletes() {
     let (del_result, _, del_stderr) = run_purchase(&pool, &["purchase", "delete", &id]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let by_id = db::purchase::get_by_id(&pool, id_uuid)
+    let by_id = db::purchase::get_by_id(&pool, id_uuid, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
@@ -499,7 +499,7 @@ async fn purchase_delete_force_removes_row() {
         run_purchase(&pool, &["purchase", "delete", &id, "--force"]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let by_id = db::purchase::get_by_id(&pool, id_uuid)
+    let by_id = db::purchase::get_by_id(&pool, id_uuid, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());

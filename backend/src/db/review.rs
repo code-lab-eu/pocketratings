@@ -111,19 +111,35 @@ fn row_to_review(
     .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
 
-/// Fetch a review by id (active only).
+/// Fetch a review by id.
+///
+/// When `include_deleted` is `false`, only active reviews (`deleted_at` IS NULL) are returned.
+/// When `true`, the row may be soft-deleted.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Option<Review>, crate::db::DbError> {
+pub async fn get_by_id(
+    pool: &SqlitePool,
+    id: Uuid,
+    include_deleted: bool,
+) -> Result<Option<Review>, crate::db::DbError> {
     let id_str = id.to_string();
-    let row = sqlx::query(
-        "SELECT id, product_id, user_id, rating, text, created_at, updated_at, deleted_at FROM reviews WHERE id = ? AND deleted_at IS NULL",
-    )
-    .bind(&id_str)
-    .fetch_optional(pool)
-    .await?;
+    let row = if include_deleted {
+        sqlx::query(
+            "SELECT id, product_id, user_id, rating, text, created_at, updated_at, deleted_at FROM reviews WHERE id = ?",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    } else {
+        sqlx::query(
+            "SELECT id, product_id, user_id, rating, text, created_at, updated_at, deleted_at FROM reviews WHERE id = ? AND deleted_at IS NULL",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    };
 
     let Some(row) = row else {
         return Ok(None);
@@ -357,7 +373,10 @@ pub async fn list_with_relations(
     Ok(filter_reviews(&list, product_id, user_id, include_deleted))
 }
 
-/// Fetch a review by id (active only) with user and product names.
+/// Fetch a review by id with user and product names.
+///
+/// When `include_deleted` is `false`, only active reviews are returned. When `true`, the row
+/// may be soft-deleted.
 ///
 /// # Errors
 ///
@@ -365,10 +384,14 @@ pub async fn list_with_relations(
 pub async fn get_by_id_with_relations(
     pool: &SqlitePool,
     id: Uuid,
+    include_deleted: bool,
 ) -> Result<Option<ReviewWithRelations>, crate::db::DbError> {
     let id_str = id.to_string();
-    let sql =
-        format!("{REVIEW_JOIN_SELECT} {REVIEW_JOIN_FROM} WHERE r.id = ? AND r.deleted_at IS NULL");
+    let sql = if include_deleted {
+        format!("{REVIEW_JOIN_SELECT} {REVIEW_JOIN_FROM} WHERE r.id = ?")
+    } else {
+        format!("{REVIEW_JOIN_SELECT} {REVIEW_JOIN_FROM} WHERE r.id = ? AND r.deleted_at IS NULL")
+    };
     let row = sqlx::query(&sql).bind(&id_str).fetch_optional(pool).await?;
 
     let Some(row) = row else {

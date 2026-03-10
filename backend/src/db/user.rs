@@ -30,19 +30,35 @@ fn row_to_user(
     .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
 
-/// Fetch a user by id (active only).
+/// Fetch a user by id.
+///
+/// When `include_deleted` is `false`, only active users (`deleted_at` IS NULL) are returned.
+/// When `true`, the row may be soft-deleted.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Option<User>, crate::db::DbError> {
+pub async fn get_by_id(
+    pool: &SqlitePool,
+    id: Uuid,
+    include_deleted: bool,
+) -> Result<Option<User>, crate::db::DbError> {
     let id_str = id.to_string();
-    let row = sqlx::query(
-        "SELECT id, name, email, password, created_at, updated_at, deleted_at FROM users WHERE id = ? AND deleted_at IS NULL",
-    )
-    .bind(&id_str)
-    .fetch_optional(pool)
-    .await?;
+    let row = if include_deleted {
+        sqlx::query(
+            "SELECT id, name, email, password, created_at, updated_at, deleted_at FROM users WHERE id = ?",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    } else {
+        sqlx::query(
+            "SELECT id, name, email, password, created_at, updated_at, deleted_at FROM users WHERE id = ? AND deleted_at IS NULL",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    };
 
     let Some(row) = row else {
         return Ok(None);

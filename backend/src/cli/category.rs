@@ -129,7 +129,7 @@ pub async fn show(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid category id: {id_str}")))?;
 
-    let Some(cat) = db::category::get_by_id(pool, id).await? else {
+    let Some(cat) = db::category::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!(
             "category not found: {id_str}"
         )));
@@ -172,7 +172,7 @@ pub async fn update(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid category id: {id_str}")))?;
 
-    let Some(existing) = db::category::get_by_id(pool, id).await? else {
+    let Some(existing) = db::category::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!(
             "category not found: {id_str}"
         )));

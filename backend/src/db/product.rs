@@ -156,19 +156,35 @@ fn row_to_product(
     .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
 
-/// Fetch a product by id (active only).
+/// Fetch a product by id.
+///
+/// When `include_deleted` is `false`, only active products (`deleted_at` IS NULL) are returned.
+/// When `true`, the row may be soft-deleted.
 ///
 /// # Errors
 ///
 /// Returns [`crate::db::DbError`] on query or row mapping failure.
-pub async fn get_by_id(pool: &SqlitePool, id: Uuid) -> Result<Option<Product>, crate::db::DbError> {
+pub async fn get_by_id(
+    pool: &SqlitePool,
+    id: Uuid,
+    include_deleted: bool,
+) -> Result<Option<Product>, crate::db::DbError> {
     let id_str = id.to_string();
-    let row = sqlx::query(
-        "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE id = ? AND deleted_at IS NULL",
-    )
-    .bind(&id_str)
-    .fetch_optional(pool)
-    .await?;
+    let row = if include_deleted {
+        sqlx::query(
+            "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE id = ?",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    } else {
+        sqlx::query(
+            "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE id = ? AND deleted_at IS NULL",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    };
 
     let Some(row) = row else {
         return Ok(None);
@@ -526,7 +542,10 @@ pub async fn list_with_relations(
     Ok(filter_products(&list, cat_ids_ref, q, include_deleted))
 }
 
-/// Fetch a product by id (active only) with category name.
+/// Fetch a product by id with category name.
+///
+/// When `include_deleted` is `false`, only active products are returned. When `true`, the row
+/// may be soft-deleted.
 ///
 /// # Errors
 ///
@@ -534,15 +553,26 @@ pub async fn list_with_relations(
 pub async fn get_by_id_with_relations(
     pool: &SqlitePool,
     id: Uuid,
+    include_deleted: bool,
 ) -> Result<Option<ProductWithRelations>, crate::db::DbError> {
     let id_str = id.to_string();
-    let row = sqlx::query(
-        "SELECT p.id, p.category_id, p.brand, p.name, p.created_at, p.updated_at, p.deleted_at, c.name AS category_name \
-         FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.deleted_at IS NULL",
-    )
-    .bind(&id_str)
-    .fetch_optional(pool)
-    .await?;
+    let row = if include_deleted {
+        sqlx::query(
+            "SELECT p.id, p.category_id, p.brand, p.name, p.created_at, p.updated_at, p.deleted_at, c.name AS category_name \
+             FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id = ?",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    } else {
+        sqlx::query(
+            "SELECT p.id, p.category_id, p.brand, p.name, p.created_at, p.updated_at, p.deleted_at, c.name AS category_name \
+             FROM products p JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.deleted_at IS NULL",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    };
 
     let Some(row) = row else {
         return Ok(None);

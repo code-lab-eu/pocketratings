@@ -162,7 +162,7 @@ pub async fn get_purchase(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<PurchaseResponse>, ApiError> {
-    let purchase = db::purchase::get_by_id_with_relations(&state.pool, id)
+    let purchase = db::purchase::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let purchase = purchase.ok_or_else(|| ApiError::NotFound("Purchase not found.".to_string()))?;
@@ -175,13 +175,13 @@ pub async fn create_purchase(
     Extension(CurrentUserId(user_id)): Extension<CurrentUserId>,
     Json(body): Json<CreatePurchaseRequest>,
 ) -> Result<(StatusCode, Json<PurchaseResponse>), ApiError> {
-    let product = db::product::get_by_id(&state.pool, body.product_id)
+    let product = db::product::get_by_id(&state.pool, body.product_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     if product.is_none() {
         return Err(ApiError::NotFound("Product not found.".to_string()));
     }
-    let location = db::location::get_by_id(&state.pool, body.location_id)
+    let location = db::location::get_by_id(&state.pool, body.location_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     if location.is_none() {
@@ -219,7 +219,7 @@ pub async fn create_purchase(
     db::purchase::insert(&state.pool, &purchase)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let with_relations = db::purchase::get_by_id_with_relations(&state.pool, id)
+    let with_relations = db::purchase::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .expect("purchase just inserted");
@@ -236,7 +236,7 @@ pub async fn update_purchase(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdatePurchaseRequest>,
 ) -> Result<Json<PurchaseResponse>, ApiError> {
-    let existing = db::purchase::get_by_id(&state.pool, id)
+    let existing = db::purchase::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let existing = existing.ok_or_else(|| ApiError::NotFound("Purchase not found.".to_string()))?;
@@ -279,7 +279,7 @@ pub async fn update_purchase(
     })?;
 
     if body.product_id.is_some()
-        && db::product::get_by_id(&state.pool, product_id)
+        && db::product::get_by_id(&state.pool, product_id, false)
             .await
             .ok()
             .flatten()
@@ -288,7 +288,7 @@ pub async fn update_purchase(
         return Err(ApiError::NotFound("Product not found.".to_string()));
     }
     if body.location_id.is_some()
-        && db::location::get_by_id(&state.pool, location_id)
+        && db::location::get_by_id(&state.pool, location_id, false)
             .await
             .ok()
             .flatten()
@@ -300,7 +300,7 @@ pub async fn update_purchase(
     db::purchase::update(&state.pool, &updated)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let with_relations = db::purchase::get_by_id_with_relations(&state.pool, id)
+    let with_relations = db::purchase::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .expect("purchase just updated");
@@ -314,7 +314,7 @@ pub async fn delete_purchase(
     Path(id): Path<Uuid>,
     Query(q): Query<DeletePurchaseQuery>,
 ) -> Result<StatusCode, ApiError> {
-    let purchase = db::purchase::get_by_id(&state.pool, id)
+    let purchase = db::purchase::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let purchase = purchase.ok_or_else(|| ApiError::NotFound("Purchase not found.".to_string()))?;

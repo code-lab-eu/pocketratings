@@ -39,7 +39,7 @@ pub async fn create(
     let category_id = Uuid::parse_str(category_id_str)
         .map_err(|_| CliError::Validation(format!("invalid category_id: {category_id_str}")))?;
 
-    let Some(_cat) = db::category::get_by_id(pool, category_id).await? else {
+    let Some(_cat) = db::category::get_by_id(pool, category_id, false).await? else {
         return Err(CliError::Validation(format!(
             "category not found: {category_id_str}"
         )));
@@ -171,11 +171,11 @@ pub async fn show(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid product id: {id_str}")))?;
 
-    let Some(product) = db::product::get_by_id(pool, id).await? else {
+    let Some(product) = db::product::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!("product not found: {id_str}")));
     };
 
-    let category = db::category::get_by_id(pool, product.category_id()).await?;
+    let category = db::category::get_by_id(pool, product.category_id(), false).await?;
 
     if output_json {
         let category_name = category.as_ref().map(|c| c.name().to_string());
@@ -217,7 +217,7 @@ pub async fn update(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid product id: {id_str}")))?;
 
-    let Some(existing) = db::product::get_by_id(pool, id).await? else {
+    let Some(existing) = db::product::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!("product not found: {id_str}")));
     };
 

@@ -26,7 +26,7 @@ breadcrumb component so behaviour and styling stay consistent.
 - Replace the product page "← Home" link with the full breadcrumb nav.
 - Update [spec.md](spec.md) if product page navigation is described there.
 
-### 2. DB get_by_id: support retrieving soft-deleted entities [BE]
+### 2. DB get_by_id: support retrieving soft-deleted entities [BE] — DONE
 
 **2 sp.** Today, `get_by_id` (and `get_by_id_with_relations` where present)
 exclude soft-deleted rows in all six entity modules (category, product, user,

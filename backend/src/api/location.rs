@@ -102,7 +102,7 @@ pub async fn get_location(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<LocationResponse>, ApiError> {
-    let location = db::location::get_by_id(&state.pool, id)
+    let location = db::location::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let location = location.ok_or_else(|| ApiError::NotFound("location not found".to_string()))?;
@@ -132,7 +132,7 @@ pub async fn update_location(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateLocationRequest>,
 ) -> Result<Json<LocationResponse>, ApiError> {
-    let existing = db::location::get_by_id(&state.pool, id)
+    let existing = db::location::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let existing = existing.ok_or_else(|| ApiError::NotFound("location not found".to_string()))?;
@@ -166,7 +166,7 @@ pub async fn delete_location(
     Path(id): Path<Uuid>,
     Query(q): Query<DeleteLocationQuery>,
 ) -> Result<StatusCode, ApiError> {
-    let _ = db::location::get_by_id(&state.pool, id)
+    let _ = db::location::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .ok_or_else(|| ApiError::NotFound("location not found".to_string()))?;
@@ -291,7 +291,9 @@ mod tests {
                 .is_none_or(serde_json::Value::is_null)
         );
         let id = Uuid::parse_str(id_str).expect("uuid");
-        let persisted = db::location::get_by_id(&state.pool, id).await.expect("db");
+        let persisted = db::location::get_by_id(&state.pool, id, false)
+            .await
+            .expect("db");
         let persisted = persisted.expect("location in db");
         assert_eq!(persisted.name(), "Supermarket");
         assert_eq!(persisted.id(), id);
@@ -485,7 +487,7 @@ mod tests {
             Some("UpdatedName")
         );
         let uuid = Uuid::parse_str(id).expect("uuid");
-        let persisted = db::location::get_by_id(&state.pool, uuid)
+        let persisted = db::location::get_by_id(&state.pool, uuid, false)
             .await
             .expect("db");
         let persisted = persisted.expect("location in db");
@@ -589,7 +591,7 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        let active = db::location::get_by_id(&state.pool, uuid)
+        let active = db::location::get_by_id(&state.pool, uuid, false)
             .await
             .expect("db");
         assert!(
@@ -644,7 +646,7 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        let active = db::location::get_by_id(&state.pool, uuid)
+        let active = db::location::get_by_id(&state.pool, uuid, false)
             .await
             .expect("db");
         assert!(active.is_none());

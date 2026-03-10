@@ -35,7 +35,7 @@ async fn get_by_id_returns_user_when_present() {
     .await
     .expect("insert user");
 
-    let user = db::user::get_by_id(&pool, id)
+    let user = db::user::get_by_id(&pool, id, false)
         .await
         .expect("get_by_id")
         .expect("user should exist");
@@ -95,7 +95,7 @@ async fn get_by_id_returns_none_for_unknown_id() {
         .await
         .expect("failed to run migrations");
 
-    let result = db::user::get_by_id(&pool, Uuid::new_v4())
+    let result = db::user::get_by_id(&pool, Uuid::new_v4(), false)
         .await
         .expect("get_by_id");
     assert!(result.is_none());
@@ -148,11 +148,22 @@ async fn soft_deleted_user_not_returned_by_get_by_id_or_get_by_email() {
     .await
     .expect("insert user");
 
-    let by_id = db::user::get_by_id(&pool, id).await.expect("get_by_id");
+    let by_id = db::user::get_by_id(&pool, id, false)
+        .await
+        .expect("get_by_id");
     assert!(
         by_id.is_none(),
         "soft-deleted user should not be returned by get_by_id"
     );
+
+    let by_id_incl = db::user::get_by_id(&pool, id, true)
+        .await
+        .expect("get_by_id");
+    assert!(
+        by_id_incl.is_some(),
+        "get_by_id(include_deleted: true) must return soft-deleted user"
+    );
+    assert_eq!(by_id_incl.as_ref().unwrap().name(), "Deleted");
 
     let by_email = db::user::get_by_email(&pool, "deleted@example.com")
         .await
@@ -331,7 +342,9 @@ async fn soft_delete_sets_deleted_at_and_user_not_returned_by_get_by_id() {
 
     db::user::soft_delete(&pool, id).await.expect("soft_delete");
 
-    let got = db::user::get_by_id(&pool, id).await.expect("get_by_id");
+    let got = db::user::get_by_id(&pool, id, false)
+        .await
+        .expect("get_by_id");
     assert!(
         got.is_none(),
         "soft-deleted user should not be returned by get_by_id"
@@ -415,7 +428,9 @@ async fn hard_delete_removes_row_from_database() {
 
     db::user::hard_delete(&pool, id).await.expect("hard_delete");
 
-    let got = db::user::get_by_id(&pool, id).await.expect("get_by_id");
+    let got = db::user::get_by_id(&pool, id, false)
+        .await
+        .expect("get_by_id");
     assert!(got.is_none());
     let all = db::user::list_all(&pool, true).await.expect("list_all");
     assert!(!all.iter().any(|u| u.id() == id));

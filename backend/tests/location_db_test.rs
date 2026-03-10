@@ -20,7 +20,7 @@ async fn location_insert_and_get_by_id_roundtrip() {
         .await
         .expect("insert");
 
-    let loaded = db::location::get_by_id(&pool, loc_id)
+    let loaded = db::location::get_by_id(&pool, loc_id, false)
         .await
         .expect("get_by_id")
         .expect("location should exist");
@@ -82,7 +82,7 @@ async fn location_update_changes_name() {
     let updated = Location::new(loc_id, "NewName".to_string(), None).expect("valid");
     db::location::update(&pool, &updated).await.expect("update");
 
-    let loaded = db::location::get_by_id(&pool, loc_id)
+    let loaded = db::location::get_by_id(&pool, loc_id, false)
         .await
         .expect("get_by_id")
         .expect("should exist");
@@ -108,10 +108,19 @@ async fn location_soft_delete_sets_deleted_at_and_excludes_from_get_by_id() {
         .await
         .expect("soft_delete");
 
-    let by_id = db::location::get_by_id(&pool, loc_id)
+    let by_id = db::location::get_by_id(&pool, loc_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
+
+    let by_id_incl = db::location::get_by_id(&pool, loc_id, true)
+        .await
+        .expect("get_by_id");
+    assert!(
+        by_id_incl.is_some(),
+        "get_by_id(include_deleted: true) must return soft-deleted location"
+    );
+    assert_eq!(by_id_incl.as_ref().unwrap().name(), "ToDelete");
 
     let with_deleted = db::location::get_all(&pool, true)
         .await
@@ -139,7 +148,7 @@ async fn location_hard_delete_removes_row() {
         .await
         .expect("hard_delete");
 
-    let by_id = db::location::get_by_id(&pool, loc_id)
+    let by_id = db::location::get_by_id(&pool, loc_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());

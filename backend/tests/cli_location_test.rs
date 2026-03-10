@@ -193,7 +193,7 @@ async fn location_delete_soft_deletes() {
         run_location(&pool, &["location", "delete", &id]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let location = db::location::get_by_id(&pool, id.parse().expect("uuid"))
+    let location = db::location::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(
@@ -238,7 +238,7 @@ async fn location_delete_force_removes_row() {
         run_location(&pool, &["location", "delete", &id, "--force"]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let location = db::location::get_by_id(&pool, id.parse().expect("uuid"))
+    let location = db::location::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(location.is_none());

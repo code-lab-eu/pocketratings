@@ -31,7 +31,7 @@ async fn resolve_user_id(
         (Some(id), None) => {
             let uuid = Uuid::parse_str(id)
                 .map_err(|_| CliError::Validation(format!("invalid user id: {id}")))?;
-            let user = db::user::get_by_id(pool, uuid).await?;
+            let user = db::user::get_by_id(pool, uuid, false).await?;
             user.map(|u| u.id())
                 .ok_or_else(|| CliError::Validation(format!("user not found: {id}")))
         }
@@ -64,7 +64,7 @@ pub async fn create(
 ) -> Result<(), CliError> {
     let product_id = Uuid::parse_str(product_id_str)
         .map_err(|_| CliError::Validation(format!("invalid product id: {product_id_str}")))?;
-    let Some(_product) = db::product::get_by_id(pool, product_id).await? else {
+    let Some(_product) = db::product::get_by_id(pool, product_id, false).await? else {
         return Err(CliError::Validation(format!(
             "product not found: {product_id_str}"
         )));
@@ -176,7 +176,7 @@ pub async fn show(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid review id: {id_str}")))?;
 
-    let Some(review) = db::review::get_by_id(pool, id).await? else {
+    let Some(review) = db::review::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!("review not found: {id_str}")));
     };
 
@@ -209,7 +209,7 @@ pub async fn update(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid review id: {id_str}")))?;
 
-    let Some(existing) = db::review::get_by_id(pool, id).await? else {
+    let Some(existing) = db::review::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!("review not found: {id_str}")));
     };
 

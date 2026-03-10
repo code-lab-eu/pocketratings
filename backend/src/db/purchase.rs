@@ -62,7 +62,10 @@ fn row_to_purchase(
     .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
 
-/// Fetch a purchase by id (active only).
+/// Fetch a purchase by id.
+///
+/// When `include_deleted` is `false`, only active purchases (`deleted_at` IS NULL) are returned.
+/// When `true`, the row may be soft-deleted.
 ///
 /// # Errors
 ///
@@ -70,14 +73,24 @@ fn row_to_purchase(
 pub async fn get_by_id(
     pool: &SqlitePool,
     id: Uuid,
+    include_deleted: bool,
 ) -> Result<Option<Purchase>, crate::db::DbError> {
     let id_str = id.to_string();
-    let row = sqlx::query(
-        "SELECT id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE id = ? AND deleted_at IS NULL",
-    )
-    .bind(&id_str)
-    .fetch_optional(pool)
-    .await?;
+    let row = if include_deleted {
+        sqlx::query(
+            "SELECT id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE id = ?",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    } else {
+        sqlx::query(
+            "SELECT id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE id = ? AND deleted_at IS NULL",
+        )
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?
+    };
 
     let Some(row) = row else {
         return Ok(None);
@@ -289,7 +302,10 @@ pub async fn list_with_relations(
     Ok(out)
 }
 
-/// Fetch a purchase by id (active only) with user, product, and location names.
+/// Fetch a purchase by id with user, product, and location names.
+///
+/// When `include_deleted` is `false`, only active purchases are returned. When `true`, the row
+/// may be soft-deleted.
 ///
 /// # Errors
 ///
@@ -297,11 +313,16 @@ pub async fn list_with_relations(
 pub async fn get_by_id_with_relations(
     pool: &SqlitePool,
     id: Uuid,
+    include_deleted: bool,
 ) -> Result<Option<PurchaseWithRelations>, crate::db::DbError> {
     let id_str = id.to_string();
-    let sql = format!(
-        "{PURCHASE_JOIN_SELECT} {PURCHASE_JOIN_FROM} WHERE p.id = ? AND p.deleted_at IS NULL"
-    );
+    let sql = if include_deleted {
+        format!("{PURCHASE_JOIN_SELECT} {PURCHASE_JOIN_FROM} WHERE p.id = ?")
+    } else {
+        format!(
+            "{PURCHASE_JOIN_SELECT} {PURCHASE_JOIN_FROM} WHERE p.id = ? AND p.deleted_at IS NULL"
+        )
+    };
     let row = sqlx::query(&sql).bind(&id_str).fetch_optional(pool).await?;
 
     let Some(row) = row else {

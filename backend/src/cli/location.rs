@@ -97,7 +97,7 @@ pub async fn show(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid location id: {id_str}")))?;
 
-    let Some(location) = db::location::get_by_id(pool, id).await? else {
+    let Some(location) = db::location::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!(
             "location not found: {id_str}"
         )));
@@ -128,7 +128,7 @@ pub async fn update(
     let id = Uuid::parse_str(id_str)
         .map_err(|_| CliError::Validation(format!("invalid location id: {id_str}")))?;
 
-    let Some(existing) = db::location::get_by_id(pool, id).await? else {
+    let Some(existing) = db::location::get_by_id(pool, id, false).await? else {
         return Err(CliError::Validation(format!(
             "location not found: {id_str}"
         )));

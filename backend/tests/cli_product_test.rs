@@ -422,7 +422,7 @@ async fn product_delete_soft_deletes() {
         run_product(&pool, &["product", "delete", &id]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let product = db::product::get_by_id(&pool, id.parse().expect("uuid"))
+    let product = db::product::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(
@@ -477,7 +477,7 @@ async fn product_delete_force_removes_row() {
         run_product(&pool, &["product", "delete", &id, "--force"]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let product = db::product::get_by_id(&pool, id.parse().expect("uuid"))
+    let product = db::product::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(product.is_none());

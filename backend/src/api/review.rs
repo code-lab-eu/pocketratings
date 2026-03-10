@@ -144,7 +144,7 @@ pub async fn get_review(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ReviewResponse>, ApiError> {
-    let review = db::review::get_by_id_with_relations(&state.pool, id)
+    let review = db::review::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let review = review.ok_or_else(|| ApiError::NotFound("Review not found.".to_string()))?;
@@ -157,7 +157,7 @@ pub async fn create_review(
     Extension(CurrentUserId(user_id)): Extension<CurrentUserId>,
     Json(body): Json<CreateReviewRequest>,
 ) -> Result<(StatusCode, Json<ReviewResponse>), ApiError> {
-    let product = db::product::get_by_id(&state.pool, body.product_id)
+    let product = db::product::get_by_id(&state.pool, body.product_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     if product.is_none() {
@@ -190,7 +190,7 @@ pub async fn create_review(
     db::review::insert(&state.pool, &review)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let with_relations = db::review::get_by_id_with_relations(&state.pool, id)
+    let with_relations = db::review::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .expect("review just inserted");
@@ -207,7 +207,7 @@ pub async fn update_review(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateReviewRequest>,
 ) -> Result<Json<ReviewResponse>, ApiError> {
-    let existing = db::review::get_by_id(&state.pool, id)
+    let existing = db::review::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let existing = existing.ok_or_else(|| ApiError::NotFound("Review not found.".to_string()))?;
@@ -227,7 +227,7 @@ pub async fn update_review(
         .or_else(|| existing.text().map(std::string::ToString::to_string));
 
     if existing.rating() == rating && existing.text() == text.as_deref() {
-        let with_relations = db::review::get_by_id_with_relations(&state.pool, id)
+        let with_relations = db::review::get_by_id_with_relations(&state.pool, id, false)
             .await
             .map_err(|e| map_db_error(&e))?
             .expect("review exists");
@@ -255,7 +255,7 @@ pub async fn update_review(
     db::review::update(&state.pool, &updated)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let with_relations = db::review::get_by_id_with_relations(&state.pool, id)
+    let with_relations = db::review::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .expect("review just updated");
@@ -269,7 +269,7 @@ pub async fn delete_review(
     Path(id): Path<Uuid>,
     Query(q): Query<DeleteReviewQuery>,
 ) -> Result<StatusCode, ApiError> {
-    let review = db::review::get_by_id(&state.pool, id)
+    let review = db::review::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let review = review.ok_or_else(|| ApiError::NotFound("Review not found.".to_string()))?;
@@ -690,7 +690,9 @@ mod tests {
         );
         let id_str = json.get("id").and_then(|v| v.as_str()).expect("id");
         let id = Uuid::parse_str(id_str).expect("uuid");
-        let persisted = db::review::get_by_id(&state.pool, id).await.expect("db");
+        let persisted = db::review::get_by_id(&state.pool, id, false)
+            .await
+            .expect("db");
         let persisted = persisted.expect("review in db");
         assert_eq!(persisted.product_id(), product_id);
         assert_eq!(persisted.user_id(), user_id);
@@ -815,7 +817,9 @@ mod tests {
         );
         assert_eq!(json.get("text").and_then(|v| v.as_str()), Some("Updated"));
         let uuid = Uuid::parse_str(id).expect("uuid");
-        let persisted = db::review::get_by_id(&state.pool, uuid).await.expect("db");
+        let persisted = db::review::get_by_id(&state.pool, uuid, false)
+            .await
+            .expect("db");
         let persisted = persisted.expect("review in db");
         assert_eq!(persisted.rating(), Decimal::from(5));
         assert_eq!(persisted.text(), Some("Updated"));
@@ -1034,7 +1038,9 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        let get_result = db::review::get_by_id(&state.pool, uuid).await.expect("db");
+        let get_result = db::review::get_by_id(&state.pool, uuid, false)
+            .await
+            .expect("db");
         assert!(get_result.is_none(), "get_by_id must exclude soft-deleted");
         let list = db::review::list(&state.pool, None, Some(user_id), false)
             .await

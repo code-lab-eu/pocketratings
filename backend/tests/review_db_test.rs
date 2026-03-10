@@ -74,7 +74,7 @@ async fn review_insert_and_get_by_id_roundtrip() {
     .expect("valid");
     db::review::insert(&pool, &review).await.expect("insert");
 
-    let loaded = db::review::get_by_id(&pool, review_id)
+    let loaded = db::review::get_by_id(&pool, review_id, false)
         .await
         .expect("get_by_id")
         .expect("review should exist");
@@ -146,7 +146,7 @@ async fn review_get_by_id_with_relations_returns_none_for_nonexistent() {
     let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let got = db::review::get_by_id_with_relations(&pool, Uuid::new_v4())
+    let got = db::review::get_by_id_with_relations(&pool, Uuid::new_v4(), false)
         .await
         .expect("get_by_id_with_relations");
     assert!(got.is_none());
@@ -176,7 +176,7 @@ async fn review_get_by_id_with_relations_returns_review_and_relation_names() {
     .expect("valid");
     db::review::insert(&pool, &review).await.expect("insert");
 
-    let with_rel = db::review::get_by_id_with_relations(&pool, review_id)
+    let with_rel = db::review::get_by_id_with_relations(&pool, review_id, false)
         .await
         .expect("get_by_id_with_relations")
         .expect("review should exist");
@@ -280,7 +280,7 @@ async fn review_update_changes_rating_and_text() {
     .expect("valid");
     db::review::update(&pool, &updated).await.expect("update");
 
-    let loaded = db::review::get_by_id(&pool, review_id)
+    let loaded = db::review::get_by_id(&pool, review_id, false)
         .await
         .expect("get_by_id")
         .expect("should exist");
@@ -321,10 +321,26 @@ async fn review_soft_delete_sets_deleted_at_and_excludes_from_get_by_id() {
         .await
         .expect("soft_delete");
 
-    let by_id = db::review::get_by_id(&pool, review_id)
+    let by_id = db::review::get_by_id(&pool, review_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
+
+    let by_id_incl = db::review::get_by_id(&pool, review_id, true)
+        .await
+        .expect("get_by_id");
+    assert!(
+        by_id_incl.is_some(),
+        "get_by_id(include_deleted: true) must return soft-deleted review"
+    );
+
+    let by_id_rel_incl = db::review::get_by_id_with_relations(&pool, review_id, true)
+        .await
+        .expect("get_by_id_with_relations");
+    assert!(
+        by_id_rel_incl.is_some(),
+        "get_by_id_with_relations(include_deleted: true) must return soft-deleted review"
+    );
 
     let with_deleted = db::review::list(&pool, None, None, true)
         .await
@@ -362,7 +378,7 @@ async fn review_hard_delete_removes_row() {
         .await
         .expect("hard_delete");
 
-    let by_id = db::review::get_by_id(&pool, review_id)
+    let by_id = db::review::get_by_id(&pool, review_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());

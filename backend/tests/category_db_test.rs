@@ -48,14 +48,14 @@ async fn category_get_by_id_get_parent_get_children_get_all_and_get_tree() {
     .await
     .expect("insert child");
 
-    let root = db::category::get_by_id(&pool, root_id)
+    let root = db::category::get_by_id(&pool, root_id, false)
         .await
         .expect("get_by_id root")
         .expect("root should exist");
     assert_eq!(root.name(), "Root");
     assert_eq!(root.parent_id(), None);
 
-    let child = db::category::get_by_id(&pool, child_id)
+    let child = db::category::get_by_id(&pool, child_id, false)
         .await
         .expect("get_by_id child")
         .expect("child should exist");
@@ -173,7 +173,7 @@ async fn category_insert_and_get_by_id_roundtrip() {
         .await
         .expect("insert");
 
-    let loaded = db::category::get_by_id(&pool, id)
+    let loaded = db::category::get_by_id(&pool, id, false)
         .await
         .expect("get_by_id")
         .expect("category should exist");
@@ -203,7 +203,7 @@ async fn category_update_changes_name() {
         .expect("valid updated category");
     db::category::update(&pool, &updated).await.expect("update");
 
-    let loaded = db::category::get_by_id(&pool, id)
+    let loaded = db::category::get_by_id(&pool, id, false)
         .await
         .expect("get_by_id")
         .expect("category should exist");
@@ -231,7 +231,9 @@ async fn category_soft_delete_sets_deleted_at_and_excludes_from_get_all() {
         .await
         .expect("soft_delete");
 
-    let by_id = db::category::get_by_id(&pool, id).await.expect("get_by_id");
+    let by_id = db::category::get_by_id(&pool, id, false)
+        .await
+        .expect("get_by_id");
     assert!(by_id.is_none());
 
     let active = db::category::get_all(&pool, false).await.expect("get_all");
@@ -504,7 +506,7 @@ async fn category_get_by_id_uses_cache_when_warm() {
         Category::new(deleted_id, None, "DeletedCached".to_string(), 1, 1, Some(2)).expect("valid");
     db::category::set_category_list_cache_for_test(Some(vec![active.clone(), deleted.clone()]));
 
-    let got = db::category::get_by_id(&pool, active_id)
+    let got = db::category::get_by_id(&pool, active_id, false)
         .await
         .expect("get_by_id");
     assert_eq!(
@@ -513,16 +515,17 @@ async fn category_get_by_id_uses_cache_when_warm() {
         "get_by_id must return active category from cache without DB"
     );
 
-    let got_deleted = db::category::get_by_id(&pool, deleted_id)
+    let got_deleted = db::category::get_by_id(&pool, deleted_id, true)
         .await
         .expect("get_by_id");
-    assert!(
-        got_deleted.is_none(),
-        "get_by_id must return None for soft-deleted category in cache"
+    assert_eq!(
+        got_deleted.as_ref().map(Category::name),
+        Some("DeletedCached"),
+        "get_by_id(include_deleted: true) must return soft-deleted category from cache"
     );
 
     let unknown_id = Uuid::new_v4();
-    let got_unknown = db::category::get_by_id(&pool, unknown_id)
+    let got_unknown = db::category::get_by_id(&pool, unknown_id, false)
         .await
         .expect("get_by_id");
     assert!(

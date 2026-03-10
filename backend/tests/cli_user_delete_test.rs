@@ -70,7 +70,7 @@ async fn delete_success_soft_deletes_user() {
 
     assert!(result.is_ok(), "stderr: {stderr}");
     assert!(stdout.contains("deleted") || stdout.contains(id));
-    let got = db::user::get_by_id(&pool, id.parse().expect("uuid"))
+    let got = db::user::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(got.is_none(), "user should be soft-deleted");
@@ -156,7 +156,7 @@ async fn delete_force_removes_user_from_database() {
 
     assert!(result.is_ok(), "stderr: {stderr}");
     assert!(stdout.contains("removed") || stdout.contains(id));
-    let got = db::user::get_by_id(&pool, id.parse().expect("uuid"))
+    let got = db::user::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(got.is_none(), "user should be removed");

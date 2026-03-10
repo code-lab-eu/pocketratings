@@ -42,7 +42,7 @@ async fn product_insert_and_get_by_id_roundtrip() {
     .expect("valid product");
     db::product::insert(&pool, &product).await.expect("insert");
 
-    let loaded = db::product::get_by_id(&pool, product_id)
+    let loaded = db::product::get_by_id(&pool, product_id, false)
         .await
         .expect("get_by_id")
         .expect("product should exist");
@@ -338,7 +338,7 @@ async fn product_update_changes_name_and_brand() {
     .expect("valid");
     db::product::update(&pool, &updated).await.expect("update");
 
-    let loaded = db::product::get_by_id(&pool, product_id)
+    let loaded = db::product::get_by_id(&pool, product_id, false)
         .await
         .expect("get_by_id")
         .expect("should exist");
@@ -385,10 +385,19 @@ async fn product_soft_delete_sets_deleted_at_and_excludes_from_get_by_id() {
         .await
         .expect("soft_delete");
 
-    let by_id = db::product::get_by_id(&pool, product_id)
+    let by_id = db::product::get_by_id(&pool, product_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
+
+    let by_id_incl = db::product::get_by_id(&pool, product_id, true)
+        .await
+        .expect("get_by_id");
+    assert!(
+        by_id_incl.is_some(),
+        "get_by_id(include_deleted: true) must return soft-deleted product"
+    );
+    assert_eq!(by_id_incl.as_ref().unwrap().name(), "P");
 
     let with_deleted = db::product::get_all(&pool, true)
         .await
@@ -436,7 +445,7 @@ async fn product_hard_delete_removes_row() {
         .await
         .expect("hard_delete");
 
-    let by_id = db::product::get_by_id(&pool, product_id)
+    let by_id = db::product::get_by_id(&pool, product_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
@@ -687,7 +696,7 @@ async fn product_get_by_id_with_relations_returns_none_for_nonexistent() {
     db::run_migrations(&pool).await.expect("migrations");
 
     let missing_id = Uuid::new_v4();
-    let result = db::product::get_by_id_with_relations(&pool, missing_id)
+    let result = db::product::get_by_id_with_relations(&pool, missing_id, false)
         .await
         .expect("get_by_id_with_relations");
     assert!(result.is_none());
@@ -730,10 +739,19 @@ async fn product_get_by_id_with_relations_returns_none_for_deleted_product() {
         .await
         .expect("soft_delete");
 
-    let result = db::product::get_by_id_with_relations(&pool, product_id)
+    let result = db::product::get_by_id_with_relations(&pool, product_id, false)
         .await
         .expect("get_by_id_with_relations");
     assert!(result.is_none());
+
+    let with_deleted = db::product::get_by_id_with_relations(&pool, product_id, true)
+        .await
+        .expect("get_by_id_with_relations");
+    assert!(
+        with_deleted.is_some(),
+        "get_by_id_with_relations(include_deleted: true) must return soft-deleted product"
+    );
+    assert_eq!(with_deleted.as_ref().unwrap().name, "P");
 }
 
 #[tokio::test]
@@ -806,7 +824,7 @@ async fn product_list_with_relations_returns_category_name() {
     assert_eq!(list[0].category_name, "Groceries");
     assert_eq!(list[0].name, "Widget");
 
-    let one = db::product::get_by_id_with_relations(&pool, product_id)
+    let one = db::product::get_by_id_with_relations(&pool, product_id, false)
         .await
         .expect("get_by_id_with_relations")
         .expect("product exists");

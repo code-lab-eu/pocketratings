@@ -158,7 +158,7 @@ pub async fn get_product(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ProductResponse>, ApiError> {
-    let product = db::product::get_by_id_with_relations(&state.pool, id)
+    let product = db::product::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let product = product.ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
@@ -170,7 +170,7 @@ pub async fn create_product(
     State(state): State<AppState>,
     Json(body): Json<CreateProductRequest>,
 ) -> Result<(StatusCode, Json<ProductResponse>), ApiError> {
-    let category = db::category::get_by_id(&state.pool, body.category_id)
+    let category = db::category::get_by_id(&state.pool, body.category_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     if category.is_none() {
@@ -199,7 +199,7 @@ pub async fn create_product(
     db::product::insert(&state.pool, &product)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let created = db::product::get_by_id_with_relations(&state.pool, id)
+    let created = db::product::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .expect("product just inserted");
@@ -215,7 +215,7 @@ pub async fn update_product(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateProductRequest>,
 ) -> Result<Json<ProductResponse>, ApiError> {
-    let existing = db::product::get_by_id(&state.pool, id)
+    let existing = db::product::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let existing = existing.ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
@@ -223,7 +223,7 @@ pub async fn update_product(
     let new_category_id = body.category_id.or_else(|| Some(existing.category_id()));
     let category_id = new_category_id.unwrap();
     if body.category_id.is_some() {
-        let category = db::category::get_by_id(&state.pool, category_id)
+        let category = db::category::get_by_id(&state.pool, category_id, false)
             .await
             .map_err(|e| map_db_error(&e))?;
         if category.is_none() {
@@ -249,7 +249,7 @@ pub async fn update_product(
 
     if existing.category_id() == category_id && existing.brand() == brand && existing.name() == name
     {
-        let current = db::product::get_by_id_with_relations(&state.pool, id)
+        let current = db::product::get_by_id_with_relations(&state.pool, id, false)
             .await
             .map_err(|e| map_db_error(&e))?
             .expect("product exists");
@@ -269,7 +269,7 @@ pub async fn update_product(
     db::product::update(&state.pool, &updated)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let current = db::product::get_by_id_with_relations(&state.pool, id)
+    let current = db::product::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .expect("product exists");
@@ -282,7 +282,7 @@ pub async fn delete_product(
     Path(id): Path<Uuid>,
     Query(q): Query<DeleteProductQuery>,
 ) -> Result<StatusCode, ApiError> {
-    let _ = db::product::get_by_id(&state.pool, id)
+    let _ = db::product::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
@@ -449,7 +449,9 @@ mod tests {
                 .is_none_or(serde_json::Value::is_null)
         );
         let id = Uuid::parse_str(id_str).expect("uuid");
-        let persisted = db::product::get_by_id(&state.pool, id).await.expect("db");
+        let persisted = db::product::get_by_id(&state.pool, id, false)
+            .await
+            .expect("db");
         let persisted = persisted.expect("product in db");
         assert_eq!(persisted.brand(), "Acme");
         assert_eq!(persisted.name(), "Widget");
@@ -845,7 +847,9 @@ mod tests {
         assert_eq!(json.get("brand").and_then(|v| v.as_str()), Some("NewBrand"));
         assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("NewName"));
         let uuid = Uuid::parse_str(id).expect("uuid");
-        let persisted = db::product::get_by_id(&state.pool, uuid).await.expect("db");
+        let persisted = db::product::get_by_id(&state.pool, uuid, false)
+            .await
+            .expect("db");
         let persisted = persisted.expect("product in db");
         assert_eq!(persisted.brand(), "NewBrand");
         assert_eq!(persisted.name(), "NewName");
@@ -1012,7 +1016,9 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        let active = db::product::get_by_id(&state.pool, uuid).await.expect("db");
+        let active = db::product::get_by_id(&state.pool, uuid, false)
+            .await
+            .expect("db");
         assert!(active.is_none(), "get_by_id must exclude soft-deleted");
         let with_deleted = db::product::get_all(&state.pool, true).await.expect("db");
         let soft_deleted = with_deleted
@@ -1067,7 +1073,9 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        let active = db::product::get_by_id(&state.pool, uuid).await.expect("db");
+        let active = db::product::get_by_id(&state.pool, uuid, false)
+            .await
+            .expect("db");
         assert!(active.is_none());
         let with_deleted = db::product::get_all(&state.pool, true).await.expect("db");
         assert!(

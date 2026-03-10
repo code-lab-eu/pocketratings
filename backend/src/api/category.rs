@@ -163,7 +163,7 @@ pub async fn list_categories(
             .await
             .map_err(|e| map_db_error(&e))?;
         let root = if let Some(pid) = q.parent_id {
-            let parent = db::category::get_by_id(&state.pool, pid)
+            let parent = db::category::get_by_id(&state.pool, pid, false)
                 .await
                 .map_err(|e| map_db_error(&e))?;
             let parent = parent
@@ -185,7 +185,7 @@ pub async fn get_category(
     Path(id): Path<Uuid>,
     Query(q): Query<GetCategoryQuery>,
 ) -> Result<Json<CategoryResponse>, ApiError> {
-    let category = db::category::get_by_id(&state.pool, id)
+    let category = db::category::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let category = category.ok_or_else(|| ApiError::NotFound("Category not found.".to_string()))?;
@@ -220,7 +220,7 @@ pub async fn create_category(
         return Err(ApiError::BadRequest("Name is required.".to_string()));
     }
     if let Some(pid) = body.parent_id {
-        let parent = db::category::get_by_id(&state.pool, pid)
+        let parent = db::category::get_by_id(&state.pool, pid, false)
             .await
             .map_err(|_| ApiError::Internal)?;
         if parent.is_none() {
@@ -251,7 +251,7 @@ pub async fn update_category(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateCategoryRequest>,
 ) -> Result<Json<CategoryResponse>, ApiError> {
-    let existing = db::category::get_by_id(&state.pool, id)
+    let existing = db::category::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let existing = existing.ok_or_else(|| ApiError::NotFound("Category not found.".to_string()))?;
@@ -274,7 +274,7 @@ pub async fn update_category(
                 "Parent cannot be the category itself.".to_string(),
             ));
         }
-        let parent = db::category::get_by_id(&state.pool, pid)
+        let parent = db::category::get_by_id(&state.pool, pid, false)
             .await
             .map_err(|_| ApiError::Internal)?;
         if parent.is_none() {
@@ -313,7 +313,7 @@ pub async fn delete_category(
     Path(id): Path<Uuid>,
     Query(q): Query<DeleteCategoryQuery>,
 ) -> Result<StatusCode, ApiError> {
-    let _ = db::category::get_by_id(&state.pool, id)
+    let _ = db::category::get_by_id(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?
         .ok_or_else(|| ApiError::NotFound("Category not found.".to_string()))?;
@@ -462,7 +462,9 @@ mod tests {
         );
         // Persistence: entity exists in DB with same data
         let id = Uuid::parse_str(id_str).expect("uuid");
-        let persisted = db::category::get_by_id(&state.pool, id).await.expect("db");
+        let persisted = db::category::get_by_id(&state.pool, id, false)
+            .await
+            .expect("db");
         let persisted = persisted.expect("category in db");
         assert_eq!(persisted.name(), "Groceries");
         assert_eq!(persisted.id(), id);
@@ -672,7 +674,7 @@ mod tests {
             Some("UpdatedName")
         );
         let uuid = Uuid::parse_str(id).expect("uuid");
-        let persisted = db::category::get_by_id(&state.pool, uuid)
+        let persisted = db::category::get_by_id(&state.pool, uuid, false)
             .await
             .expect("db");
         let persisted = persisted.expect("category in db");
@@ -747,7 +749,7 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(get_resp.status(), StatusCode::NOT_FOUND);
-        let active = db::category::get_by_id(&state.pool, uuid)
+        let active = db::category::get_by_id(&state.pool, uuid, false)
             .await
             .expect("db");
         assert!(
@@ -802,7 +804,7 @@ mod tests {
             .await
             .expect("service");
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
-        let active = db::category::get_by_id(&state.pool, uuid)
+        let active = db::category::get_by_id(&state.pool, uuid, false)
             .await
             .expect("db");
         assert!(active.is_none());

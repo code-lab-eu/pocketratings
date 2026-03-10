@@ -150,7 +150,7 @@ async fn category_delete_soft_deletes_category() {
         run_category(&pool, &["category", "delete", id]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"))
+    let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(
@@ -256,7 +256,7 @@ async fn category_delete_force_removes_row() {
         run_category(&pool, &["category", "delete", id, "--force"]).await;
     assert!(del_result.is_ok(), "stderr: {del_stderr}");
 
-    let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"))
+    let cat = db::category::get_by_id(&pool, id.parse().expect("uuid"), false)
         .await
         .expect("get_by_id");
     assert!(cat.is_none());

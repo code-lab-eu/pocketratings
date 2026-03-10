@@ -211,7 +211,7 @@ async fn purchase_insert_and_get_by_id_roundtrip() {
         .await
         .expect("insert");
 
-    let loaded = db::purchase::get_by_id(&pool, purchase_id)
+    let loaded = db::purchase::get_by_id(&pool, purchase_id, false)
         .await
         .expect("get_by_id")
         .expect("purchase should exist");
@@ -303,10 +303,26 @@ async fn purchase_soft_delete_sets_deleted_at_and_excludes_from_get_by_id() {
         .await
         .expect("soft_delete");
 
-    let by_id = db::purchase::get_by_id(&pool, purchase_id)
+    let by_id = db::purchase::get_by_id(&pool, purchase_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
+
+    let by_id_incl = db::purchase::get_by_id(&pool, purchase_id, true)
+        .await
+        .expect("get_by_id");
+    assert!(
+        by_id_incl.is_some(),
+        "get_by_id(include_deleted: true) must return soft-deleted purchase"
+    );
+
+    let by_id_rel_incl = db::purchase::get_by_id_with_relations(&pool, purchase_id, true)
+        .await
+        .expect("get_by_id_with_relations");
+    assert!(
+        by_id_rel_incl.is_some(),
+        "get_by_id_with_relations(include_deleted: true) must return soft-deleted purchase"
+    );
 
     let with_deleted = db::purchase::list(&pool, None, None, None, None, None, true)
         .await
@@ -347,7 +363,7 @@ async fn purchase_hard_delete_removes_row() {
         .await
         .expect("hard_delete");
 
-    let by_id = db::purchase::get_by_id(&pool, purchase_id)
+    let by_id = db::purchase::get_by_id(&pool, purchase_id, false)
         .await
         .expect("get_by_id");
     assert!(by_id.is_none());
@@ -401,7 +417,7 @@ async fn purchase_update_changes_quantity_and_price() {
     .expect("valid");
     db::purchase::update(&pool, &updated).await.expect("update");
 
-    let loaded = db::purchase::get_by_id(&pool, purchase_id)
+    let loaded = db::purchase::get_by_id(&pool, purchase_id, false)
         .await
         .expect("get_by_id")
         .expect("purchase should exist");
@@ -437,7 +453,7 @@ async fn purchase_get_by_id_with_relations_returns_purchase_and_relation_names()
         .await
         .expect("insert");
 
-    let row = db::purchase::get_by_id_with_relations(&pool, purchase_id)
+    let row = db::purchase::get_by_id_with_relations(&pool, purchase_id, false)
         .await
         .expect("get_by_id_with_relations")
         .expect("purchase should exist");
@@ -465,7 +481,7 @@ async fn purchase_get_by_id_with_relations_returns_none_for_nonexistent() {
     db::run_migrations(&pool).await.expect("migrations");
 
     let missing_id = Uuid::new_v4();
-    let result = db::purchase::get_by_id_with_relations(&pool, missing_id)
+    let result = db::purchase::get_by_id_with_relations(&pool, missing_id, false)
         .await
         .expect("get_by_id_with_relations");
     assert!(result.is_none());

@@ -77,7 +77,7 @@ pub async fn me(
     axum::extract::Extension(CurrentUserId(user_id)): axum::extract::Extension<CurrentUserId>,
     axum::extract::State(state): axum::extract::State<AppState>,
 ) -> Result<axum::Json<MeResponse>, ApiError> {
-    let user = crate::db::user::get_by_id(&state.pool, user_id)
+    let user = crate::db::user::get_by_id(&state.pool, user_id, false)
         .await
         .map_err(|_| ApiError::Internal)?;
     let user = user.ok_or_else(|| ApiError::NotFound("User not found.".to_string()))?;
