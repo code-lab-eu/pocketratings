@@ -157,6 +157,46 @@ bookmarks, and accessibility. Home and product detail already have titles; add
 or standardise titles for category page, login, manage hub, and all manage
 list/form pages so every route sets a descriptive title.
 
+### 9. Replace emoji with Lucide icons in header and BackLink [FE]
+
+**1 sp.** Use the existing lucide-svelte library for header (menu, sun, moon)
+and BackLink (arrow) so the app has a consistent, accessible icon language
+instead of emoji that render differently across platforms.
+
+**Tasks:**
+- In +layout.svelte: replace ☰ with Menu, ☀ with Sun, ☾ with Moon; keep
+  aria-label/title for theme toggle.
+- In BackLink.svelte: replace "←" with ArrowLeft (or ChevronLeft), size
+  appropriately, aria-hidden="true" on the icon so the link label is the
+  screen-reader focus.
+
+### 10. Unify card and list styling on product detail page [FE]
+
+**1 sp.** Use the design system (pr-card and related utilities) for review
+cards and purchase history on the product detail page instead of ad-hoc
+Tailwind so all card-like surfaces share one visual language.
+
+**Tasks:**
+- In products/[id]/+page.svelte: style review cards with pr-card (or
+  variant) instead of inline rounded-lg border...; style purchase list
+  items with pr-card or the same list pattern used elsewhere so borders,
+  background, and hover align with the rest of the app.
+
+### 11. Design tokens and focus states in layout.css [FE]
+
+**2 sp.** Add a minimal design token layer (CSS custom properties for focus
+ring, optional spacing/transition) and visible focus-visible styles for
+buttons and card links so theming is easier and keyboard users get clear
+focus indicators (WCAG-friendly).
+
+**Tasks:**
+- In layout.css: add :root (and html.dark) variables for focus ring
+  (e.g. --pr-focus-ring-color, --pr-focus-ring-offset) and optionally
+  one or two spacing/transition tokens; use them in pr-btn-* and pr-card.
+- Add focus-visible:outline (and optionally ring) to .pr-btn-primary and
+  .pr-btn-secondary and ensure interactive pr-card links have a visible
+  focus style.
+
 ---
 
 ## Distant future
