@@ -4,7 +4,9 @@
   import { updatePurchase } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
+  import InputField from '$lib/InputField.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
+  import Select from '$lib/Select.svelte';
   import Button from '$lib/Button.svelte';
 
   let { data } = $props();
@@ -77,64 +79,45 @@
     <PageHeading>Edit purchase</PageHeading>
     <form onsubmit={handleSubmit} class="mt-4 space-y-4">
       <FormError message={error} />
-      <div>
-        <label for="product" class="mb-1 block pr-text-label">Product</label>
-        <select
-          id="product"
-          bind:value={productId}
-          required
-          class="pr-input"
-        >
-          <option value="">Select product</option>
-          {#each products as p (p.id)}
-            <option value={p.id}>{p.name}{p.brand ? ` — ${p.brand}` : ''}</option>
-          {/each}
-        </select>
-      </div>
-      <div>
-        <label for="location" class="mb-1 block pr-text-label">Location</label>
-        <select
-          id="location"
-          bind:value={locationId}
-          required
-          class="pr-input"
-        >
-          <option value="">Select location</option>
-          {#each locations as loc (loc.id)}
-            <option value={loc.id}>{loc.name}</option>
-          {/each}
-        </select>
-      </div>
-      <div>
-        <label for="quantity" class="mb-1 block pr-text-label">Quantity</label>
-        <input
-          id="quantity"
-          type="number"
-          bind:value={quantity}
-          min="1"
-          class="pr-input"
-        />
-      </div>
-      <div>
-        <label for="price" class="mb-1 block pr-text-label">Price (EUR)</label>
-        <input
-          id="price"
-          type="text"
-          bind:value={price}
-          placeholder="2.99"
-          class="pr-input"
-          inputmode="decimal"
-        />
-      </div>
-      <div>
-        <label for="purchased_at" class="mb-1 block pr-text-label">Date</label>
-        <input
-          id="purchased_at"
-          type="datetime-local"
-          bind:value={purchasedAt}
-          class="pr-input"
-        />
-      </div>
+      <Select
+        id="product"
+        label="Product"
+        options={products.map((p) => ({
+          value: p.id,
+          label: p.brand ? `${p.name} — ${p.brand}` : p.name
+        }))}
+        bind:value={productId}
+        placeholder="Select product"
+        required
+      />
+      <Select
+        id="location"
+        label="Location"
+        options={locations.map((loc) => ({ value: loc.id, label: loc.name }))}
+        bind:value={locationId}
+        placeholder="Select location"
+        required
+      />
+      <InputField
+        id="quantity"
+        label="Quantity"
+        type="number"
+        bind:value={quantity}
+        min={1}
+      />
+      <InputField
+        id="price"
+        label="Price (EUR)"
+        bind:value={price}
+        placeholder="2.99"
+        inputmode="decimal"
+      />
+      <InputField
+        id="purchased_at"
+        label="Date"
+        type="datetime-local"
+        bind:value={purchasedAt}
+      />
       <div class="flex gap-2">
         <Button type="submit" disabled={submitting} variant="primary">
           {submitting ? 'Saving…' : 'Save'}

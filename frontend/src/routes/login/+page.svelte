@@ -6,6 +6,7 @@
   import { login } from '$lib/api';
   import Button from '$lib/Button.svelte';
   import FormError from '$lib/FormError.svelte';
+  import InputField from '$lib/InputField.svelte';
 
   let email = $state('');
   let password = $state('');
@@ -53,28 +54,22 @@
   </p>
 
   <form onsubmit={handleSubmit} class="space-y-4">
-    <div>
-      <label for="email" class="mb-1 block pr-text-label">Email</label>
-      <input
-        id="email"
-        type="email"
-        required
-        autocomplete="email"
-        bind:value={email}
-        class="pr-input"
-      />
-    </div>
-    <div>
-      <label for="password" class="mb-1 block pr-text-label">Password</label>
-      <input
-        id="password"
-        type="password"
-        required
-        autocomplete="current-password"
-        bind:value={password}
-        class="pr-input"
-      />
-    </div>
+    <InputField
+      id="email"
+      label="Email"
+      type="email"
+      bind:value={email}
+      required
+      autocomplete="email"
+    />
+    <InputField
+      id="password"
+      label="Password"
+      type="password"
+      bind:value={password}
+      required
+      autocomplete="current-password"
+    />
     <FormError message={error || undefined} />
     <Button type="submit" disabled={loading} class="w-full">
       {loading ? 'Signing in…' : 'Sign in'}

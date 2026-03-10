@@ -6,6 +6,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
   import FormError from '$lib/FormError.svelte';
+  import InputField from '$lib/InputField.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
 
@@ -85,27 +86,8 @@
 
     <form onsubmit={handleSubmit} class="space-y-4">
       <FormError message={formError} />
-      <div>
-        <label for="name" class="mb-1 block pr-text-label">Name</label>
-        <input
-          id="name"
-          type="text"
-          bind:value={name}
-          required
-          class="pr-input"
-          autocomplete="off"
-        />
-      </div>
-      <div>
-        <label for="brand" class="mb-1 block pr-text-label">Brand</label>
-        <input
-          id="brand"
-          type="text"
-          bind:value={brand}
-          class="pr-input"
-          autocomplete="off"
-        />
-      </div>
+      <InputField id="name" label="Name" bind:value={name} required />
+      <InputField id="brand" label="Brand" bind:value={brand} />
       <CategorySelect
         options={categoryOptions}
         bind:value={categoryId}

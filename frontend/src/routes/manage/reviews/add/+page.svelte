@@ -4,7 +4,10 @@
   import { createReview } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
+  import InputField from '$lib/InputField.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
+  import Select from '$lib/Select.svelte';
+  import TextareaField from '$lib/TextareaField.svelte';
   import Button from '$lib/Button.svelte';
 
   let { data } = $props();
@@ -61,42 +64,33 @@
   {:else}
     <form onsubmit={handleSubmit} class="space-y-4">
       <FormError message={error} />
-      <div>
-        <label for="product" class="mb-1 block pr-text-label">Product</label>
-        <select
-          id="product"
-          bind:value={productId}
-          required
-          class="pr-input"
-        >
-          <option value="">Select product</option>
-          {#each products as p (p.id)}
-            <option value={p.id}>{p.name}{p.brand ? ` — ${p.brand}` : ''}</option>
-          {/each}
-        </select>
-      </div>
-      <div>
-        <label for="rating" class="mb-1 block pr-text-label">Rating (1–5)</label>
-        <input
-          id="rating"
-          type="number"
-          bind:value={rating}
-          min="1"
-          max="5"
-          step="0.5"
-          class="pr-input"
-        />
-      </div>
-      <div>
-        <label for="text" class="mb-1 block pr-text-label">Review (optional)</label>
-        <textarea
-          id="text"
-          bind:value={text}
-          rows="3"
-          class="pr-input"
-          placeholder="Your review…"
-        ></textarea>
-      </div>
+      <Select
+        id="product"
+        label="Product"
+        options={products.map((p) => ({
+          value: p.id,
+          label: p.brand ? `${p.name} — ${p.brand}` : p.name
+        }))}
+        bind:value={productId}
+        placeholder="Select product"
+        required
+      />
+      <InputField
+        id="rating"
+        label="Rating (1–5)"
+        type="number"
+        bind:value={rating}
+        min={1}
+        max={5}
+        step={0.5}
+      />
+      <TextareaField
+        id="text"
+        label="Review (optional)"
+        bind:value={text}
+        rows={3}
+        placeholder="Your review…"
+      />
       <div class="flex gap-2">
         <Button type="submit" disabled={submitting} variant="primary">
           {submitting ? 'Saving…' : 'Save'}

@@ -4,6 +4,7 @@
   import { deleteLocation, updateLocation } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
+  import InputField from '$lib/InputField.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
 
@@ -73,17 +74,7 @@
 
     <form onsubmit={handleSubmit} class="space-y-4">
       <FormError message={formError} />
-      <div>
-        <label for="name" class="mb-1 block pr-text-label">Name</label>
-        <input
-          id="name"
-          type="text"
-          bind:value={name}
-          required
-          class="pr-input"
-          autocomplete="off"
-        />
-      </div>
+      <InputField id="name" label="Name" bind:value={name} required />
       <div class="flex flex-wrap gap-2">
         <Button type="submit" disabled={submitting} variant="primary">
           {submitting ? 'Saving…' : 'Save'}
