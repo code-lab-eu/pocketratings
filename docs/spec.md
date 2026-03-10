@@ -105,7 +105,11 @@ The home screen is **categories + products + search** (one page): categories and
   prefilled). Below that, products in the current category and all its
   descendant categories (with a depth limit) with inline rating (and
   optional short review). Products and reviews merged client-side.
-- **Product detail:** Product with **category name**; full review(s); **purchase history** (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`.
+- **Product detail:** Product with **category name**; full review(s); **purchase history**
+  (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`,
+  Add purchase → `/manage/purchases/add?product_id=<id>`. A **breadcrumb** shows the
+  full category path (Home → … → category → product name), matching the category page
+  pattern.
 - **Login:** Email + password; store token; redirect to Home.
 - **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form. After submitting an add-review form, redirect to the product page.
 - **Management list rows:** On each management list (categories, products,

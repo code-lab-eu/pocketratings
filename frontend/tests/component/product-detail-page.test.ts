@@ -50,19 +50,55 @@ describe('Product detail page', () => {
       props: { data: defaultData }
     });
     expect(screen.getByRole('heading', { name: /milk/i })).toBeInTheDocument();
-    expect(screen.getByText(/acme/i)).toBeInTheDocument();
-    expect(screen.getByText(/dairy/i)).toBeInTheDocument();
-    const categoryLink = screen.getByRole('link', { name: /dairy/i });
-    expect(categoryLink.getAttribute('href')).toContain('/categories/cat-1');
+    expect(screen.getAllByText(/acme/i).length).toBeGreaterThanOrEqual(1);
+    const dairyLinks = screen.getAllByRole('link', { name: /dairy/i });
+    expect(dairyLinks).toHaveLength(2);
+    dairyLinks.forEach((link) =>
+      expect(link.getAttribute('href')).toContain('/categories/cat-1')
+    );
   });
 
-  it('shows back link to home', () => {
+  it('shows breadcrumb with Home, category, and product name when product is loaded', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }
     });
-    const homeLink = screen.getByRole('link', { name: /home/i });
-    expect(homeLink).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(nav).toBeInTheDocument();
+    const homeLink = screen.getByRole('link', { name: /^home$/i });
     expect(homeLink.getAttribute('href')).toContain('/');
+    const categoryLinkInBreadcrumb = nav.querySelector('a[href*="/categories/cat-1"]');
+    expect(categoryLinkInBreadcrumb).toBeInTheDocument();
+    expect(categoryLinkInBreadcrumb).toHaveTextContent(/dairy/i);
+    const currentSegment = nav.querySelector('[aria-current="page"]');
+    expect(currentSegment).toBeInTheDocument();
+    expect(currentSegment).toHaveTextContent(/acme - milk/i);
+  });
+
+  it('shows full breadcrumb with ancestors when product category has ancestors', () => {
+    const productWithAncestors: Product = {
+      ...product,
+      category: {
+        id: 'c2',
+        name: 'Dairy',
+        ancestors: [{ id: 'c1', name: 'Food' }]
+      }
+    };
+    render(ProductDetailPage, {
+      props: {
+        data: {
+          ...defaultData,
+          product: productWithAncestors
+        } as PageData
+      }
+    });
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const links = nav.querySelectorAll('a');
+    expect(links).toHaveLength(3);
+    expect(links[0]).toHaveAccessibleName('Home');
+    expect(links[1]).toHaveAccessibleName('Food');
+    expect(links[2]).toHaveAccessibleName('Dairy');
+    const currentSegment = nav.querySelector('[aria-current="page"]');
+    expect(currentSegment).toHaveTextContent(/acme - milk/i);
   });
 
   it('shows reviews section with rating, text, and user name', () => {
@@ -112,6 +148,7 @@ describe('Product detail page', () => {
       }
     });
     expect(screen.getByText(/product not found/i)).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).not.toBeInTheDocument();
     const backLink = screen.getByRole('link', { name: /back to home/i });
     expect(backLink).toBeInTheDocument();
     expect(backLink.getAttribute('href')).toContain('/');
@@ -131,6 +168,9 @@ describe('Product detail page', () => {
       }
     });
     expect(screen.getByText('Not found')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).not.toBeInTheDocument();
+    const homeLink = screen.getByRole('link', { name: /home/i });
+    expect(homeLink.getAttribute('href')).toContain('/');
   });
 
   it('shows product not found when product is null and no error and not notFound', () => {

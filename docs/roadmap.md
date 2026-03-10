@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Product page: breadcrumbs with full category path [FE]
+### 1. Product page: breadcrumbs with full category path [FE] — DONE
 
 **2 sp.** On the product page, show breadcrumbs for the full category path
 (Home → ancestor categories → current category → product name), matching the
@@ -149,6 +149,13 @@ affordance).
   (cursor, aria, and/or visible affordance).
 - Optionally run axe or similar and address critical/serious findings; doc
   any deferred items.
+
+### 8. Page titles for all pages [FE]
+
+**1 sp.** Ensure every page has a meaningful `<title>` for the browser tab,
+bookmarks, and accessibility. Home and product detail already have titles; add
+or standardise titles for category page, login, manage hub, and all manage
+list/form pages so every route sets a descriptive title.
 
 ---
 

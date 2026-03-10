@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import BackLink from '$lib/BackLink.svelte';
+  import Breadcrumb from '$lib/Breadcrumb.svelte';
   import FormError from '$lib/FormError.svelte';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
@@ -19,10 +20,33 @@
       day: 'numeric'
     });
   }
+
+  function productDisplayName(p: { brand: string; name: string }): string {
+    return p.brand ? `${p.brand} - ${p.name}` : p.name;
+  }
 </script>
 
+<svelte:head>
+  {#if product}
+    <title>{productDisplayName(product)} — Pocket Ratings</title>
+  {/if}
+</svelte:head>
+
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <BackLink href={resolve('/')} label="Home" />
+  {#if product}
+    {@const breadcrumbSegments = [
+      { label: 'Home', href: resolve('/') },
+      ...(product.category.ancestors ?? []).reverse().map((a) => ({
+        label: a.name,
+        href: resolve(`/categories/${a.id}`)
+      })),
+      { label: product.category.name, href: resolve('/categories/[id]', { id: product.category.id }) },
+      { label: productDisplayName(product) }
+    ]}
+    <Breadcrumb segments={breadcrumbSegments} />
+  {:else}
+    <BackLink href={resolve('/')} label="Home" />
+  {/if}
 
   {#if notFound}
     <NotFoundMessage
