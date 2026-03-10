@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { deleteProduct } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
+  import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
@@ -47,7 +48,10 @@
   {#if error}
     <FormError message={error} />
   {:else if products.length === 0}
-    <p class="pr-text-muted">No products yet.</p>
+    <EmptyState
+      message="No products yet."
+      action={{ label: 'Add your first product', href: '/manage/products/new' }}
+    />
   {:else}
     <ul class="space-y-2">
       {#each products as product (product.id)}

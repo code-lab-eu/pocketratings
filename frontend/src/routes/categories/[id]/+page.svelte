@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { listProducts, listReviews } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
+  import Breadcrumb from '$lib/Breadcrumb.svelte';
   import FormError from '$lib/FormError.svelte';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import ProductList from '$lib/ProductList.svelte';
@@ -91,28 +92,15 @@
 
 <main class="mx-auto max-w-2xl px-4 py-8">
   {#if category}
-    <nav class="mb-4" aria-label="Breadcrumb">
-      <ol class="flex flex-wrap items-center gap-x-1 text-sm pr-text-muted">
-        <li>
-          <a href={resolve('/')} class="pr-link-muted">Home</a>
-        </li>
-        {#each [...(category.ancestors ?? [])].reverse() as ancestor (ancestor.id)}
-          <li class="flex items-center gap-x-1">
-            <span aria-hidden="true">/</span>
-            <a
-              href={resolve(`/categories/${ancestor.id}`)}
-              class="pr-link-muted"
-            >
-              {ancestor.name}
-            </a>
-          </li>
-        {/each}
-        <li class="flex items-center gap-x-1" aria-current="page">
-          <span aria-hidden="true">/</span>
-          <span>{category.name}</span>
-        </li>
-      </ol>
-    </nav>
+    {@const breadcrumbSegments = [
+      { label: 'Home', href: resolve('/') },
+      ...(category.ancestors ?? []).reverse().map((a) => ({
+        label: a.name,
+        href: resolve(`/categories/${a.id}`)
+      })),
+      { label: category.name }
+    ]}
+    <Breadcrumb segments={breadcrumbSegments} />
   {:else}
     <BackLink href={resolve('/')} label="Home" />
   {/if}

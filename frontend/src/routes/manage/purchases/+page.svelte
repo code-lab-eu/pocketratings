@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { deletePurchase } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
+  import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
@@ -52,7 +53,10 @@
   {#if error}
     <FormError message={error} />
   {:else if purchases.length === 0}
-    <p class="pr-text-muted">No purchases yet.</p>
+    <EmptyState
+      message="No purchases yet."
+      action={{ label: 'Record your first purchase', href: '/manage/purchases/add' }}
+    />
   {:else}
     <ul class="space-y-2">
       {#each purchases as purchase (purchase.id)}

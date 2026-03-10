@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { deleteReview } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
+  import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
@@ -43,7 +44,10 @@
   {#if error}
     <FormError message={error} />
   {:else if reviews.length === 0}
-    <p class="pr-text-muted">No reviews yet.</p>
+    <EmptyState
+      message="No reviews yet."
+      action={{ label: 'Add your first review', href: '/manage/reviews/add' }}
+    />
   {:else}
     <ul class="space-y-2">
       {#each reviews as review (review.id)}

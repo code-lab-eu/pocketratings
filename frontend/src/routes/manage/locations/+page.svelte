@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { deleteLocation } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
+  import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
@@ -43,7 +44,10 @@
   {#if error}
     <FormError message={error} />
   {:else if locations.length === 0}
-    <p class="pr-text-muted">No locations yet.</p>
+    <EmptyState
+      message="No locations yet."
+      action={{ label: 'Add your first location', href: '/manage/locations/new' }}
+    />
   {:else}
     <ul class="space-y-2">
       {#each locations as location (location.id)}

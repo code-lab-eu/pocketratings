@@ -84,7 +84,7 @@ tabs, so diffs and terminal viewing are consistent.
   spaces in frontend (e.g. `frontend/`).
 - Reformat existing frontend files (Svelte, TS, CSS) from tabs to 2 spaces.
 
-### 7. Identify reusable frontend components [FE]
+### 7. Identify reusable frontend components [FE] - DONE
 
 **3 sp.** Systematically find duplicated UI patterns in the frontend that can
 be extracted into reusable components (e.g. in `$lib`), to reduce duplication
