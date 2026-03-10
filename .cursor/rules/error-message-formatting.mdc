@@ -1,0 +1,29 @@
+---
+description: User-facing error messages: sentence case, period at end, consistent phrasing
+globs: backend/src/api/**/*.rs,frontend/src/**/*.svelte,frontend/src/**/*.ts
+alwaysApply: false
+---
+
+# Error message formatting
+
+User-facing error messages (API `message` field and frontend validation/display) must be
+consistent and professional.
+
+## Rules
+
+- **Capitalize** the first letter (sentence case).
+- **End with a period.**
+- Use consistent phrasing:
+  - Empty required field: **"X is required."** (e.g. "Name is required.", "Email is required.").
+  - Invalid value or constraint: **"X must be ..."** or **"Invalid X."** (e.g. "Rating must be between 1 and 5.", "Invalid price.", "Price must not be negative.").
+  - Not found: **"X not found."** (e.g. "Category not found.", "Product not found.").
+
+## Where it applies
+
+- **Backend:** Strings passed to `ApiError::BadRequest`, `ApiError::NotFound`, `ApiError::Unauthorized`, etc., and returned in the JSON `message` field.
+- **Frontend:** Client-side validation strings (e.g. `error = 'Name is required.'`) and any fallback text when showing API errors (e.g. "Login failed."). The API message is shown as-is, so backend and frontend must both follow this style.
+
+## Examples
+
+- Good: "Name is required.", "Brand is required.", "Quantity must be at least 1.", "Invalid email or password."
+- Bad: "name must not be empty", "invalid rating", "Product not found" (no period).

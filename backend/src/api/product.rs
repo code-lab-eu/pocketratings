@@ -137,7 +137,7 @@ pub async fn list_products(
         .await
         .map_err(|e| map_db_error(&e))?;
         if ids.is_empty() {
-            return Err(ApiError::NotFound("category not found".to_string()));
+            return Err(ApiError::NotFound("Category not found.".to_string()));
         }
         Some(ids)
     } else {
@@ -161,7 +161,7 @@ pub async fn get_product(
     let product = db::product::get_by_id_with_relations(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let product = product.ok_or_else(|| ApiError::NotFound("product not found".to_string()))?;
+    let product = product.ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
     Ok(Json(product_with_relations_to_response(&product)))
 }
 
@@ -174,14 +174,14 @@ pub async fn create_product(
         .await
         .map_err(|e| map_db_error(&e))?;
     if category.is_none() {
-        return Err(ApiError::NotFound("category not found".to_string()));
+        return Err(ApiError::NotFound("Category not found.".to_string()));
     }
 
     if body.brand.trim().is_empty() {
-        return Err(ApiError::BadRequest("brand must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Brand is required.".to_string()));
     }
     if body.name.trim().is_empty() {
-        return Err(ApiError::BadRequest("name must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Name is required.".to_string()));
     }
 
     let now = chrono::Utc::now().timestamp();
@@ -218,7 +218,7 @@ pub async fn update_product(
     let existing = db::product::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let existing = existing.ok_or_else(|| ApiError::NotFound("product not found".to_string()))?;
+    let existing = existing.ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
 
     let new_category_id = body.category_id.or_else(|| Some(existing.category_id()));
     let category_id = new_category_id.unwrap();
@@ -227,7 +227,7 @@ pub async fn update_product(
             .await
             .map_err(|e| map_db_error(&e))?;
         if category.is_none() {
-            return Err(ApiError::NotFound("category not found".to_string()));
+            return Err(ApiError::NotFound("Category not found.".to_string()));
         }
     }
 
@@ -241,10 +241,10 @@ pub async fn update_product(
         .map_or_else(|| existing.name().to_string(), |s| s.trim().to_string());
 
     if brand.trim().is_empty() {
-        return Err(ApiError::BadRequest("brand must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Brand is required.".to_string()));
     }
     if name.trim().is_empty() {
-        return Err(ApiError::BadRequest("name must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Name is required.".to_string()));
     }
 
     if existing.category_id() == category_id && existing.brand() == brand && existing.name() == name
@@ -285,7 +285,7 @@ pub async fn delete_product(
     let _ = db::product::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?
-        .ok_or_else(|| ApiError::NotFound("product not found".to_string()))?;
+        .ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
 
     if q.force {
         db::product::hard_delete(&state.pool, id)

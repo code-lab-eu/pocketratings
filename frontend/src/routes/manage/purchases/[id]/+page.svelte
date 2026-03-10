@@ -36,7 +36,7 @@
     if (!purchase) return;
     error = null;
     if (!productId || !locationId) {
-      error = 'Product and location are required';
+      error = 'Product and location are required.';
       return;
     }
     const q = Math.floor(quantity);
@@ -46,7 +46,7 @@
     }
     const priceVal = price.trim();
     if (!priceVal) {
-      error = 'Price is required';
+      error = 'Price is required.';
       return;
     }
     submitting = true;

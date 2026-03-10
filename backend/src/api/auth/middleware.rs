@@ -28,21 +28,21 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Response {
     let Some(auth_header) = request.headers().get(header::AUTHORIZATION) else {
-        return ApiError::Unauthorized("missing authorization header".to_string()).into_response();
+        return ApiError::Unauthorized("Missing authorization header.".to_string()).into_response();
     };
     let Ok(auth_str) = auth_header.to_str() else {
         return ApiError::Unauthorized("invalid authorization header".to_string()).into_response();
     };
     let token = auth_str.strip_prefix("Bearer ").unwrap_or(auth_str);
     if token.is_empty() || token == auth_str {
-        return ApiError::Unauthorized("missing or invalid bearer token".to_string())
+        return ApiError::Unauthorized("Missing or invalid bearer token.".to_string())
             .into_response();
     }
     let Ok(claims) = jwt::verify_token(&state.config.jwt_secret, token) else {
         return ApiError::Unauthorized("invalid or expired token".to_string()).into_response();
     };
     let Ok(user_id) = Uuid::parse_str(&claims.sub) else {
-        return ApiError::Unauthorized("invalid token subject".to_string()).into_response();
+        return ApiError::Unauthorized("Invalid token subject.".to_string()).into_response();
     };
     request.extensions_mut().insert(CurrentUserId(user_id));
 
@@ -80,7 +80,7 @@ pub async fn me(
     let user = crate::db::user::get_by_id(&state.pool, user_id)
         .await
         .map_err(|_| ApiError::Internal)?;
-    let user = user.ok_or_else(|| ApiError::NotFound("user not found".to_string()))?;
+    let user = user.ok_or_else(|| ApiError::NotFound("User not found.".to_string()))?;
     Ok(axum::Json(MeResponse {
         user_id: user_id.to_string(),
         name: user.name().to_string(),

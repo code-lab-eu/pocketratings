@@ -29,7 +29,7 @@
     error = null;
     const r = Number(rating);
     if (r < 1 || r > 5) {
-      error = 'Rating must be between 1 and 5';
+      error = 'Rating must be between 1 and 5.';
       return;
     }
     submitting = true;

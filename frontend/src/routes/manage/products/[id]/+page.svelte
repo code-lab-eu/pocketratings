@@ -36,11 +36,11 @@
     formError = null;
     const n = name.trim();
     if (!n) {
-      formError = 'Name is required';
+      formError = 'Name is required.';
       return;
     }
     if (!categoryId) {
-      formError = 'Category is required';
+      formError = 'Category is required.';
       return;
     }
     submitting = true;

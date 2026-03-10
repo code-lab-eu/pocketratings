@@ -115,7 +115,7 @@ pub async fn create_location(
     Json(body): Json<CreateLocationRequest>,
 ) -> Result<(StatusCode, Json<LocationResponse>), ApiError> {
     if body.name.trim().is_empty() {
-        return Err(ApiError::BadRequest("name must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Name is required.".to_string()));
     }
     let id = Uuid::new_v4();
     let location = Location::new(id, body.name.trim().to_string(), None)
@@ -145,7 +145,7 @@ pub async fn update_location(
     let name = new_name.unwrap_or_else(|| existing.name().to_string());
 
     if name.trim().is_empty() {
-        return Err(ApiError::BadRequest("name must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Name is required.".to_string()));
     }
 
     if existing.name() == name {

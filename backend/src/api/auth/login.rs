@@ -26,18 +26,18 @@ pub async fn login(
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, ApiError> {
     if body.email.is_empty() {
-        return Err(ApiError::BadRequest("email is required".to_string()));
+        return Err(ApiError::BadRequest("Email is required.".to_string()));
     }
     let user = db::user::get_by_email(&state.pool, &body.email)
         .await
         .map_err(|_| ApiError::Internal)?;
     let user =
-        user.ok_or_else(|| ApiError::Unauthorized("invalid email or password".to_string()))?;
+        user.ok_or_else(|| ApiError::Unauthorized("Invalid email or password.".to_string()))?;
     let ok = password::verify_password(&body.password, user.password())
         .map_err(|_| ApiError::Internal)?;
     if !ok {
         return Err(ApiError::Unauthorized(
-            "invalid email or password".to_string(),
+            "Invalid email or password.".to_string(),
         ));
     }
     let token = crate::api::auth::jwt::issue_token(

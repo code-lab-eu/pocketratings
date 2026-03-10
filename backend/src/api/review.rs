@@ -147,7 +147,7 @@ pub async fn get_review(
     let review = db::review::get_by_id_with_relations(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let review = review.ok_or_else(|| ApiError::NotFound("review not found".to_string()))?;
+    let review = review.ok_or_else(|| ApiError::NotFound("Review not found.".to_string()))?;
     Ok(Json(review_with_relations_to_response(&review)?))
 }
 
@@ -165,7 +165,7 @@ pub async fn create_review(
     }
 
     let Ok(rating) = Decimal::from_str(&body.rating.to_string()) else {
-        return Err(ApiError::BadRequest("invalid rating".to_string()));
+        return Err(ApiError::BadRequest("Invalid rating.".to_string()));
     };
     let now = chrono::Utc::now().timestamp();
     let id = Uuid::new_v4();
@@ -181,8 +181,8 @@ pub async fn create_review(
     )
     .map_err(|e: ValidationError| {
         ApiError::BadRequest(match &e {
-            ValidationError::RatingOutOfRange { rating } => {
-                format!("rating must be between 1 and 5 (got {rating})")
+            ValidationError::RatingOutOfRange { .. } => {
+                "Rating must be between 1 and 5.".to_string()
             }
             _ => e.to_string(),
         })
@@ -210,11 +210,11 @@ pub async fn update_review(
     let existing = db::review::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let existing = existing.ok_or_else(|| ApiError::NotFound("review not found".to_string()))?;
+    let existing = existing.ok_or_else(|| ApiError::NotFound("Review not found.".to_string()))?;
 
     if existing.user_id() != current_user_id {
         return Err(ApiError::Forbidden(
-            "not allowed to update another user's review".to_string(),
+            "Not allowed to update another user's review.".to_string(),
         ));
     }
 
@@ -246,8 +246,8 @@ pub async fn update_review(
     )
     .map_err(|e: ValidationError| {
         ApiError::BadRequest(match &e {
-            ValidationError::RatingOutOfRange { rating: r } => {
-                format!("rating must be between 1 and 5 (got {r})")
+            ValidationError::RatingOutOfRange { .. } => {
+                "Rating must be between 1 and 5.".to_string()
             }
             _ => e.to_string(),
         })
@@ -272,7 +272,7 @@ pub async fn delete_review(
     let review = db::review::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let review = review.ok_or_else(|| ApiError::NotFound("review not found".to_string()))?;
+    let review = review.ok_or_else(|| ApiError::NotFound("Review not found.".to_string()))?;
 
     if review.user_id() != current_user_id {
         return Err(ApiError::Forbidden(

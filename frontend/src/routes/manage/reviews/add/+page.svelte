@@ -28,12 +28,12 @@
     e.preventDefault();
     error = null;
     if (!productId) {
-      error = 'Product is required';
+      error = 'Product is required.';
       return;
     }
     const r = Number(rating);
     if (r < 1 || r > 5) {
-      error = 'Rating must be between 1 and 5';
+      error = 'Rating must be between 1 and 5.';
       return;
     }
     submitting = true;

@@ -28,7 +28,7 @@
     formError = null;
     const n = name.trim();
     if (!n) {
-      formError = 'Name is required';
+      formError = 'Name is required.';
       return;
     }
     submitting = true;

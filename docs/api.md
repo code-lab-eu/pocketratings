@@ -63,7 +63,9 @@ All error responses (4xx/5xx) return JSON with the following format:
 }
 ```
 
-The `error` field mirrors the HTTP status category. The `message` field provides a human-readable description when applicable.
+The `error` field mirrors the HTTP status category. The `message` field
+provides a human-readable description when applicable; messages use
+sentence case and end with a period (e.g. "Name is required.").
 
 | HTTP status | `error` value | Meaning |
 |-------------|---------------|---------|

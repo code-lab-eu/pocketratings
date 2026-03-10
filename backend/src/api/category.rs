@@ -167,7 +167,7 @@ pub async fn list_categories(
                 .await
                 .map_err(|e| map_db_error(&e))?;
             let parent = parent
-                .ok_or_else(|| ApiError::NotFound("parent category not found".to_string()))?;
+                .ok_or_else(|| ApiError::NotFound("Parent category not found.".to_string()))?;
             Some(parent)
         } else {
             None
@@ -188,7 +188,7 @@ pub async fn get_category(
     let category = db::category::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let category = category.ok_or_else(|| ApiError::NotFound("category not found".to_string()))?;
+    let category = category.ok_or_else(|| ApiError::NotFound("Category not found.".to_string()))?;
 
     let depth = q.depth;
     let children = if depth == Some(0) {
@@ -217,14 +217,14 @@ pub async fn create_category(
     Json(body): Json<CreateCategoryRequest>,
 ) -> Result<(StatusCode, Json<CategoryResponse>), ApiError> {
     if body.name.trim().is_empty() {
-        return Err(ApiError::BadRequest("name must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Name is required.".to_string()));
     }
     if let Some(pid) = body.parent_id {
         let parent = db::category::get_by_id(&state.pool, pid)
             .await
             .map_err(|_| ApiError::Internal)?;
         if parent.is_none() {
-            return Err(ApiError::NotFound("parent category not found".to_string()));
+            return Err(ApiError::NotFound("Parent category not found.".to_string()));
         }
     }
     let now = chrono::Utc::now().timestamp();
@@ -254,7 +254,7 @@ pub async fn update_category(
     let existing = db::category::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let existing = existing.ok_or_else(|| ApiError::NotFound("category not found".to_string()))?;
+    let existing = existing.ok_or_else(|| ApiError::NotFound("Category not found.".to_string()))?;
 
     let new_name = body
         .name
@@ -271,19 +271,19 @@ pub async fn update_category(
     if let Some(pid) = parent_id {
         if pid == id {
             return Err(ApiError::BadRequest(
-                "parent_id cannot be the category itself".to_string(),
+                "Parent cannot be the category itself.".to_string(),
             ));
         }
         let parent = db::category::get_by_id(&state.pool, pid)
             .await
             .map_err(|_| ApiError::Internal)?;
         if parent.is_none() {
-            return Err(ApiError::NotFound("parent category not found".to_string()));
+            return Err(ApiError::NotFound("Parent category not found.".to_string()));
         }
     }
 
     if name.trim().is_empty() {
-        return Err(ApiError::BadRequest("name must not be empty".to_string()));
+        return Err(ApiError::BadRequest("Name is required.".to_string()));
     }
 
     if existing.name() == name && existing.parent_id() == parent_id {
@@ -316,7 +316,7 @@ pub async fn delete_category(
     let _ = db::category::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?
-        .ok_or_else(|| ApiError::NotFound("category not found".to_string()))?;
+        .ok_or_else(|| ApiError::NotFound("Category not found.".to_string()))?;
 
     if q.force {
         db::category::hard_delete(&state.pool, id)

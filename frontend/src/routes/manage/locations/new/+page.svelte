@@ -16,7 +16,7 @@
     error = null;
     const n = name.trim();
     if (!n) {
-      error = 'Name is required';
+      error = 'Name is required.';
       return;
     }
     submitting = true;

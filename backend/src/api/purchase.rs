@@ -165,7 +165,7 @@ pub async fn get_purchase(
     let purchase = db::purchase::get_by_id_with_relations(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let purchase = purchase.ok_or_else(|| ApiError::NotFound("purchase not found".to_string()))?;
+    let purchase = purchase.ok_or_else(|| ApiError::NotFound("Purchase not found.".to_string()))?;
     Ok(Json(purchase_with_relations_to_response(&purchase)))
 }
 
@@ -179,20 +179,20 @@ pub async fn create_purchase(
         .await
         .map_err(|e| map_db_error(&e))?;
     if product.is_none() {
-        return Err(ApiError::NotFound("product not found".to_string()));
+        return Err(ApiError::NotFound("Product not found.".to_string()));
     }
     let location = db::location::get_by_id(&state.pool, body.location_id)
         .await
         .map_err(|e| map_db_error(&e))?;
     if location.is_none() {
-        return Err(ApiError::NotFound("location not found".to_string()));
+        return Err(ApiError::NotFound("Location not found.".to_string()));
     }
 
     let quantity = body.quantity.unwrap_or(1);
     let price: Decimal = body
         .price
         .parse()
-        .map_err(|_| ApiError::BadRequest("invalid price".to_string()))?;
+        .map_err(|_| ApiError::BadRequest("Invalid price.".to_string()))?;
     let purchased_at = body
         .purchased_at
         .as_deref()
@@ -212,10 +212,8 @@ pub async fn create_purchase(
     )
     .map_err(|e: ValidationError| {
         ApiError::BadRequest(match &e {
-            ValidationError::QuantityInvalid { quantity: q } => {
-                format!("quantity must be at least 1 (got {q})")
-            }
-            ValidationError::PriceInvalid { .. } => "price must not be negative".to_string(),
+            ValidationError::QuantityInvalid { .. } => "Quantity must be at least 1.".to_string(),
+            ValidationError::PriceInvalid { .. } => "Price must not be negative.".to_string(),
         })
     })?;
     db::purchase::insert(&state.pool, &purchase)
@@ -241,7 +239,7 @@ pub async fn update_purchase(
     let existing = db::purchase::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let existing = existing.ok_or_else(|| ApiError::NotFound("purchase not found".to_string()))?;
+    let existing = existing.ok_or_else(|| ApiError::NotFound("Purchase not found.".to_string()))?;
 
     if existing.user_id() != current_user_id {
         return Err(ApiError::Forbidden(
@@ -275,8 +273,8 @@ pub async fn update_purchase(
     )
     .map_err(|e: ValidationError| {
         ApiError::BadRequest(match &e {
-            ValidationError::QuantityInvalid { .. } => "quantity must be at least 1".to_string(),
-            ValidationError::PriceInvalid { .. } => "price must not be negative".to_string(),
+            ValidationError::QuantityInvalid { .. } => "Quantity must be at least 1.".to_string(),
+            ValidationError::PriceInvalid { .. } => "Price must not be negative.".to_string(),
         })
     })?;
 
@@ -287,7 +285,7 @@ pub async fn update_purchase(
             .flatten()
             .is_none()
     {
-        return Err(ApiError::NotFound("product not found".to_string()));
+        return Err(ApiError::NotFound("Product not found.".to_string()));
     }
     if body.location_id.is_some()
         && db::location::get_by_id(&state.pool, location_id)
@@ -296,7 +294,7 @@ pub async fn update_purchase(
             .flatten()
             .is_none()
     {
-        return Err(ApiError::NotFound("location not found".to_string()));
+        return Err(ApiError::NotFound("Location not found.".to_string()));
     }
 
     db::purchase::update(&state.pool, &updated)
@@ -319,7 +317,7 @@ pub async fn delete_purchase(
     let purchase = db::purchase::get_by_id(&state.pool, id)
         .await
         .map_err(|e| map_db_error(&e))?;
-    let purchase = purchase.ok_or_else(|| ApiError::NotFound("purchase not found".to_string()))?;
+    let purchase = purchase.ok_or_else(|| ApiError::NotFound("Purchase not found.".to_string()))?;
 
     if purchase.user_id() != current_user_id {
         return Err(ApiError::Forbidden(

@@ -35,11 +35,11 @@
     error = null;
     const n = name.trim();
     if (!n) {
-      error = 'Name is required';
+      error = 'Name is required.';
       return;
     }
     if (!categoryId) {
-      error = 'Category is required';
+      error = 'Category is required.';
       return;
     }
     submitting = true;
