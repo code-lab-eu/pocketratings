@@ -23,9 +23,13 @@ Defined in `src/routes/layout.css`:
 - **Buttons**
   - `.pr-btn-primary`: primary action button (dark background in light mode, inverted in dark mode).
   - `.pr-btn-secondary`: secondary/outline button used for “Cancel” actions and similar.
+  - Both use a short transition and a slight hover lift and shadow; motion is disabled when the
+    user prefers reduced motion (`prefers-reduced-motion: reduce`).
 
 - **Cards and list items**
   - `.pr-card`: generic card/list-item container used for products, categories, locations, etc.
+  - Cards use a short transition and a slight hover lift and shadow; motion is disabled when the
+    user prefers reduced motion (`prefers-reduced-motion: reduce`).
   - `.pr-list-item-link`: list row link (min height, underline on hover) used inside cards.
 
 - **Form controls**

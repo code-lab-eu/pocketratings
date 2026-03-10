@@ -25,6 +25,9 @@ html.dark body {
   --pr-text-primary-dark: #f9fafb; /* primary text on gray-900 / gray-800 */
   --pr-text-secondary-dark: #e5e7eb; /* secondary text on gray-900 / gray-800 */
   --pr-text-link-dark: #f9fafb; /* link text on gray-900 / gray-800 */
+  --pr-transition-fast: 150ms ease;
+  --pr-shadow-hover: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 html.dark {
@@ -78,18 +81,69 @@ html.dark {
   /* Buttons */
   .pr-btn-primary {
     @apply rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200;
+    transition: transform var(--pr-transition-fast),
+      box-shadow var(--pr-transition-fast),
+      background-color var(--pr-transition-fast),
+      border-color var(--pr-transition-fast),
+      color var(--pr-transition-fast);
+  }
+  .pr-btn-primary:hover:not(:disabled),
+  .pr-btn-primary:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: var(--pr-shadow-hover);
+  }
+  .pr-btn-primary:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-gray-500 dark:outline-gray-400;
   }
 
   .pr-btn-secondary {
     @apply rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700;
+    transition: transform var(--pr-transition-fast),
+      box-shadow var(--pr-transition-fast),
+      background-color var(--pr-transition-fast),
+      border-color var(--pr-transition-fast),
+      color var(--pr-transition-fast);
+  }
+  .pr-btn-secondary:hover:not(:disabled),
+  .pr-btn-secondary:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: var(--pr-shadow-hover);
+  }
+  .pr-btn-secondary:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-gray-500 dark:outline-gray-400;
   }
 
   /* Cards and list items */
   .pr-card {
     @apply rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700;
+    transition: transform var(--pr-transition-fast),
+      box-shadow var(--pr-transition-fast),
+      border-color var(--pr-transition-fast),
+      background-color var(--pr-transition-fast);
+  }
+  .pr-card:hover,
+  .pr-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--pr-shadow-hover);
   }
 
   .pr-list-item-link {
     @apply min-h-[44px] min-w-0 flex-1 break-words py-2 text-gray-900 hover:underline dark:text-gray-50;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-card,
+  .pr-btn-primary,
+  .pr-btn-secondary {
+    transition-duration: 0.01ms;
+  }
+  .pr-card:hover,
+  .pr-card:focus-visible,
+  .pr-btn-primary:hover,
+  .pr-btn-primary:focus-visible,
+  .pr-btn-secondary:hover,
+  .pr-btn-secondary:focus-visible {
+    transform: none;
   }
 }

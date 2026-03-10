@@ -65,7 +65,8 @@ them, so they can decide what to buy (or avoid).
 The UI supports both **light and dark modes**. In dark mode, all headings,
 labels, links, and paragraph text are tuned to meet **WCAG AAA** contrast
 requirements against their backgrounds so that text remains highly legible in
-low-light conditions.
+low-light conditions. Interactive cards and buttons use CSS transitions and hover/focus
+micro-interactions, with reduced motion respected.
 
 **Implications:**
 
