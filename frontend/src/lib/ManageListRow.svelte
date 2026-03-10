@@ -40,11 +40,11 @@
 >
   <div class="min-h-[44px] min-w-0 flex-1 break-words py-2">
     {#if viewHref}
-      <a href={viewHref} class="font-medium text-gray-900 hover:underline dark:text-gray-50">
+      <a href={viewHref} class="font-medium pr-text-body hover:underline">
         {label}
       </a>
     {:else}
-      <span class="font-medium text-gray-900 dark:text-gray-50">{label}</span>
+      <span class="font-medium pr-text-body">{label}</span>
     {/if}
     {#if children}
       {@render children()}
@@ -53,7 +53,7 @@
   <div class="flex shrink-0 items-center gap-1">
     <a
       href={editHref}
-      class="flex min-h-[44px] min-w-[44px] items-center justify-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+      class="flex min-h-[44px] min-w-[44px] items-center justify-center pr-link-muted"
       aria-label="Edit {label}"
     >
       <Pen size={20} />

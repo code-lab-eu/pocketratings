@@ -23,7 +23,7 @@
           <span class="pr-text-muted"> — {product.brand}</span>
         {/if}
         {#if rating != null}
-          <span class="mt-1 block text-sm pr-text-muted" aria-label="Your rating">
+          <span class="mt-1 block text-sm pr-rating" aria-label="Your rating">
             Rating: {rating}/5
           </span>
         {/if}

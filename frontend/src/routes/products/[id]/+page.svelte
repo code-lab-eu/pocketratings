@@ -88,12 +88,12 @@
         {:else}
           <ul class="space-y-3">
             {#each reviews as review (review.id)}
-              <li class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                <p class="font-medium pr-text-body">
+              <li class="pr-panel">
+                <p class="font-medium pr-text-body pr-rating">
                   Rating: {review.rating}/5
                 </p>
                 {#if review.text}
-                  <p class="mt-1 pr-text-body text-gray-700 dark:text-gray-200">{review.text}</p>
+                  <p class="mt-1 pr-text-body">{review.text}</p>
                 {/if}
                 <p class="mt-1 text-sm pr-text-subtle">
                   By {review.user.name} · {formatDate(review.updated_at)}
@@ -113,7 +113,7 @@
         {:else}
           <ul class="space-y-2">
             {#each purchases as purchase (purchase.id)}
-              <li class="flex flex-wrap gap-x-4 gap-y-1 pr-text-body text-gray-700 dark:text-gray-200">
+              <li class="flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
                 <span>{formatDate(purchase.purchased_at)}</span>
                 <span>{purchase.location.name}</span>
                 <span>{purchase.price} €</span>
@@ -123,7 +123,7 @@
         {/if}
       </section>
 
-      <section class="border-t border-gray-200 pt-4" aria-label="Actions">
+      <section class="pr-divider pt-4" aria-label="Actions">
         <p class="pr-text-muted">
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
           <a href={`${resolve('/manage/reviews/add')}?product_id=${product.id}`} class="pr-link-inline">

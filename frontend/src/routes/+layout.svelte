@@ -29,18 +29,18 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 {#if typeof window !== 'undefined' && $token && $page.url.pathname !== '/login'}
-  <header class="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+  <header class="pr-header px-4 py-3">
     <div class="mx-auto flex max-w-2xl min-w-0 items-center justify-between">
       <div class="flex min-h-[44px] min-w-0 items-center gap-3">
         <a
           href={resolve('/manage')}
-          class="flex min-h-[44px] min-w-[44px] items-center justify-center text-gray-600 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-50"
+          class="flex min-h-[44px] min-w-[44px] items-center justify-center pr-link-muted"
           aria-label="Menu"
           >☰</a
         >
         <a
           href={resolve('/')}
-          class="min-h-[44px] flex items-center break-words text-lg font-semibold text-gray-900 dark:text-gray-50"
+          class="min-h-[44px] flex items-center break-words text-lg font-semibold pr-text-body"
           >Pocket Ratings</a
         >
       </div>
@@ -48,7 +48,7 @@
         <button
           type="button"
           onclick={toggleDark}
-          class="min-h-[44px] min-w-[44px] px-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-50"
+          class="min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
           aria-label={$dark ? 'Switch to light mode' : 'Switch to dark mode'}
           title={$dark ? 'Light mode' : 'Dark mode'}
         >
@@ -57,7 +57,7 @@
         <button
           type="button"
           onclick={handleLogout}
-          class="min-h-[44px] min-w-[44px] px-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-50"
+          class="min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
         >
           Log out
         </button>
@@ -66,6 +66,6 @@
   </header>
 {/if}
 
-<div class="min-h-screen dark:bg-gray-900 dark:text-gray-50">
+<div class="min-h-screen">
   {@render children()}
 </div>

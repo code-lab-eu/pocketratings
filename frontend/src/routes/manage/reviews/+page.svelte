@@ -59,7 +59,7 @@
           onDelete={() => handleDelete(review)}
           deleting={deletingId === review.id}
         >
-          <span class="pr-text-muted"> — {review.rating}/5</span>
+          <span class="pr-rating"> — {review.rating}/5</span>
           <span class="pr-text-muted"> · {review.user.name}</span>
           {#if review.text}
             <p class="mt-1 truncate text-sm pr-text-muted">{review.text}</p>

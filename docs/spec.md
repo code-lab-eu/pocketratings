@@ -68,6 +68,15 @@ requirements against their backgrounds so that text remains highly legible in
 low-light conditions. Interactive cards and buttons use CSS transitions and hover/focus
 micro-interactions, with reduced motion respected.
 
+**Color scheme.** The app uses a warm amber and charcoal palette: amber as the
+primary accent (buttons, links, focus rings, rating highlights) and warm
+neutrals for backgrounds and text. Design tokens are defined in
+`frontend/src/routes/layout.css` (`:root` and `html.dark`) and drive
+components (e.g. `.pr-btn-primary`, `.pr-card`, `.pr-link-inline`,
+`.pr-rating`). Contrast targets: at least **4.5:1** (WCAG AA) for normal text
+in light mode and **7:1** (WCAG AAA) in dark mode; focus indicators use the
+primary color and are never removed.
+
 **Implications:**
 
 - **Lookup-first, not data-entry-first** — Browsing categories and searching
