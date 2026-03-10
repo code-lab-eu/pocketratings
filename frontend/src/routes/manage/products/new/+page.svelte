@@ -3,7 +3,9 @@
   import { goto } from '$app/navigation';
   import { createProduct } from '$lib/api';
   import { flattenCategories } from '$lib/categories';
+  import BackLink from '$lib/BackLink.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
+  import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
 
@@ -53,22 +55,14 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage/products')}
-      class="pr-link-muted"
-      >← Products</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage/products')} label="Products" />
   <PageHeading>New product</PageHeading>
 
   {#if loadError}
-    <p class="text-red-600 dark:text-red-300">{loadError}</p>
+    <FormError message={loadError} />
   {:else}
     <form onsubmit={handleSubmit} class="space-y-4">
-      {#if error}
-        <p class="text-red-600 dark:text-red-300">{error}</p>
-      {/if}
+      <FormError message={error} />
       <div>
         <label for="name" class="mb-1 block pr-text-label">Name</label>
         <input

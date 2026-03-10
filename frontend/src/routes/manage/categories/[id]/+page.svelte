@@ -3,7 +3,9 @@
   import { goto } from '$app/navigation';
   import { deleteCategory, updateCategory } from '$lib/api';
   import { flattenCategories } from '$lib/categories';
+  import BackLink from '$lib/BackLink.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
+  import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
 
@@ -38,7 +40,7 @@
     formError = null;
     const n = name.trim();
     if (!n) {
-      formError = 'Name is required';
+      formError = 'Name is required.';
       return;
     }
     submitting = true;
@@ -65,13 +67,7 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage/categories')}
-      class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
-      >← Categories</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage/categories')} label="Categories" />
 
   {#if notFound}
     <p class="pr-text-muted">Category not found.</p>
@@ -83,14 +79,12 @@
       >
     </p>
   {:else if error}
-    <p class="text-red-600 dark:text-red-300">{error}</p>
+    <FormError message={error} />
   {:else if category}
     <PageHeading>Edit category</PageHeading>
 
     <form onsubmit={handleSubmit} class="space-y-4">
-      {#if formError}
-        <p class="text-red-600 dark:text-red-300">{formError}</p>
-      {/if}
+      <FormError message={formError} />
       <div>
         <label for="name" class="mb-1 block pr-text-label">Name</label>
         <input

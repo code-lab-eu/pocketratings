@@ -1,6 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { listProducts, listReviews } from '$lib/api';
+  import BackLink from '$lib/BackLink.svelte';
+  import FormError from '$lib/FormError.svelte';
+  import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import ProductList from '$lib/ProductList.svelte';
   import SearchForm from '$lib/SearchForm.svelte';
   import type { Category, Product, Review } from '$lib/types';
@@ -87,8 +90,8 @@
 </svelte:head>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4" aria-label="Breadcrumb">
-    {#if category}
+  {#if category}
+    <nav class="mb-4" aria-label="Breadcrumb">
       <ol class="flex flex-wrap items-center gap-x-1 text-sm pr-text-muted">
         <li>
           <a href={resolve('/')} class="pr-link-muted">Home</a>
@@ -109,22 +112,19 @@
           <span>{category.name}</span>
         </li>
       </ol>
-    {:else}
-      <a href={resolve('/')} class="pr-link-muted">← Home</a>
-    {/if}
-  </nav>
+    </nav>
+  {:else}
+    <BackLink href={resolve('/')} label="Home" />
+  {/if}
 
   {#if notFound}
-    <p class="pr-text-muted">Category not found.</p>
-    <p class="mt-2">
-      <a
-        href={resolve('/')}
-        class="pr-link-inline"
-        >Back to home</a
-      >
-    </p>
+    <NotFoundMessage
+      message="Category not found."
+      backHref={resolve('/')}
+      backLabel="Back to home"
+    />
   {:else if displayedError}
-    <p class="text-red-600 dark:text-red-300">{displayedError}</p>
+    <FormError message={displayedError} />
   {:else if category}
     <SearchForm
       actionUrl={resolve(`/categories/${category.id}`)}

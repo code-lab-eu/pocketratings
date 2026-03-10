@@ -1,5 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import BackLink from '$lib/BackLink.svelte';
+  import FormError from '$lib/FormError.svelte';
+  import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
   let { data } = $props();
 
@@ -19,23 +22,22 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <p class="mb-4">
-    <a
-      href={resolve('/')}
-      class="pr-link-muted"
-      >← Home</a
-    >
-  </p>
+  <BackLink href={resolve('/')} label="Home" />
 
   {#if notFound}
-    <p class="pr-text-muted">Product not found.</p>
-    <p class="mt-2">
-      <a href={resolve('/')} class="pr-link-inline">Back to home</a>
-    </p>
+    <NotFoundMessage
+      message="Product not found."
+      backHref={resolve('/')}
+      backLabel="Back to home"
+    />
   {:else if error}
-    <p class="text-red-600 dark:text-red-300">{error}</p>
+    <FormError message={error} />
   {:else if !product}
-    <p class="pr-text-muted">Product not found.</p>
+    <NotFoundMessage
+      message="Product not found."
+      backHref={resolve('/')}
+      backLabel="Back to home"
+    />
   {:else}
     <article class="min-w-0">
       <header class="mb-6">

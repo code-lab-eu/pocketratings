@@ -4,6 +4,8 @@
   import { resolve } from '$app/paths';
   import { getToken, setToken } from '$lib/auth';
   import { login } from '$lib/api';
+  import Button from '$lib/Button.svelte';
+  import FormError from '$lib/FormError.svelte';
 
   let email = $state('');
   let password = $state('');
@@ -28,7 +30,7 @@
       setToken(token);
       goto(resolve('/'));
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Login failed';
+      error = err instanceof Error ? err.message : 'Login failed.';
     } finally {
       loading = false;
     }
@@ -73,15 +75,9 @@
         class="pr-input"
       />
     </div>
-    {#if error}
-      <p class="text-sm text-red-600 dark:text-red-300" role="alert">{error}</p>
-    {/if}
-    <button
-      type="submit"
-      disabled={loading}
-      class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-    >
+    <FormError message={error || undefined} />
+    <Button type="submit" disabled={loading} class="w-full">
       {loading ? 'Signing in…' : 'Sign in'}
-    </button>
+    </Button>
   </form>
 </main>

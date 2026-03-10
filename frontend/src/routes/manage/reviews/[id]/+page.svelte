@@ -2,7 +2,9 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { updateReview } from '$lib/api';
+  import BackLink from '$lib/BackLink.svelte';
   import Button from '$lib/Button.svelte';
+  import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
 
   let { data } = $props();
@@ -46,16 +48,10 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage/reviews')}
-      class="pr-link-muted"
-      >← Reviews</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage/reviews')} label="Reviews" />
 
   {#if loadError}
-    <p class="text-red-600 dark:text-red-300">{loadError}</p>
+    <FormError message={loadError} />
   {:else if review}
     <PageHeading>
       Edit review
@@ -64,9 +60,7 @@
       {/snippet}
     </PageHeading>
     <form onsubmit={handleSubmit} class="mt-4 space-y-4">
-      {#if error}
-        <p class="text-red-600 dark:text-red-300">{error}</p>
-      {/if}
+      <FormError message={error} />
       <div>
         <label for="rating" class="mb-1 block pr-text-label">Rating (1–5)</label>
         <input

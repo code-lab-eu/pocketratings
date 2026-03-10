@@ -2,6 +2,8 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { deleteReview } from '$lib/api';
+  import BackLink from '$lib/BackLink.svelte';
+  import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
@@ -28,13 +30,7 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage')}
-      class="pr-link-muted"
-      >← Manage</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage')} label="Manage" />
   <PageHeading>Reviews</PageHeading>
   <Button
     variant="primary"
@@ -45,7 +41,7 @@
   </Button>
 
   {#if error}
-    <p class="text-red-600 dark:text-red-300">{error}</p>
+    <FormError message={error} />
   {:else if reviews.length === 0}
     <p class="pr-text-muted">No reviews yet.</p>
   {:else}

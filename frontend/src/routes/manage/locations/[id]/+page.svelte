@@ -2,6 +2,8 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { deleteLocation, updateLocation } from '$lib/api';
+  import BackLink from '$lib/BackLink.svelte';
+  import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
 
@@ -53,13 +55,7 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage/locations')}
-      class="text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-50"
-      >← Locations</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage/locations')} label="Locations" />
 
   {#if notFound}
     <p class="pr-text-muted">Location not found.</p>
@@ -71,14 +67,12 @@
       >
     </p>
   {:else if error}
-    <p class="text-red-600 dark:text-red-300">{error}</p>
+    <FormError message={error} />
   {:else if location}
     <PageHeading>Edit location</PageHeading>
 
     <form onsubmit={handleSubmit} class="space-y-4">
-      {#if formError}
-        <p class="text-red-600 dark:text-red-300">{formError}</p>
-      {/if}
+      <FormError message={formError} />
       <div>
         <label for="name" class="mb-1 block pr-text-label">Name</label>
         <input

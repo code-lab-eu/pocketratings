@@ -2,6 +2,8 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { createReview } from '$lib/api';
+  import BackLink from '$lib/BackLink.svelte';
+  import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
 
@@ -51,22 +53,14 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage/reviews')}
-      class="pr-link-muted"
-      >← Reviews</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage/reviews')} label="Reviews" />
   <PageHeading>Add review</PageHeading>
 
   {#if loadError}
-    <p class="text-red-600 dark:text-red-300">{loadError}</p>
+    <FormError message={loadError} />
   {:else}
     <form onsubmit={handleSubmit} class="space-y-4">
-      {#if error}
-        <p class="text-red-600 dark:text-red-300">{error}</p>
-      {/if}
+      <FormError message={error} />
       <div>
         <label for="product" class="mb-1 block pr-text-label">Product</label>
         <select

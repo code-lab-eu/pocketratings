@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import BackLink from '$lib/BackLink.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
 
   const manageRoutes = [
@@ -31,5 +32,5 @@
       {/each}
     </ul>
   </nav>
-  <a href={resolve('/')} class="pr-link-muted">← Home</a>
+  <BackLink href={resolve('/')} label="Home" />
 </main>

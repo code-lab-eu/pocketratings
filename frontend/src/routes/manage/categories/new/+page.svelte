@@ -3,7 +3,9 @@
   import { goto } from '$app/navigation';
   import { createCategory } from '$lib/api';
   import { flattenCategories } from '$lib/categories';
+  import BackLink from '$lib/BackLink.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
+  import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
 
@@ -38,22 +40,14 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage/categories')}
-      class="pr-link-muted"
-      >← Categories</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage/categories')} label="Categories" />
   <PageHeading>New category</PageHeading>
 
   {#if loadError}
-    <p class="text-red-600 dark:text-red-300">{loadError}</p>
+    <FormError message={loadError} />
   {:else}
   <form onsubmit={handleSubmit} class="space-y-4">
-    {#if error}
-      <p class="text-red-600 dark:text-red-300">{error}</p>
-    {/if}
+    <FormError message={error} />
     <div>
       <label for="name" class="mb-1 block pr-text-label">Name</label>
       <input

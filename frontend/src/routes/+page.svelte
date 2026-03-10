@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { listProducts, listReviews } from '$lib/api';
   import CategoryLinkList from '$lib/CategoryLinkList.svelte';
+  import FormError from '$lib/FormError.svelte';
   import ProductList from '$lib/ProductList.svelte';
   import SearchForm from '$lib/SearchForm.svelte';
   import type { Category, Product, Review } from '$lib/types';
@@ -85,7 +86,7 @@
   />
 
   {#if displayedError}
-    <p class="text-red-600 dark:text-red-300">{displayedError}</p>
+    <FormError message={displayedError} />
   {:else}
     <section class="mb-8" aria-labelledby="categories-heading">
       <h2 id="categories-heading" class="pr-heading-section">

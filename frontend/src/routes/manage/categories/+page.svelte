@@ -3,6 +3,8 @@
   import { goto } from '$app/navigation';
   import { deleteCategory } from '$lib/api';
   import { flattenCategories } from '$lib/categories';
+  import BackLink from '$lib/BackLink.svelte';
+  import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
@@ -31,13 +33,7 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
-  <nav class="mb-4">
-    <a
-      href={resolve('/manage')}
-      class="pr-link-muted"
-      >← Manage</a
-    >
-  </nav>
+  <BackLink href={resolve('/manage')} label="Manage" />
   <PageHeading>Categories</PageHeading>
   <Button
     variant="primary"
@@ -48,7 +44,7 @@
   </Button>
 
   {#if error}
-    <p class="text-red-600 dark:text-red-300">{error}</p>
+    <FormError message={error} />
   {:else if flat.length === 0}
     <EmptyState
       message="No categories yet."
