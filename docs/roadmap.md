@@ -197,6 +197,8 @@ focus indicators (WCAG-friendly).
   .pr-btn-secondary and ensure interactive pr-card links have a visible
   focus style.
 
+### 12. Order categories alphabetically
+
 ---
 
 ## Distant future
