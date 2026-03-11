@@ -6,11 +6,12 @@ alwaysApply: false
 
 # Editing markdown and plan files
 
-Exact-string search_replace often fails in these files because they may contain **Unicode punctuation** (curly quotes `"` `"`, em dash `—`, etc.) that look like ASCII in the editor but do not match.
+Exact-string search_replace often fails in these files because they may contain **Unicode punctuation** (curly quotes `"` `"`, right single quote `'` in "product's", em dash `—`, en dash `–`) that look like ASCII in the editor but do not match.
 
 ## Do not
 
 - Retry the same replace with hex dumps or pasted Unicode. That wastes tokens and is brittle.
+- Use partial replacements that leave placeholder or broken text (e.g. "(Remove this later...)") or that strip the wrong substring; fix the whole affected span or normalize the file first.
 
 ## Do
 
@@ -18,11 +19,28 @@ Exact-string search_replace often fails in these files because they may contain 
 
 2. **Minimal replace.** If you must change a line that has special characters, replace only a substring that is ASCII, or a unique block that does not include the problematic character.
 
-3. **For larger or multi-block edits: Read the full file, then Write the new version.** You control the output; use straight quotes and ASCII punctuation in what you write. This is usually faster and more reliable than several careful search_replace attempts.
+3. **When a replace fails (e.g. fuzzy match points elsewhere):** Assume Unicode or whitespace mismatch. Run a **normalization** step to convert Unicode punctuation to ASCII in the file, then retry your intended search_replace. This is fast and avoids re-reading/writing the whole file.
+
+   **Normalize Unicode punctuation** (run from repo root or with the file path; replaces curly double/single quotes and en/em dashes with ASCII):
+
+   ```bash
+   perl -i -pe 's/[\x{201C}\x{201D}]/"/g; s/\x{2019}/'"'"'/g; s/[\x{2013}\x{2014}]/-/g' -- path/to/file.md
+   ```
+
+   On Linux with GNU sed (same effect):
+
+   ```bash
+   sed -i 's/\xE2\x80\x9C/"/g; s/\xE2\x80\x9D/"/g; s/\xE2\x80\x99/'"'"'/g; s/\xE2\x80\x93/-/g; s/\xE2\x80\x94/-/g' path/to/file.md
+   ```
+
+   After normalization, your search_replace should match; complete the intended edit.
 
 4. **When writing new or rewritten content in project markdown**, use ASCII punctuation: straight double quote `"`, straight single quote `'`, hyphen-minus `-`. That keeps future search_replace reliable.
 
+5. **Fallback:** If normalization plus retry still fails or the edit is very large, Read the affected section and Write it back with ASCII punctuation throughout.
+
 ## Summary
 
-- Small, targeted replace that avoids the special character, **or**
-- Read + Write for the whole file when the edit touches multiple lines or mixed punctuation.
+- Prefer small, targeted replace that avoids the special character.
+- When replace fails: normalize Unicode (perl or sed one-liner), then retry search_replace.
+- Do not leave placeholders or broken fragments; normalize or fix the whole span.
