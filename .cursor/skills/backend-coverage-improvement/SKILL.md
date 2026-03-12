@@ -63,10 +63,18 @@ target:
 - Follow the **rust-backend-workflow** skill: TDD, no `unwrap`/`unsafe`,
   proper error handling, full test coverage expectations for new code.
 
-### 4. Confirm coverage still passes
+### 4. Run full backend quality control (required before task complete)
 
-Run the backend coverage script from the repo root to ensure the
-threshold is still met:
+Do **not** only run the coverage script. Run **full** backend quality control (use the **backend-quality-control** skill) so that format, Clippy, tests, and coverage all pass:
+
+1. Format: `cargo fmt`
+2. Lint: `cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings`
+3. Test: `cargo test --release -- --skip server_start_and_stop_via_cli`
+4. Coverage: `./scripts/backend-coverage.sh` (from repo root)
+
+Consider the coverage-improvement task **incomplete** until all four pass. See the **task-completion-qa** rule.
+
+To ensure the coverage threshold is still met:
 
 ```bash
 ./scripts/backend-coverage.sh
@@ -77,6 +85,7 @@ confirm the chosen files’ coverage improved.
 
 ## References
 
+- **task-completion-qa** — Rule: run full QC before marking any task complete.
 - **backend-quality-control** — How to run format, lint, and test; same
   test filter (`--skip server_start_and_stop_via_cli`).
 - **rust-backend-workflow** — Test style, TDD, no unwrap/unsafe, error

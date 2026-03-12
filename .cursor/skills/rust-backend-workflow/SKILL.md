@@ -7,11 +7,20 @@ description: Enforces TDD, full test coverage (unit + CLI + REST), no unwrap/uns
 
 Apply this workflow whenever writing or changing code in `backend/` (Pocket Ratings).
 
+## Task completion: run full QC
+
+**Do not mark any backend task complete until full backend quality control has been run and passed.** Use the **backend-quality-control** skill. This means, in order: (1) format, (2) Clippy (strict pedantic), (3) tests, (4) coverage script. Running only tests or only coverage is not sufficient. See also the **task-completion-qa** rule.
+
 ## Test-driven development
 
 - **Tests are required for all new functionality.** Do not add or change production code without corresponding tests. This includes: new or changed database functions, new CLI commands, new REST endpoints, and new domain logic.
-- **Prefer writing tests first.** When adding a feature, write the test(s) that define the desired behaviour before (or as the first step of) implementing. Then implement until the tests pass. If you implement first, add the tests in the same change and treat missing tests as incomplete work.
-- Before considering the change done, run **backend quality control** (use the backend-quality-control skill: format, then Clippy in strict pedantic mode, then tests).
+- **Tests describe the expected outcome.** Write tests so they specify the behaviour the code should meet (inputs, expected results, error cases). The tests are the specification; the implementation should make them pass.
+- **Prefer writing tests first.** Ideally write the test(s) that define the desired behaviour **before** writing the production code. Then implement until the tests pass. If you implement first, add the tests in the same change and treat missing tests as incomplete work.
+- **For coverage improvement:** The production code already exists; your job is to add or extend tests to cover it. Add the tests, then run **full** backend quality control (format, Clippy, tests, coverage). Do not skip format or Clippy.
+
+### Phased plans
+
+When a plan is executed in **separate phases** (e.g. phase 1a, 1b, 2): **test coverage must be provided for each phase.** Do not defer tests to a later phase or to the end. For each phase, ideally write the tests for that phase first (describing the expected outcomes), then implement the code so the tests pass. Run full backend quality control before marking that phase complete.
 
 ## Test coverage
 
@@ -46,8 +55,8 @@ Three layers are required:
 
 ## Checklist before submitting backend changes
 
-- [ ] **Tests first or in same change:** New/changed DB functions have tests in `backend/tests/*_db_test.rs`; new CLI commands have tests in `backend/tests/cli_*_test.rs`; new REST endpoints have tests in the same file as the handler (e.g. `api/version.rs` with a `#[cfg(test)] mod tests`). Prefer writing tests before implementing.
+- [ ] **Tests first or in same change:** New/changed DB functions have tests in `backend/tests/*_db_test.rs`; new CLI commands have tests in `backend/tests/cli_*_test.rs`; new REST endpoints have tests in the same file as the handler (e.g. `api/version.rs` with a `#[cfg(test)] mod tests`). Prefer writing tests before implementing. If the work is in phases, each phase has its own tests (do not defer to a later phase).
 - [ ] New/changed behaviour has unit and/or integration tests (no production code without a test), and obvious test helper duplication has been factored into shared helpers where practical.
 - [ ] No `unwrap()`/`expect()` in production code; no `unsafe` (strictly forbidden).
 - [ ] Errors use `Result` and thiserror/anyhow; API and CLI map errors appropriately.
-- [ ] **Backend quality control** has been run and passes (use the backend-quality-control skill: format, Clippy in strict pedantic mode, then tests).
+- [ ] **Full backend quality control** has been run and passes: format, Clippy (strict pedantic), tests, and coverage script (use the backend-quality-control skill). Do not mark the task complete until all four pass.

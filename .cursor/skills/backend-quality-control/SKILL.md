@@ -7,6 +7,8 @@ description: Run format, lint, and test for the Pocket Ratings backend with stri
 
 Run these checks whenever you need to verify the Pocket Ratings backend passes quality control. Use this skill when confirming backend changes are ready, before marking work done, or when the user asks to run QC, lint, or check the backend.
 
+**Backend work must not be marked complete until all checks in this skill (format, Clippy, tests, and coverage) have been run and passed.** Running only a subset (e.g. only tests or only coverage) is not sufficient. See the **task-completion-qa** rule.
+
 **If `cargo` fails with "rustup could not choose a version" or "no default is configured":** run `rustup default stable` (with network permission) first, then retry. Do not treat it as a code bug.
 
 ## Order of checks
