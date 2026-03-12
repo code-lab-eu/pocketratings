@@ -11,6 +11,7 @@ use crate::cli::CliError;
 use crate::db;
 use crate::domain::category::Category;
 use crate::domain::product::{Product, ValidationError};
+use crate::domain::product_variation::ProductVariation;
 
 /// Format category for CLI output: uses [`Category`]'s Display when available, else `uuid (?)`.
 fn format_category_display(cat: Option<&Category>, id: Uuid) -> String {
@@ -58,6 +59,11 @@ pub async fn create(
     .map_err(|e| map_validation_error(&e))?;
 
     db::product::insert(pool, &product).await?;
+
+    let var_id = Uuid::new_v4();
+    let default_variation = ProductVariation::new(var_id, product.id(), "", "none", now, now, None)
+        .map_err(|e| CliError::Validation(e.to_string()))?;
+    db::product_variation::insert(pool, &default_variation).await?;
 
     if output_json {
         let out = serde_json::json!({

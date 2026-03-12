@@ -709,6 +709,11 @@ pub async fn hard_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
     let id_str = id.to_string();
     ensure_no_purchases(pool, &id_str).await?;
 
+    sqlx::query("DELETE FROM product_variations WHERE product_id = ?")
+        .bind(&id_str)
+        .execute(pool)
+        .await?;
+
     let result = sqlx::query("DELETE FROM products WHERE id = ?")
         .bind(&id_str)
         .execute(pool)

@@ -394,7 +394,10 @@ Create a new product.
 }
 ```
 
-**Response:** `201 Created` (product object with nested `category: { id, name, ancestors }`)
+**Response:** `201 Created` (product object with nested `category: { id, name, ancestors }`).
+
+Creating a product automatically creates one default product variation (label empty, unit
+`none`) so purchases can reference a variation without a separate create step.
 
 **Errors:**
 - `400 Bad Request`: Validation error

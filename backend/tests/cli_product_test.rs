@@ -7,6 +7,7 @@ use pocketratings::db;
 use pocketratings::domain::product_variation::ProductVariation;
 use pocketratings::domain::purchase::Purchase;
 use rust_decimal::Decimal;
+use uuid::Uuid;
 
 async fn run_product(
     pool: &sqlx::SqlitePool,
@@ -91,6 +92,47 @@ async fn product_create_and_show_roundtrip() {
         show_json.get("brand").and_then(|v| v.as_str()),
         Some("Acme")
     );
+}
+
+#[tokio::test]
+async fn product_create_creates_one_default_variation() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_default_var.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = create_category_and_get_id(&pool, "Food").await;
+
+    let (res, stdout, stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "create",
+            "--name",
+            "Milk",
+            "--brand",
+            "Farm",
+            "--category-id",
+            &cat_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(res.is_ok(), "stderr: {stderr}");
+    let json: serde_json::Value =
+        serde_json::from_str(stdout.lines().next().expect("line")).expect("json");
+    let product_id =
+        Uuid::parse_str(json.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+
+    let variations = db::product_variation::list_by_product_id(&pool, product_id, false)
+        .await
+        .expect("list variations");
+    assert_eq!(variations.len(), 1);
+    assert_eq!(variations[0].unit(), "none");
+    assert_eq!(variations[0].label(), "");
 }
 
 #[tokio::test]

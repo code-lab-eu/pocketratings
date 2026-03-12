@@ -13,6 +13,7 @@ use crate::api::category::CategoryRef;
 use crate::api::{error::ApiError, state::AppState};
 use crate::db;
 use crate::domain::product::Product;
+use crate::domain::product_variation::ProductVariation;
 
 /// Minimal product info for embedding in purchase (and future) responses.
 #[derive(Debug, Clone, serde::Serialize)]
@@ -197,6 +198,12 @@ pub async fn create_product(
     )
     .map_err(|e| ApiError::BadRequest(e.to_string()))?;
     db::product::insert(&state.pool, &product)
+        .await
+        .map_err(|e| map_db_error(&e))?;
+    let var_id = Uuid::new_v4();
+    let default_variation = ProductVariation::new(var_id, id, "", "none", now, now, None)
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    db::product_variation::insert(&state.pool, &default_variation)
         .await
         .map_err(|e| map_db_error(&e))?;
     let created = db::product::get_by_id_with_relations(&state.pool, id, false)
@@ -460,6 +467,45 @@ mod tests {
         assert_eq!(persisted.brand(), "Acme");
         assert_eq!(persisted.name(), "Widget");
         assert_eq!(persisted.category_id(), cat_id);
+    }
+
+    #[tokio::test]
+    async fn create_product_creates_one_default_variation() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Groceries").await;
+        let app = route().with_state(state.clone());
+        let body = serde_json::json!({
+            "category_id": cat_id.to_string(),
+            "brand": "Acme",
+            "name": "Widget"
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let product_id =
+            Uuid::parse_str(json.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+        let variations = db::product_variation::list_by_product_id(&state.pool, product_id, false)
+            .await
+            .expect("list variations");
+        assert_eq!(variations.len(), 1);
+        assert_eq!(variations[0].unit(), "none");
+        assert_eq!(variations[0].label(), "");
     }
 
     #[tokio::test]
