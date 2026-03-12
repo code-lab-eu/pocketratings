@@ -14,7 +14,7 @@ set -e
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT/backend" || exit 1
 
-# Line coverage threshold (%). Pinned at 88% after high-value coverage improvements.
-FAIL_UNDER_LINES=88
+# Line coverage threshold (%).
+FAIL_UNDER_LINES=89
 
 exec cargo llvm-cov --fail-under-lines "$FAIL_UNDER_LINES" -- --skip server_start_and_stop_via_cli
