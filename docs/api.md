@@ -450,7 +450,10 @@ List purchases.
 - `from` (optional, ISO 8601 date): Start date
 - `to` (optional, ISO 8601 date): End date
 
-**Response:** `200 OK` — Array of purchases. Each item has the same shape as the example below (nested `user`, `product`, `location`). When there are no matching purchases (e.g. the product exists but has no purchases), the response is `200 OK` with body `[]`.
+**Response:** `200 OK` — Array of purchases. Each item has the same shape as the
+example below (nested `user`, `product`, `variation`, `location`). When there
+are no matching purchases (e.g. the product exists but has no purchases), the
+response is `200 OK` with body `[]`.
 
 ```json
 [
@@ -458,6 +461,7 @@ List purchases.
     "id": "uuid",
     "user": { "id": "uuid", "name": "Alice" },
     "product": { "id": "uuid", "brand": "Brugge", "name": "Belegen" },
+    "variation": { "id": "uuid", "label": "", "unit": "none" },
     "location": { "id": "uuid", "name": "Carrefour" },
     "quantity": 1,
     "price": "2.99",
@@ -511,6 +515,7 @@ Update a purchase. Only the owner (purchase's `user_id` equals current user) may
 ```json
 {
   "product_id": "uuid",
+  "variation_id": "uuid",
   "location_id": "uuid",
   "quantity": 2,
   "price": "3.49",
@@ -518,14 +523,18 @@ Update a purchase. Only the owner (purchase's `user_id` equals current user) may
 }
 ```
 
-All fields are optional. Only provided fields are updated.
+All fields are optional. Only provided fields are updated. If `variation_id` is
+provided without `product_id`, the product is taken from the variation.
 
-**Response:** `200 OK` — Updated purchase object with the same shape as list (nested `user`, `product`, `location`).
+**Response:** `200 OK` — Updated purchase object with the same shape as list
+(nested `user`, `product`, `variation`, `location`).
 
 **Errors:**
-- `400 Bad Request`: Validation error (e.g. quantity < 1, negative price)
+- `400 Bad Request`: Validation error (e.g. quantity < 1, negative price);
+  or product has no variation
 - `403 Forbidden`: Purchase belongs to another user
-- `404 Not Found`: Purchase not found, or product/location not found (if provided)
+- `404 Not Found`: Purchase not found, or product/variation/location not found
+  (if provided)
 
 #### `DELETE /api/v1/purchases/:id`
 

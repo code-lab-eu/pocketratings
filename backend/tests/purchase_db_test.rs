@@ -4,12 +4,31 @@ use pocketratings::db;
 use pocketratings::domain::category::Category;
 use pocketratings::domain::location::Location;
 use pocketratings::domain::product::Product;
+use pocketratings::domain::product_variation::ProductVariation;
 use pocketratings::domain::purchase::Purchase;
 use pocketratings::domain::user::User;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-async fn insert_user_product_location(pool: &sqlx::SqlitePool) -> (Uuid, Uuid, Uuid) {
+/// Inserts a default variation for the product and returns its id.
+async fn ensure_product_variation(pool: &sqlx::SqlitePool, product_id: Uuid) -> Uuid {
+    let existing = db::product_variation::list_by_product_id(pool, product_id, false)
+        .await
+        .expect("list_by_product_id");
+    if let Some(v) = existing.first() {
+        return v.id();
+    }
+    let now = 1_000_i64;
+    let var_id = Uuid::new_v4();
+    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None)
+        .expect("valid variation");
+    db::product_variation::insert(pool, &var)
+        .await
+        .expect("insert variation");
+    var_id
+}
+
+async fn insert_user_product_location(pool: &sqlx::SqlitePool) -> (Uuid, Uuid, Uuid, Uuid) {
     let now = 1_000_i64;
 
     let user_id = Uuid::new_v4();
@@ -46,13 +65,15 @@ async fn insert_user_product_location(pool: &sqlx::SqlitePool) -> (Uuid, Uuid, U
         .await
         .expect("insert product");
 
+    let variation_id = ensure_product_variation(pool, product_id).await;
+
     let location_id = Uuid::new_v4();
     let location = Location::new(location_id, "Store".to_string(), None).expect("valid");
     db::location::insert(pool, &location)
         .await
         .expect("insert location");
 
-    (user_id, product_id, location_id)
+    (user_id, product_id, variation_id, location_id)
 }
 
 async fn insert_product(
@@ -113,6 +134,8 @@ async fn setup_list_with_relations_data(
     let product2_id = Uuid::new_v4();
     insert_product(pool, product1_id, cat_id, "Brand1", "Product1").await;
     insert_product(pool, product2_id, cat_id, "Brand2", "Product2").await;
+    let var1_id = ensure_product_variation(pool, product1_id).await;
+    let var2_id = ensure_product_variation(pool, product2_id).await;
 
     let location1_id = Uuid::new_v4();
     let location2_id = Uuid::new_v4();
@@ -124,6 +147,7 @@ async fn setup_list_with_relations_data(
         Uuid::new_v4(),
         user_id,
         product1_id,
+        var1_id,
         location1_id,
         1,
         price,
@@ -136,6 +160,7 @@ async fn setup_list_with_relations_data(
         Uuid::new_v4(),
         user_id,
         product1_id,
+        var1_id,
         location2_id,
         1,
         price,
@@ -148,6 +173,7 @@ async fn setup_list_with_relations_data(
         Uuid::new_v4(),
         user_id,
         product2_id,
+        var2_id,
         location1_id,
         1,
         price,
@@ -160,6 +186,7 @@ async fn setup_list_with_relations_data(
         Uuid::new_v4(),
         user_id,
         product2_id,
+        var2_id,
         location2_id,
         1,
         price,
@@ -192,7 +219,8 @@ async fn purchase_insert_and_get_by_id_roundtrip() {
     let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let (user_id, product_id, location_id) = insert_user_product_location(&pool).await;
+    let (user_id, product_id, variation_id, location_id) =
+        insert_user_product_location(&pool).await;
 
     let purchase_id = Uuid::new_v4();
     let price: Decimal = "12.50".parse().expect("decimal");
@@ -200,6 +228,7 @@ async fn purchase_insert_and_get_by_id_roundtrip() {
         purchase_id,
         user_id,
         product_id,
+        variation_id,
         location_id,
         2,
         price,
@@ -229,13 +258,15 @@ async fn purchase_list_with_filters_and_include_deleted() {
     let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let (user_id, product_id, location_id) = insert_user_product_location(&pool).await;
+    let (user_id, product_id, variation_id, location_id) =
+        insert_user_product_location(&pool).await;
 
     let price: Decimal = "1".parse().expect("decimal");
     let p1 = Purchase::new(
         Uuid::new_v4(),
         user_id,
         product_id,
+        variation_id,
         location_id,
         1,
         price,
@@ -280,7 +311,8 @@ async fn purchase_soft_delete_sets_deleted_at_and_excludes_from_get_by_id() {
     let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let (user_id, product_id, location_id) = insert_user_product_location(&pool).await;
+    let (user_id, product_id, variation_id, location_id) =
+        insert_user_product_location(&pool).await;
 
     let purchase_id = Uuid::new_v4();
     let price: Decimal = "5".parse().expect("decimal");
@@ -288,6 +320,7 @@ async fn purchase_soft_delete_sets_deleted_at_and_excludes_from_get_by_id() {
         purchase_id,
         user_id,
         product_id,
+        variation_id,
         location_id,
         1,
         price,
@@ -340,7 +373,8 @@ async fn purchase_hard_delete_removes_row() {
     let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let (user_id, product_id, location_id) = insert_user_product_location(&pool).await;
+    let (user_id, product_id, variation_id, location_id) =
+        insert_user_product_location(&pool).await;
 
     let purchase_id = Uuid::new_v4();
     let price: Decimal = "3.99".parse().expect("decimal");
@@ -348,6 +382,7 @@ async fn purchase_hard_delete_removes_row() {
         purchase_id,
         user_id,
         product_id,
+        variation_id,
         location_id,
         1,
         price,
@@ -383,7 +418,8 @@ async fn purchase_update_changes_quantity_and_price() {
     let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let (user_id, product_id, location_id) = insert_user_product_location(&pool).await;
+    let (user_id, product_id, variation_id, location_id) =
+        insert_user_product_location(&pool).await;
 
     let purchase_id = Uuid::new_v4();
     let price: Decimal = "2.00".parse().expect("decimal");
@@ -391,6 +427,7 @@ async fn purchase_update_changes_quantity_and_price() {
         purchase_id,
         user_id,
         product_id,
+        variation_id,
         location_id,
         1,
         price,
@@ -408,6 +445,7 @@ async fn purchase_update_changes_quantity_and_price() {
         purchase_id,
         user_id,
         product_id,
+        variation_id,
         location_id,
         3,
         updated_price,
@@ -434,7 +472,8 @@ async fn purchase_get_by_id_with_relations_returns_purchase_and_relation_names()
     let pool = db::create_pool(db_path_str).await.expect("create pool");
     db::run_migrations(&pool).await.expect("migrations");
 
-    let (user_id, product_id, location_id) = insert_user_product_location(&pool).await;
+    let (user_id, product_id, variation_id, location_id) =
+        insert_user_product_location(&pool).await;
 
     let purchase_id = Uuid::new_v4();
     let price: Decimal = "2.99".parse().expect("decimal");
@@ -442,6 +481,7 @@ async fn purchase_get_by_id_with_relations_returns_purchase_and_relation_names()
         purchase_id,
         user_id,
         product_id,
+        variation_id,
         location_id,
         1,
         price,
@@ -469,6 +509,7 @@ async fn purchase_get_by_id_with_relations_returns_purchase_and_relation_names()
     assert_eq!(row.product_brand, "Brand");
     assert_eq!(row.product_name, "Product");
     assert_eq!(row.location_name, "Store");
+    assert_eq!(row.variation_id, variation_id);
 }
 
 #[tokio::test]

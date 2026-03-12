@@ -11,6 +11,7 @@ use crate::db;
 use crate::domain::category::Category;
 use crate::domain::location::Location;
 use crate::domain::product::Product;
+use crate::domain::product_variation::ProductVariation;
 
 /// Insert a test user into the database and return its id.
 pub async fn insert_user(pool: &SqlitePool, name: &str, email: &str) -> Uuid {
@@ -62,6 +63,24 @@ pub async fn insert_product(pool: &SqlitePool, category_id: Uuid, brand: &str, n
         .await
         .expect("insert product");
     id
+}
+
+/// Ensure the product has at least one variation; insert a default one if not. Returns variation id.
+pub async fn ensure_product_variation(pool: &SqlitePool, product_id: Uuid) -> Uuid {
+    let existing = db::product_variation::list_by_product_id(pool, product_id, false)
+        .await
+        .expect("list_by_product_id");
+    if let Some(v) = existing.first() {
+        return v.id();
+    }
+    let now = chrono::Utc::now().timestamp();
+    let var_id = Uuid::new_v4();
+    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None)
+        .expect("valid variation");
+    db::product_variation::insert(pool, &var)
+        .await
+        .expect("insert variation");
+    var_id
 }
 
 /// Insert a test location and return its id.

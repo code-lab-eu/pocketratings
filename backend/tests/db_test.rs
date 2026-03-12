@@ -36,6 +36,7 @@ async fn migrations_create_all_tables() {
         "locations",
         "reviews",
         "purchases",
+        "product_variations",
     ];
 
     for table in &expected_tables {

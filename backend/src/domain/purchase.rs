@@ -23,12 +23,13 @@ pub enum ValidationError {
     },
 }
 
-/// A validated purchase (user bought a product at a location).
+/// A validated purchase (user bought a product variation at a location).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Purchase {
     id: Uuid,
     user_id: Uuid,
     product_id: Uuid,
+    variation_id: Uuid,
     location_id: Uuid,
     quantity: i32,
     price: Decimal,
@@ -39,6 +40,8 @@ pub struct Purchase {
 impl Purchase {
     /// Create a new `Purchase` after validating all fields.
     ///
+    /// Callers must ensure `product_id` equals the variation's product (denormalized for queries).
+    ///
     /// # Errors
     ///
     /// Returns [`ValidationError`] if any field is invalid.
@@ -47,6 +50,7 @@ impl Purchase {
         id: Uuid,
         user_id: Uuid,
         product_id: Uuid,
+        variation_id: Uuid,
         location_id: Uuid,
         quantity: i32,
         price: Decimal,
@@ -64,6 +68,7 @@ impl Purchase {
             id,
             user_id,
             product_id,
+            variation_id,
             location_id,
             quantity,
             price,
@@ -90,10 +95,16 @@ impl Purchase {
         self.user_id
     }
 
-    /// The product that was purchased.
+    /// The product that was purchased (denormalized; equals the variation's product).
     #[must_use]
     pub const fn product_id(&self) -> Uuid {
         self.product_id
+    }
+
+    /// The product variation that was purchased.
+    #[must_use]
+    pub const fn variation_id(&self) -> Uuid {
+        self.variation_id
     }
 
     /// The location where the purchase was made.
@@ -150,10 +161,12 @@ mod tests {
         price: Decimal,
         deleted_at: Option<i64>,
     ) -> Result<Purchase, ValidationError> {
+        let product_id = Uuid::new_v4();
         Purchase::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
-            Uuid::new_v4(),
+            product_id,
+            Uuid::new_v4(), // variation_id (would belong to product_id in real use)
             Uuid::new_v4(),
             quantity,
             price,

@@ -4,6 +4,24 @@ use std::io::Cursor;
 
 use pocketratings::cli;
 use pocketratings::db;
+use pocketratings::domain::product_variation::ProductVariation;
+use uuid::Uuid;
+
+async fn ensure_product_variation(pool: &sqlx::SqlitePool, product_id: Uuid) {
+    let existing = db::product_variation::list_by_product_id(pool, product_id, false)
+        .await
+        .expect("list variations");
+    if !existing.is_empty() {
+        return;
+    }
+    let now = chrono::Utc::now().timestamp();
+    let var_id = Uuid::new_v4();
+    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None)
+        .expect("valid variation");
+    db::product_variation::insert(pool, &var)
+        .await
+        .expect("insert variation");
+}
 
 async fn run_purchase(
     pool: &sqlx::SqlitePool,
@@ -87,6 +105,11 @@ async fn purchase_create_and_show_roundtrip() {
         .and_then(|v| v.as_str())
         .expect("id")
         .to_string();
+    ensure_product_variation(
+        &pool,
+        Uuid::parse_str(&product_id).expect("product id uuid"),
+    )
+    .await;
 
     let (_, loc_stdout, _) = run_purchase(
         &pool,
@@ -205,6 +228,11 @@ async fn purchase_list_include_deleted() {
         .and_then(|v| v.as_str())
         .expect("id")
         .to_string();
+    ensure_product_variation(
+        &pool,
+        Uuid::parse_str(&product_id).expect("product id uuid"),
+    )
+    .await;
     let (_, loc_stdout, _) = run_purchase(
         &pool,
         &["location", "create", "--name", "L", "--output", "json"],
@@ -338,6 +366,11 @@ async fn purchase_delete_soft_deletes() {
         .and_then(|v| v.as_str())
         .expect("id")
         .to_string();
+    ensure_product_variation(
+        &pool,
+        Uuid::parse_str(&product_id).expect("product id uuid"),
+    )
+    .await;
     let (_, loc_stdout, _) = run_purchase(
         &pool,
         &["location", "create", "--name", "L", "--output", "json"],
@@ -455,6 +488,11 @@ async fn purchase_delete_force_removes_row() {
         .and_then(|v| v.as_str())
         .expect("id")
         .to_string();
+    ensure_product_variation(
+        &pool,
+        Uuid::parse_str(&product_id).expect("product id uuid"),
+    )
+    .await;
     let (_, loc_stdout, _) = run_purchase(
         &pool,
         &["location", "create", "--name", "L", "--output", "json"],
@@ -588,6 +626,11 @@ async fn setup_purchase_prereqs(
             .and_then(|v| v.as_str())
             .map(String::from)
             .expect("id");
+    ensure_product_variation(
+        &pool,
+        Uuid::parse_str(&product_id).expect("product id uuid"),
+    )
+    .await;
 
     let (_, loc_stdout, _) = run_purchase(
         &pool,

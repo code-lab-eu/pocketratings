@@ -4,6 +4,9 @@ use std::io::Cursor;
 
 use pocketratings::cli;
 use pocketratings::db;
+use pocketratings::domain::product_variation::ProductVariation;
+use pocketratings::domain::purchase::Purchase;
+use rust_decimal::Decimal;
 
 async fn run_location(
     pool: &sqlx::SqlitePool,
@@ -266,6 +269,7 @@ async fn location_show_non_existent_fails() {
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn location_delete_fails_when_location_has_purchases() {
     let dir = tempfile::tempdir().expect("temp dir");
     let db_path = dir.path().join("cli_location_delete_purchases.db");
@@ -330,9 +334,28 @@ async fn location_delete_fails_when_location_has_purchases() {
             .and_then(|v| v.as_str())
             .expect("id")
             .to_string();
+    let product_uuid = uuid::Uuid::parse_str(&product_id).expect("product id uuid");
+    let location_uuid = uuid::Uuid::parse_str(&location_id).expect("location id uuid");
+
+    let now = 1_000_i64;
+    let variation_id = {
+        let existing = db::product_variation::list_by_product_id(&pool, product_uuid, false)
+            .await
+            .expect("list variations");
+        if let Some(v) = existing.first() {
+            v.id()
+        } else {
+            let var_id = uuid::Uuid::new_v4();
+            let var = ProductVariation::new(var_id, product_uuid, "", "none", now, now, None)
+                .expect("valid variation");
+            db::product_variation::insert(&pool, &var)
+                .await
+                .expect("insert variation");
+            var_id
+        }
+    };
 
     let user_id = uuid::Uuid::new_v4();
-    let now = 1_000_i64;
     sqlx::query(
         "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
@@ -346,20 +369,21 @@ async fn location_delete_fails_when_location_has_purchases() {
     .execute(&pool)
     .await
     .expect("insert user");
-    sqlx::query(
-        "INSERT INTO purchases (id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    let purchase = Purchase::new(
+        uuid::Uuid::new_v4(),
+        user_id,
+        product_uuid,
+        variation_id,
+        location_uuid,
+        1,
+        "9.99".parse::<Decimal>().expect("decimal"),
+        now,
+        None,
     )
-    .bind(uuid::Uuid::new_v4().to_string())
-    .bind(user_id.to_string())
-    .bind(&product_id)
-    .bind(&location_id)
-    .bind(1_i32)
-    .bind("9.99")
-    .bind(now)
-    .bind::<Option<i64>>(None)
-    .execute(&pool)
-    .await
-    .expect("insert purchase");
+    .expect("valid purchase");
+    db::purchase::insert(&pool, &purchase)
+        .await
+        .expect("insert purchase");
 
     let (del_result, _stdout, _stderr) =
         run_location(&pool, &["location", "delete", &location_id]).await;

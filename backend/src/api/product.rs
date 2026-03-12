@@ -320,10 +320,14 @@ mod tests {
 
     use sqlx::SqlitePool;
 
+    use rust_decimal::Decimal;
+
     use super::*;
     use crate::config::Config;
     use crate::db;
     use crate::domain::category::Category;
+    use crate::domain::purchase::Purchase;
+    use crate::test_helpers::ensure_product_variation;
 
     async fn test_pool() -> (AppState, tempfile::TempDir) {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -1133,6 +1137,7 @@ mod tests {
         let created: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         let product_id =
             Uuid::parse_str(created.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let now = chrono::Utc::now().timestamp();
         let user_id = Uuid::new_v4();
         let location_id = Uuid::new_v4();
@@ -1156,21 +1161,21 @@ mod tests {
             .execute(&state.pool)
             .await
             .expect("insert location");
-        let purchase_id = Uuid::new_v4();
-        sqlx::query(
-            "INSERT INTO purchases (id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            variation_id,
+            location_id,
+            1,
+            "9.99".parse::<Decimal>().expect("decimal"),
+            now,
+            None,
         )
-        .bind(purchase_id.to_string())
-        .bind(user_id.to_string())
-        .bind(product_id.to_string())
-        .bind(location_id.to_string())
-        .bind(1_i32)
-        .bind("9.99")
-        .bind(now)
-        .bind::<Option<i64>>(None)
-        .execute(&state.pool)
-        .await
-        .expect("insert purchase");
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
         let response = app
             .oneshot(
                 Request::builder()
