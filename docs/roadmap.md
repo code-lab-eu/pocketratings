@@ -199,6 +199,10 @@ focus indicators (WCAG-friendly).
 
 ### 12. Order categories alphabetically
 
+### 13. Product page and product list item should show reviews + purchases of all users
+
+### 14. Ratings should accept 1 decimal number (e.g. "3.8" should be allowed, not only "3.0" and "3.5")
+
 ---
 
 ## Distant future
