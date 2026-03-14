@@ -3,7 +3,7 @@
 ## Goals
 
 - **Audience**: Single user or a family. No multi-tenant or public deployment.
-- **Purpose**: Keep a personal record of product purchases: what you bought, where, for how much, and how you’d rate and review it.
+- **Purpose**: Keep a personal record of product purchases: what you bought, where, for how much, and how you'd rate and review it.
 - **Outcomes**: Track products and categories; record purchases (product, location, quantity, unit price in EUR); allow multiple reviews per (user, product) over time; soft-delete and retain history.
 - **Non-goals for v1**: No social features, no public reviews, no multi-currency (EUR only). No barcode scanning (browser support is limited—e.g. Barcode Detection API works on Chrome Android but not Safari iOS; consider later with feature detection and fallback).
 
@@ -54,12 +54,12 @@
 **Reviews**
 
 - **Write**: User adds a review for a product (rating 1–5, optional text). Multiple reviews per (user, product) allowed over time.
-- **List**: User sees reviews (by product, or “my reviews”).
+- **List**: User sees reviews (by product, or "my reviews").
 - **Update / soft-delete**: User can edit or soft-delete a review.
 
 **Reading / dashboard (optional for v1)**
 
-- View “recent purchases”, “recent reviews”, or a product’s purchase and review history. Detail can be defined when designing the API and UI.
+- View "recent purchases", "recent reviews", or a product's purchase and review history. Detail can be defined when designing the API and UI.
 
 ---
 
@@ -105,8 +105,8 @@ primary color and are never removed.
 | **Primary** | Search (home and category) | Search appears on both **home** and **category** pages. Results update live
 as the user types (min 2 characters; short debounce); URL is updated with
 replaceState; no full page reload so the input keeps focus. On home it
-filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category’s **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the average rating when available. |
-| **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with the average rating. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` in the frontend; key by `product_id`. It is important to show the **average rating of all reviews from all users**, not just the current user's ratings. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response’s `ancestors` array) above the product list. |
+filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category's **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the average rating when available. |
+| **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with the average rating. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` in the frontend; key by `product_id`. It is important to show the **average rating of all reviews from all users**, not just the current user's ratings. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response's `ancestors` array) above the product list. |
 | **Primary** | Product detail          | Tap product → product with **category name**; full review(s); **purchase history** (date, location, variation, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`. Uses `GET /api/v1/products/:id`, `GET /api/v1/categories/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/products/:id/variations` (for variation selector when recording a purchase), `GET /api/v1/locations` (to show location name in purchase history). When there are no purchases or reviews for a product, the corresponding list endpoints still return `200 OK` with an empty JSON array (`[]`), not `404`. |
 | **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
@@ -119,7 +119,7 @@ The home screen is **categories + products + search** (one page): categories and
 - **Category products:** **Search bar** (filters child categories and
   products in that category). **Breadcrumb** (Home → … → current) and
   **child categories** of the current category listed first (each links to
-  that category’s page). **Add product** link →
+  that category's page). **Add product** link →
   `/manage/products/new?category_id=<id>` (form opens with that category
   prefilled). Below that, products in the current category and all its
   descendant categories (with a depth limit) with inline rating (and
@@ -130,7 +130,7 @@ The home screen is **categories + products + search** (one page): categories and
   full category path (Home → … → category → product name), matching the category page
   pattern.
 - **Login:** Email + password; store token; redirect to Home.
-- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form. After submitting an add-review form, redirect to the product page.
+- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and "Record purchase" form; reviews list and "Add review" form. After submitting an add-review form, redirect to the product page.
 - **Management list rows:** On each management list (categories, products,
   locations, reviews, purchases), rows use a consistent pattern: the **entity
   name** (or primary label) links to the **public view page** when it exists

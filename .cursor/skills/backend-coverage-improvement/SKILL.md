@@ -81,7 +81,7 @@ To ensure the coverage threshold is still met:
 ```
 
 Re-run the report script after adding tests to see the updated ranking and
-confirm the chosen files’ coverage improved.
+confirm the chosen files' coverage improved.
 
 ## References
 

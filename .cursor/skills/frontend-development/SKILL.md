@@ -15,7 +15,7 @@ Apply this workflow whenever writing or changing code in `frontend/` (Pocket Rat
 - **Phased plans:** When work is split into phases, each phase must include its own test coverage. Do not defer tests to a later phase. Ideally write tests for that phase first, then implement.
 - **What to test:**
   - **API client and pure logic:** Unit tests (Vitest) for new helpers in `lib/api.ts` and any shared logic. Use mocked `fetch` or stub responses. Follow the style of existing [lib/api.test.ts](frontend/src/lib/api.test.ts) and [lib/auth.test.ts](frontend/src/lib/auth.test.ts).
-  - **Components and pages:** Add component or page-level tests where they add value: key elements render, loading/error/empty states, and critical user flows. Use Vitest with the project’s existing setup (e.g. Svelte Testing Library if present).
+  - **Components and pages:** Add component or page-level tests where they add value: key elements render, loading/error/empty states, and critical user flows. Use Vitest with the project's existing setup (e.g. Svelte Testing Library if present).
 
 **Rule:** When adding a new API helper, page, or component with non-trivial behaviour, add the corresponding test in the same change.
 
