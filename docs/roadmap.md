@@ -132,7 +132,7 @@ variations.
   selection in UI.
 - On product create, create one initial variation. - DONE
 - Associate purchases with a product variation (API, DB, frontend). - DONE
-- Document in [spec.md](spec.md) and [api.md](api.md).
+- Document in [spec.md](spec.md) and [api.md](api.md). - DONE
 
 ### 7. Accessibility audit [FE]
 

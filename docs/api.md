@@ -489,7 +489,8 @@ response is `200 OK` with body `[]`.
 
 Get a single purchase by ID.
 
-**Response:** `200 OK` — Purchase object with the same shape as list (nested `user`, `product`, `location`).
+**Response:** `200 OK` — Purchase object with the same shape as list (nested
+`user`, `product`, `variation`, `location`).
 
 **Errors:**
 - `404 Not Found`: Purchase not found
@@ -502,6 +503,7 @@ Create a new purchase.
 ```json
 {
   "product_id": "uuid",
+  "variation_id": "uuid",
   "location_id": "uuid",
   "quantity": 1,
   "price": "2.99",
@@ -511,11 +513,14 @@ Create a new purchase.
 
 **Constraints:**
 - `product_id` and `location_id` are required
+- `variation_id` is optional; if omitted, the product's first variation is used.
+  To list variations for a product, use `GET /api/v1/products/:id/variations`.
 - `quantity` defaults to 1 if not provided
 - `purchased_at` defaults to current time if not provided
 - `user_id` is automatically set to the current authenticated user
 
-**Response:** `201 Created` — Purchase object with the same shape as list (nested `user`, `product`, `location`).
+**Response:** `201 Created` — Purchase object with the same shape as list (nested
+`user`, `product`, `variation`, `location`).
 
 **Errors:**
 - `400 Bad Request`: Validation error
