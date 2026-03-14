@@ -381,6 +381,16 @@ Get a single product by ID.
 **Errors:**
 - `404 Not Found`: Product not found
 
+#### `GET /api/v1/products/:id/variations`
+
+List active variations for a product (for purchase form variation selector).
+
+**Response:** `200 OK` (array of `{ id, label, unit }`). Ordered by creation. Excludes
+soft-deleted variations.
+
+**Errors:**
+- `404 Not Found`: Product not found
+
 #### `POST /api/v1/products`
 
 Create a new product.

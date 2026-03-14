@@ -305,6 +305,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings product show <id>`
 - `pocketratings product update <id> [--name <name>] [--brand <brand>] [--category-id <uuid>]`
 - `pocketratings product delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row. Fails if product has purchases.
+- `pocketratings product variation-add --product-id <uuid> [--label <text>] [--unit grams|milliliters|other|none]` — Add a variation to an existing product. Default unit `other`, label empty.
 
 **Purchases**
 

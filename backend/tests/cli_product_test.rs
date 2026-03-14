@@ -136,6 +136,103 @@ async fn product_create_creates_one_default_variation() {
 }
 
 #[tokio::test]
+async fn product_variation_add_success_with_label_and_unit() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_variation_add.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = create_category_and_get_id(&pool, "Food").await;
+    let (create_res, create_stdout, create_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "create",
+            "--name",
+            "Milk",
+            "--brand",
+            "Farm",
+            "--category-id",
+            &cat_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(create_res.is_ok(), "stderr: {create_stderr}");
+    let product_id =
+        serde_json::from_str::<serde_json::Value>(create_stdout.lines().next().expect("line"))
+            .expect("json")
+            .get("id")
+            .and_then(|v| v.as_str())
+            .expect("id")
+            .to_string();
+
+    let (add_res, add_stdout, add_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "variation-add",
+            "--product-id",
+            &product_id,
+            "--label",
+            "500 g",
+            "--unit",
+            "grams",
+        ],
+    )
+    .await;
+    assert!(add_res.is_ok(), "stderr: {add_stderr}");
+    assert!(
+        add_stdout.contains("Variation added"),
+        "stdout should mention variation added: {add_stdout}"
+    );
+
+    let product_uuid = Uuid::parse_str(&product_id).expect("product id uuid");
+    let variations = db::product_variation::list_by_product_id(&pool, product_uuid, false)
+        .await
+        .expect("list variations");
+    assert_eq!(variations.len(), 2, "product has default + new variation");
+    let with_label = variations
+        .iter()
+        .find(|v| v.label() == "500 g")
+        .expect("variation with label 500 g");
+    assert_eq!(with_label.unit(), "grams");
+}
+
+#[tokio::test]
+async fn product_variation_add_fails_when_product_not_found() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_variation_add_missing.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let fake_id = Uuid::new_v4().to_string();
+    let (res, stdout, stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "variation-add",
+            "--product-id",
+            &fake_id,
+            "--label",
+            "Large",
+            "--unit",
+            "other",
+        ],
+    )
+    .await;
+    assert!(
+        res.is_err(),
+        "variation-add should fail when product not found; stdout: {stdout}; stderr: {stderr}"
+    );
+}
+
+#[tokio::test]
 async fn product_list_filters_by_category_id() {
     let dir = tempfile::tempdir().expect("temp dir");
     let db_path = dir.path().join("cli_product_list.db");

@@ -7,6 +7,7 @@ const purchase: Purchase = {
   id: 'pur1',
   user: { id: 'u1', name: 'Alice' },
   product: { id: 'p1', brand: 'B', name: 'Milk' },
+  variation: { id: 'var1', label: '', unit: 'none' },
   location: { id: 'loc1', name: 'Store A' },
   quantity: 1,
   price: '2.99',

@@ -123,6 +123,8 @@ pub enum ProductCmd {
     Update(ProductUpdateOpts),
     /// Soft-delete or remove a product.
     Delete(ProductDeleteOpts),
+    /// Add a variation to a product.
+    VariationAdd(ProductVariationAddOpts),
 }
 
 #[derive(clap::Args)]
@@ -180,6 +182,19 @@ pub struct ProductDeleteOpts {
     /// Remove the product row from the database instead of soft-deleting.
     #[arg(long)]
     pub force: bool,
+}
+
+#[derive(clap::Args)]
+pub struct ProductVariationAddOpts {
+    /// Product UUID to add the variation to.
+    #[arg(long)]
+    pub product_id: String,
+    /// Label (e.g. "500 g", "Large").
+    #[arg(long, value_name = "LABEL")]
+    pub label: Option<String>,
+    /// Unit: one of grams, milliliters, other, none.
+    #[arg(long, value_name = "UNIT", default_value = "other")]
+    pub unit: String,
 }
 
 /// Manage locations (stores): create, list, show, update, and delete.
@@ -739,6 +754,22 @@ pub async fn run(
                     CliError::Other(anyhow::anyhow!("database pool required for product delete"))
                 })?;
                 product_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
+            }
+            ProductCmd::VariationAdd(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for product variation-add"
+                    ))
+                })?;
+                product_cli::variation_add(
+                    pool,
+                    &opts.product_id,
+                    opts.label.as_deref().unwrap_or(""),
+                    &opts.unit,
+                    stdout,
+                    stderr,
+                )
+                .await
             }
         },
         Some(Commands::Purchase(pur_args)) => match pur_args.command {

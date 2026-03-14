@@ -40,11 +40,19 @@ export interface Review {
   deleted_at: number | null;
 }
 
-/** Purchase from GET /api/v1/purchases (and :id). Response includes nested user, product, location. */
+/** One variation in GET /api/v1/products/:id/variations. */
+export interface ProductVariation {
+  id: string;
+  label: string;
+  unit: string;
+}
+
+/** Purchase from GET /api/v1/purchases (and :id). Response includes nested user, product, variation, location. */
 export interface Purchase {
   id: string;
   user: { id: string; name: string };
   product: { id: string; brand: string; name: string };
+  variation: { id: string; label: string; unit: string };
   location: { id: string; name: string };
   quantity: number;
   price: string;

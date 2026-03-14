@@ -113,7 +113,7 @@ impl Purchase {
         self.location_id
     }
 
-    /// Number of items.
+    /// Number of items purchased.
     #[must_use]
     pub const fn quantity(&self) -> i32 {
         self.quantity

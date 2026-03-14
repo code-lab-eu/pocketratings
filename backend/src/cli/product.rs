@@ -288,3 +288,35 @@ pub async fn delete(
     }
     Ok(())
 }
+
+/// Add a variation to an existing product.
+pub async fn variation_add(
+    pool: &SqlitePool,
+    product_id_str: &str,
+    label: &str,
+    unit: &str,
+    stdout: &mut impl Write,
+    _stderr: &mut impl Write,
+) -> Result<(), CliError> {
+    let product_id = Uuid::parse_str(product_id_str)
+        .map_err(|_| CliError::Validation(format!("invalid product_id: {product_id_str}")))?;
+
+    let Some(_product) = db::product::get_by_id(pool, product_id, false).await? else {
+        return Err(CliError::Validation(format!(
+            "product not found: {product_id_str}"
+        )));
+    };
+
+    let now = Utc::now().timestamp();
+    let var_id = Uuid::new_v4();
+    let variation = ProductVariation::new(var_id, product_id, label, unit, now, now, None)
+        .map_err(|e| CliError::Validation(e.to_string()))?;
+    db::product_variation::insert(pool, &variation).await?;
+
+    writeln!(
+        stdout,
+        "Variation added: {var_id} (product {product_id_str})"
+    )
+    .map_err(|e| CliError::Other(e.into()))?;
+    Ok(())
+}

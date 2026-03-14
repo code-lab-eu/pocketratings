@@ -29,6 +29,7 @@ const purchase: Purchase = {
   id: 'pur-1',
   user: { id: 'u1', name: 'Alice' },
   product: { id: 'prod-1', brand: 'Acme', name: 'Milk' },
+  variation: { id: 'var-1', label: '', unit: 'none' },
   location: { id: 'loc-1', name: 'Store A' },
   quantity: 1,
   price: '2.99',

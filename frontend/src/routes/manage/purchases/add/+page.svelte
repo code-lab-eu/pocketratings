@@ -1,7 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
-  import { createPurchase } from '$lib/api';
+  import { createPurchase, getProductVariations } from '$lib/api';
+  import type { ProductVariation } from '$lib/types';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
@@ -16,12 +17,15 @@
   let loadError = $derived(data.error);
 
   let productId = $state('');
+  let variationId = $state('');
   let locationId = $state('');
   let quantity = $state(1);
   let price = $state('');
   let purchasedAt = $state('');
   let submitting = $state(false);
   let error = $state<string | null>(null);
+  let variations = $state<ProductVariation[]>([]);
+  let variationsLoading = $state(false);
 
   $effect(() => {
     if (prefillProductId && products.some((p) => p.id === prefillProductId)) {
@@ -31,6 +35,32 @@
       const now = new Date();
       purchasedAt = now.toISOString().slice(0, 16);
     }
+  });
+
+  $effect(() => {
+    if (!productId) {
+      variations = [];
+      variationId = '';
+      return;
+    }
+    let cancelled = false;
+    variationsLoading = true;
+    getProductVariations(productId)
+      .then((list) => {
+        if (!cancelled) {
+          variations = list;
+          variationId = list.length > 0 ? list[0].id : '';
+        }
+      })
+      .catch(() => {
+        if (!cancelled) variations = [];
+      })
+      .finally(() => {
+        if (!cancelled) variationsLoading = false;
+      });
+    return () => {
+      cancelled = true;
+    };
   });
 
   async function handleSubmit(e: Event) {
@@ -55,6 +85,7 @@
       const at = purchasedAt ? new Date(purchasedAt).toISOString() : undefined;
       await createPurchase({
         product_id: productId,
+        variation_id: variationId || undefined,
         location_id: locationId,
         quantity: q,
         price: priceVal,
@@ -66,6 +97,11 @@
     } finally {
       submitting = false;
     }
+  }
+
+  function variationOptionLabel(v: ProductVariation): string {
+    if (v.label.trim()) return v.unit ? `${v.label} (${v.unit})` : v.label;
+    return v.unit && v.unit !== 'none' ? v.unit : 'Default';
   }
 </script>
 
@@ -89,6 +125,16 @@
         placeholder="Select product"
         required
       />
+      {#if productId}
+        <Select
+          id="variation"
+          label="Variation"
+          options={variations.map((v) => ({ value: v.id, label: variationOptionLabel(v) }))}
+          bind:value={variationId}
+          placeholder={variationsLoading ? 'Loading…' : 'Select variation'}
+          disabled={variationsLoading || variations.length === 0}
+        />
+      {/if}
       <Select
         id="location"
         label="Location"

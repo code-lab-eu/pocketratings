@@ -5,6 +5,25 @@ use std::io::{IsTerminal, Write};
 
 use anyhow::Context;
 
+/// True if the CLI subcommand (first, second) requires a database pool.
+///
+/// Used by main to decide whether to load config and create the pool before invoking `cli::run`.
+/// Must stay in sync with subcommands that use the pool in `cli/mod.rs`.
+#[must_use]
+pub fn subcommand_needs_db(first: Option<&str>, second: Option<&str>) -> bool {
+    matches!(
+        (first, second),
+        (Some("user"), Some("register" | "list" | "delete"))
+            | (
+                Some("category" | "location" | "product" | "purchase" | "review"),
+                Some("create" | "list" | "show" | "update" | "delete")
+            )
+            | (Some("product"), Some("variation-add"))
+            | (Some("server"), Some("start"))
+            | (Some("database"), Some("backup"))
+    )
+}
+
 /// When stderr is not a TTY (e.g. piped in tests), flush after each write so log lines
 /// are visible to the reader without waiting for a full buffer.
 struct StderrWriter;

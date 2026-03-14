@@ -53,6 +53,14 @@ pub struct DeleteProductQuery {
     pub force: bool,
 }
 
+/// One variation in list response (GET /api/v1/products/:id/variations).
+#[derive(Debug, serde::Serialize)]
+pub struct VariationListItem {
+    pub id: Uuid,
+    pub label: String,
+    pub unit: String,
+}
+
 /// Response body: product with timestamps as i64 and nested category.
 #[derive(Debug, serde::Serialize)]
 pub struct ProductResponse {
@@ -164,6 +172,31 @@ pub async fn get_product(
         .map_err(|e| map_db_error(&e))?;
     let product = product.ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
     Ok(Json(product_with_relations_to_response(&product)))
+}
+
+/// GET /api/v1/products/:id/variations — list active variations for a product.
+pub async fn list_product_variations(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<VariationListItem>>, ApiError> {
+    let product = db::product::get_by_id(&state.pool, id, false)
+        .await
+        .map_err(|e| map_db_error(&e))?;
+    if product.is_none() {
+        return Err(ApiError::NotFound("Product not found.".to_string()));
+    }
+    let variations = db::product_variation::list_by_product_id(&state.pool, id, false)
+        .await
+        .map_err(|e| map_db_error(&e))?;
+    let list: Vec<VariationListItem> = variations
+        .iter()
+        .map(|v| VariationListItem {
+            id: v.id(),
+            label: v.label().to_string(),
+            unit: v.unit().to_string(),
+        })
+        .collect();
+    Ok(Json(list))
 }
 
 /// POST /api/v1/products — create a product.
@@ -306,7 +339,7 @@ pub async fn delete_product(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Router for /api/v1/products (all five handlers).
+/// Router for /api/v1/products (list, get, create, update, delete, list variations).
 pub fn route() -> Router<AppState> {
     Router::new()
         .route("/api/v1/products", get(list_products).post(create_product))
@@ -315,6 +348,10 @@ pub fn route() -> Router<AppState> {
             get(get_product)
                 .patch(update_product)
                 .delete(delete_product),
+        )
+        .route(
+            "/api/v1/products/{id}/variations",
+            get(list_product_variations),
         )
 }
 
@@ -334,7 +371,7 @@ mod tests {
     use crate::db;
     use crate::domain::category::Category;
     use crate::domain::purchase::Purchase;
-    use crate::test_helpers::ensure_product_variation;
+    use crate::test_helpers::{ensure_product_variation, insert_product};
 
     async fn test_pool() -> (AppState, tempfile::TempDir) {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -506,6 +543,53 @@ mod tests {
         assert_eq!(variations.len(), 1);
         assert_eq!(variations[0].unit(), "none");
         assert_eq!(variations[0].label(), "");
+    }
+
+    #[tokio::test]
+    async fn list_product_variations_returns_404_when_product_not_found() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state);
+        let id = Uuid::new_v4();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products/{id}/variations"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn list_product_variations_returns_200_and_array() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        ensure_product_variation(&state.pool, product_id).await;
+        let app = route().with_state(state.clone());
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products/{product_id}/variations"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0].get("unit").and_then(|v| v.as_str()), Some("none"));
+        assert_eq!(arr[0].get("label").and_then(|v| v.as_str()), Some(""));
     }
 
     #[tokio::test]
