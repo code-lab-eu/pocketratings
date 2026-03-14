@@ -593,6 +593,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_product_variations_returns_200_empty_array_when_product_has_no_variations() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        let app = route().with_state(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products/{product_id}/variations"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert!(arr.is_empty());
+    }
+
+    #[tokio::test]
     async fn create_product_returns_404_when_category_not_found() {
         let (state, _dir) = test_pool().await;
         let app = route().with_state(state);

@@ -5,25 +5,6 @@ use std::io::{IsTerminal, Write};
 
 use anyhow::Context;
 
-/// True if the CLI subcommand (first, second) requires a database pool.
-///
-/// Used by main to decide whether to load config and create the pool before invoking `cli::run`.
-/// Must stay in sync with subcommands that use the pool in `cli/mod.rs`.
-#[must_use]
-pub fn subcommand_needs_db(first: Option<&str>, second: Option<&str>) -> bool {
-    matches!(
-        (first, second),
-        (Some("user"), Some("register" | "list" | "delete"))
-            | (
-                Some("category" | "location" | "product" | "purchase" | "review"),
-                Some("create" | "list" | "show" | "update" | "delete")
-            )
-            | (Some("product"), Some("variation-add"))
-            | (Some("server"), Some("start"))
-            | (Some("database"), Some("backup"))
-    )
-}
-
 /// When stderr is not a TTY (e.g. piped in tests), flush after each write so log lines
 /// are visible to the reader without waiting for a full buffer.
 struct StderrWriter;
@@ -62,16 +43,7 @@ async fn main() {
     let args: Vec<std::ffi::OsString> = std::env::args_os().collect();
     let first = args.get(1).and_then(|a| a.to_str());
     let second = args.get(2).and_then(|a| a.to_str());
-    let needs_db = matches!(
-        (first, second),
-        (Some("user"), Some("register" | "list" | "delete"))
-            | (
-                Some("category" | "location" | "product" | "purchase" | "review"),
-                Some("create" | "list" | "show" | "update" | "delete")
-            )
-            | (Some("server"), Some("start"))
-            | (Some("database"), Some("backup"))
-    );
+    let needs_db = pocketratings::cli::subcommand_needs_db(first, second);
 
     let pool = if needs_db {
         let config =

@@ -23,6 +23,25 @@ use crate::cli::review as review_cli;
 use crate::cli::server as server_cli;
 use crate::cli::user as user_cli;
 
+/// True if the CLI subcommand (first, second) requires a database pool.
+///
+/// Used by the binary to decide whether to load config and create the pool before invoking `run`.
+/// Must stay in sync with subcommands that use the pool in this module.
+#[must_use]
+pub fn subcommand_needs_db(first: Option<&str>, second: Option<&str>) -> bool {
+    matches!(
+        (first, second),
+        (Some("user"), Some("register" | "list" | "delete"))
+            | (
+                Some("category" | "location" | "product" | "purchase" | "review"),
+                Some("create" | "list" | "show" | "update" | "delete")
+            )
+            | (Some("product"), Some("variation-add"))
+            | (Some("server"), Some("start"))
+            | (Some("database"), Some("backup"))
+    )
+}
+
 /// Pocket Ratings — product reviews and ratings.
 #[derive(Parser)]
 #[command(name = "pocketratings")]
@@ -931,5 +950,29 @@ pub async fn run(
                 .map_err(|e| CliError::Other(e.into()))?;
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::subcommand_needs_db;
+
+    #[test]
+    fn subcommand_needs_db_returns_true_for_commands_that_use_pool() {
+        assert!(subcommand_needs_db(Some("user"), Some("register")));
+        assert!(subcommand_needs_db(Some("user"), Some("list")));
+        assert!(subcommand_needs_db(Some("category"), Some("create")));
+        assert!(subcommand_needs_db(Some("product"), Some("list")));
+        assert!(subcommand_needs_db(Some("product"), Some("variation-add")));
+        assert!(subcommand_needs_db(Some("purchase"), Some("create")));
+        assert!(subcommand_needs_db(Some("server"), Some("start")));
+        assert!(subcommand_needs_db(Some("database"), Some("backup")));
+    }
+
+    #[test]
+    fn subcommand_needs_db_returns_false_when_no_db_needed() {
+        assert!(!subcommand_needs_db(None, None));
+        assert!(!subcommand_needs_db(Some("server"), Some("stop")));
+        assert!(!subcommand_needs_db(Some("product"), Some("invalid")));
     }
 }
