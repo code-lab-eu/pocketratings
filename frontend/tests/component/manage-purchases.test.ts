@@ -54,4 +54,16 @@ describe('Manage purchases list', () => {
     expect(screen.getByRole('link', { name: /edit milk — b/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /delete purchase/i })).toBeInTheDocument();
   });
+
+  it('shows variation in purchase row (Default when no label)', () => {
+    render(PurchasesPage, {
+      props: {
+        data: {
+          purchases: [purchase],
+          error: null
+        }
+      }
+    });
+    expect(screen.getByText(/default/i)).toBeInTheDocument();
+  });
 });

@@ -131,7 +131,7 @@ variations.
 - Add unit field (grams, milliliters, other, or none) and ensure easy
   selection in UI.
 - On product create, create one initial variation. - DONE
-- Associate purchases with a product variation (API, DB, frontend).
+- Associate purchases with a product variation (API, DB, frontend). - DONE
 - Document in [spec.md](spec.md) and [api.md](api.md).
 
 ### 7. Accessibility audit [FE]
