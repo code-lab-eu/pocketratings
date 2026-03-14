@@ -59,6 +59,8 @@ pub struct VariationListItem {
     pub id: Uuid,
     pub label: String,
     pub unit: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<u32>,
 }
 
 /// Response body: product with timestamps as i64 and nested category.
@@ -194,6 +196,7 @@ pub async fn list_product_variations(
             id: v.id(),
             label: v.label().to_string(),
             unit: v.unit().to_string(),
+            quantity: v.quantity(),
         })
         .collect();
     Ok(Json(list))
@@ -234,7 +237,7 @@ pub async fn create_product(
         .await
         .map_err(|e| map_db_error(&e))?;
     let var_id = Uuid::new_v4();
-    let default_variation = ProductVariation::new(var_id, id, "", "none", now, now, None)
+    let default_variation = ProductVariation::new(var_id, id, "", "none", None, now, now, None)
         .map_err(|e| ApiError::BadRequest(e.to_string()))?;
     db::product_variation::insert(&state.pool, &default_variation)
         .await

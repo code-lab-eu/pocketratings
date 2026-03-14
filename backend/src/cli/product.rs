@@ -61,8 +61,9 @@ pub async fn create(
     db::product::insert(pool, &product).await?;
 
     let var_id = Uuid::new_v4();
-    let default_variation = ProductVariation::new(var_id, product.id(), "", "none", now, now, None)
-        .map_err(|e| CliError::Validation(e.to_string()))?;
+    let default_variation =
+        ProductVariation::new(var_id, product.id(), "", "none", None, now, now, None)
+            .map_err(|e| CliError::Validation(e.to_string()))?;
     db::product_variation::insert(pool, &default_variation).await?;
 
     if output_json {
@@ -295,6 +296,7 @@ pub async fn variation_add(
     product_id_str: &str,
     label: &str,
     unit: &str,
+    quantity: Option<u32>,
     stdout: &mut impl Write,
     _stderr: &mut impl Write,
 ) -> Result<(), CliError> {
@@ -309,8 +311,9 @@ pub async fn variation_add(
 
     let now = Utc::now().timestamp();
     let var_id = Uuid::new_v4();
-    let variation = ProductVariation::new(var_id, product_id, label, unit, now, now, None)
-        .map_err(|e| CliError::Validation(e.to_string()))?;
+    let variation =
+        ProductVariation::new(var_id, product_id, label, unit, quantity, now, now, None)
+            .map_err(|e| CliError::Validation(e.to_string()))?;
     db::product_variation::insert(pool, &variation).await?;
 
     writeln!(

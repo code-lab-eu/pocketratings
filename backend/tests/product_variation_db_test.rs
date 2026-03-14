@@ -51,8 +51,17 @@ async fn product_variation_insert_and_get_by_id_roundtrip() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var =
-        ProductVariation::new(var_id, product_id, "500 g", "grams", now, now, None).expect("valid");
+    let var = ProductVariation::new(
+        var_id,
+        product_id,
+        "500 g",
+        "grams",
+        Some(500),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -85,7 +94,8 @@ async fn product_variation_get_by_id_excludes_soft_deleted_when_include_deleted_
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None).expect("valid");
+    let var =
+        ProductVariation::new(var_id, product_id, "", "none", None, now, now, None).expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -106,8 +116,8 @@ async fn product_variation_get_by_id_includes_soft_deleted_when_include_deleted_
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var =
-        ProductVariation::new(var_id, product_id, "Large", "other", now, now, None).expect("valid");
+    let var = ProductVariation::new(var_id, product_id, "Large", "other", None, now, now, None)
+        .expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -136,14 +146,32 @@ async fn product_variation_list_by_product_id_empty_then_with_variations() {
 
     let now = 1_000_i64;
     let var1_id = Uuid::new_v4();
-    let var1 = ProductVariation::new(var1_id, product_id, "Small", "none", now, now + 1, None)
-        .expect("valid");
+    let var1 = ProductVariation::new(
+        var1_id,
+        product_id,
+        "Small",
+        "none",
+        None,
+        now,
+        now + 1,
+        None,
+    )
+    .expect("valid");
     db::product_variation::insert(&pool, &var1)
         .await
         .expect("insert");
     let var2_id = Uuid::new_v4();
-    let var2 = ProductVariation::new(var2_id, product_id, "Large", "grams", now, now + 2, None)
-        .expect("valid");
+    let var2 = ProductVariation::new(
+        var2_id,
+        product_id,
+        "Large",
+        "grams",
+        None,
+        now,
+        now + 2,
+        None,
+    )
+    .expect("valid");
     db::product_variation::insert(&pool, &var2)
         .await
         .expect("insert");
@@ -163,8 +191,8 @@ async fn product_variation_list_by_product_id_include_deleted_filters_soft_delet
 
     let now = 1_000_i64;
     let var1_id = Uuid::new_v4();
-    let var1 =
-        ProductVariation::new(var1_id, product_id, "A", "none", now, now, None).expect("valid");
+    let var1 = ProductVariation::new(var1_id, product_id, "A", "none", None, now, now, None)
+        .expect("valid");
     db::product_variation::insert(&pool, &var1)
         .await
         .expect("insert");
@@ -172,8 +200,8 @@ async fn product_variation_list_by_product_id_include_deleted_filters_soft_delet
         .await
         .expect("soft_delete");
     let var2_id = Uuid::new_v4();
-    let var2 =
-        ProductVariation::new(var2_id, product_id, "B", "none", now, now, None).expect("valid");
+    let var2 = ProductVariation::new(var2_id, product_id, "B", "none", None, now, now, None)
+        .expect("valid");
     db::product_variation::insert(&pool, &var2)
         .await
         .expect("insert");
@@ -197,8 +225,8 @@ async fn product_variation_update_changes_label_and_unit() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var =
-        ProductVariation::new(var_id, product_id, "Old", "none", now, now, None).expect("valid");
+    let var = ProductVariation::new(var_id, product_id, "Old", "none", None, now, now, None)
+        .expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -208,6 +236,7 @@ async fn product_variation_update_changes_label_and_unit() {
         product_id,
         "New label",
         "milliliters",
+        None,
         now,
         now + 1,
         None,
@@ -232,8 +261,8 @@ async fn product_variation_update_returns_error_when_not_found() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var =
-        ProductVariation::new(var_id, product_id, "X", "none", now, now, None).expect("valid");
+    let var = ProductVariation::new(var_id, product_id, "X", "none", None, now, now, None)
+        .expect("valid");
 
     let err = db::product_variation::update(&pool, &var)
         .await
@@ -248,8 +277,8 @@ async fn product_variation_update_returns_error_when_already_deleted() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var =
-        ProductVariation::new(var_id, product_id, "X", "none", now, now, None).expect("valid");
+    let var = ProductVariation::new(var_id, product_id, "X", "none", None, now, now, None)
+        .expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -263,6 +292,7 @@ async fn product_variation_update_returns_error_when_already_deleted() {
         product_id,
         "Y",
         "none",
+        None,
         now,
         deleted_ts,
         Some(deleted_ts),
@@ -281,8 +311,8 @@ async fn product_variation_soft_delete_then_excluded_from_get_and_list() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var =
-        ProductVariation::new(var_id, product_id, "Del", "none", now, now, None).expect("valid");
+    let var = ProductVariation::new(var_id, product_id, "Del", "none", None, now, now, None)
+        .expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -319,7 +349,8 @@ async fn product_variation_soft_delete_returns_error_when_already_deleted() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None).expect("valid");
+    let var =
+        ProductVariation::new(var_id, product_id, "", "none", None, now, now, None).expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -344,7 +375,8 @@ async fn product_variation_count_by_product_id() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None).expect("valid");
+    let var =
+        ProductVariation::new(var_id, product_id, "", "none", None, now, now, None).expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -374,7 +406,8 @@ async fn product_variation_ensure_no_purchases_ok_when_no_purchases() {
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None).expect("valid");
+    let var =
+        ProductVariation::new(var_id, product_id, "", "none", None, now, now, None).expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");
@@ -391,7 +424,8 @@ async fn product_variation_ensure_no_purchases_returns_error_when_has_purchases(
 
     let now = 1_000_i64;
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None).expect("valid");
+    let var =
+        ProductVariation::new(var_id, product_id, "", "none", None, now, now, None).expect("valid");
     db::product_variation::insert(&pool, &var)
         .await
         .expect("insert");

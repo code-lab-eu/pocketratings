@@ -15,6 +15,7 @@ fn row_to_variation(
     product_id: &str,
     label: &str,
     unit: &str,
+    quantity: Option<u32>,
     created_at: i64,
     updated_at: i64,
     deleted_at: Option<i64>,
@@ -23,7 +24,7 @@ fn row_to_variation(
     let product_id =
         Uuid::parse_str(product_id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     ProductVariation::new(
-        id, product_id, label, unit, created_at, updated_at, deleted_at,
+        id, product_id, label, unit, quantity, created_at, updated_at, deleted_at,
     )
     .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))
 }
@@ -43,7 +44,7 @@ pub async fn get_by_id(
     let id_str = id.to_string();
     let row = if include_deleted {
         sqlx::query(
-            "SELECT id, product_id, label, unit, created_at, updated_at, deleted_at \
+            "SELECT id, product_id, label, unit, quantity, created_at, updated_at, deleted_at \
              FROM product_variations WHERE id = ?",
         )
         .bind(&id_str)
@@ -51,7 +52,7 @@ pub async fn get_by_id(
         .await?
     } else {
         sqlx::query(
-            "SELECT id, product_id, label, unit, created_at, updated_at, deleted_at \
+            "SELECT id, product_id, label, unit, quantity, created_at, updated_at, deleted_at \
              FROM product_variations WHERE id = ? AND deleted_at IS NULL",
         )
         .bind(&id_str)
@@ -67,6 +68,9 @@ pub async fn get_by_id(
     let product_id: String = row.get("product_id");
     let label: String = row.get("label");
     let unit: String = row.get("unit");
+    // SQLite INTEGER is i64; domain uses Option<u32>, so convert (negative -> None).
+    let quantity: Option<i64> = row.get("quantity");
+    let quantity = quantity.and_then(|q| u32::try_from(q).ok());
     let created_at: i64 = row.get("created_at");
     let updated_at: i64 = row.get("updated_at");
     let deleted_at: Option<i64> = row.get("deleted_at");
@@ -76,6 +80,7 @@ pub async fn get_by_id(
         &product_id,
         &label,
         &unit,
+        quantity,
         created_at,
         updated_at,
         deleted_at,
@@ -98,7 +103,7 @@ pub async fn list_by_product_id(
     let product_id_str = product_id.to_string();
     let rows = if include_deleted {
         sqlx::query(
-            "SELECT id, product_id, label, unit, created_at, updated_at, deleted_at \
+            "SELECT id, product_id, label, unit, quantity, created_at, updated_at, deleted_at \
              FROM product_variations WHERE product_id = ? ORDER BY created_at",
         )
         .bind(&product_id_str)
@@ -106,7 +111,7 @@ pub async fn list_by_product_id(
         .await?
     } else {
         sqlx::query(
-            "SELECT id, product_id, label, unit, created_at, updated_at, deleted_at \
+            "SELECT id, product_id, label, unit, quantity, created_at, updated_at, deleted_at \
              FROM product_variations WHERE product_id = ? AND deleted_at IS NULL ORDER BY created_at",
         )
         .bind(&product_id_str)
@@ -120,6 +125,9 @@ pub async fn list_by_product_id(
         let product_id: String = row.get("product_id");
         let label: String = row.get("label");
         let unit: String = row.get("unit");
+        // SQLite INTEGER is i64; domain uses Option<u32>, so convert (negative -> None).
+        let quantity: Option<i64> = row.get("quantity");
+        let quantity = quantity.and_then(|q| u32::try_from(q).ok());
         let created_at: i64 = row.get("created_at");
         let updated_at: i64 = row.get("updated_at");
         let deleted_at: Option<i64> = row.get("deleted_at");
@@ -128,6 +136,7 @@ pub async fn list_by_product_id(
             &product_id,
             &label,
             &unit,
+            quantity,
             created_at,
             updated_at,
             deleted_at,
@@ -147,13 +156,14 @@ pub async fn insert(
     variation: &ProductVariation,
 ) -> Result<(), crate::db::DbError> {
     sqlx::query(
-        "INSERT INTO product_variations (id, product_id, label, unit, created_at, updated_at, deleted_at) \
-         VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO product_variations (id, product_id, label, unit, quantity, created_at, updated_at, deleted_at) \
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(variation.id().to_string())
     .bind(variation.product_id().to_string())
     .bind(variation.label())
     .bind(variation.unit())
+    .bind(variation.quantity().map(i64::from))
     .bind(variation.created_at())
     .bind(variation.updated_at())
     .bind(variation.deleted_at())
@@ -174,12 +184,13 @@ pub async fn update(
     let id_str = variation.id().to_string();
     let result = sqlx::query(
         "UPDATE product_variations \
-         SET product_id = ?, label = ?, unit = ?, updated_at = ?, deleted_at = ? \
+         SET product_id = ?, label = ?, unit = ?, quantity = ?, updated_at = ?, deleted_at = ? \
          WHERE id = ? AND deleted_at IS NULL",
     )
     .bind(variation.product_id().to_string())
     .bind(variation.label())
     .bind(variation.unit())
+    .bind(variation.quantity().map(i64::from))
     .bind(variation.updated_at())
     .bind(variation.deleted_at())
     .bind(&id_str)

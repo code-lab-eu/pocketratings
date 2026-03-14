@@ -16,7 +16,7 @@ async fn ensure_product_variation(pool: &sqlx::SqlitePool, product_id: Uuid) {
     }
     let now = chrono::Utc::now().timestamp();
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None)
+    let var = ProductVariation::new(var_id, product_id, "", "none", None, now, now, None)
         .expect("valid variation");
     db::product_variation::insert(pool, &var)
         .await

@@ -214,6 +214,9 @@ pub struct ProductVariationAddOpts {
     /// Unit: one of grams, milliliters, other, none.
     #[arg(long, value_name = "UNIT", default_value = "other")]
     pub unit: String,
+    /// Optional quantity (e.g. 500 for 500g; when unit is milliliters, 1000 for 1L).
+    #[arg(long, value_name = "QTY")]
+    pub quantity: Option<u32>,
 }
 
 /// Manage locations (stores): create, list, show, update, and delete.
@@ -785,6 +788,7 @@ pub async fn run(
                     &opts.product_id,
                     opts.label.as_deref().unwrap_or(""),
                     &opts.unit,
+                    opts.quantity,
                     stdout,
                     stderr,
                 )

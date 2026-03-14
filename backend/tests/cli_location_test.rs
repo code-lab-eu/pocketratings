@@ -346,7 +346,7 @@ async fn location_delete_fails_when_location_has_purchases() {
             v.id()
         } else {
             let var_id = uuid::Uuid::new_v4();
-            let var = ProductVariation::new(var_id, product_uuid, "", "none", now, now, None)
+            let var = ProductVariation::new(var_id, product_uuid, "", "none", None, now, now, None)
                 .expect("valid variation");
             db::product_variation::insert(&pool, &var)
                 .await

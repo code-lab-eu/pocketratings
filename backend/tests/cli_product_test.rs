@@ -203,6 +203,75 @@ async fn product_variation_add_success_with_label_and_unit() {
 }
 
 #[tokio::test]
+async fn product_variation_add_with_quantity_persists_quantity() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_variation_add_qty.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = create_category_and_get_id(&pool, "Food").await;
+    let (create_res, create_stdout, create_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "create",
+            "--name",
+            "Cheese",
+            "--brand",
+            "Farm",
+            "--category-id",
+            &cat_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(create_res.is_ok(), "stderr: {create_stderr}");
+    let product_id =
+        serde_json::from_str::<serde_json::Value>(create_stdout.lines().next().expect("line"))
+            .expect("json")
+            .get("id")
+            .and_then(|v| v.as_str())
+            .expect("id")
+            .to_string();
+
+    let (add_res, add_stdout, add_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "variation-add",
+            "--product-id",
+            &product_id,
+            "--label",
+            "500 g",
+            "--unit",
+            "grams",
+            "--quantity",
+            "500",
+        ],
+    )
+    .await;
+    assert!(add_res.is_ok(), "stderr: {add_stderr}");
+    assert!(
+        add_stdout.contains("Variation added"),
+        "stdout: {add_stdout}"
+    );
+
+    let product_uuid = Uuid::parse_str(&product_id).expect("product id uuid");
+    let variations = db::product_variation::list_by_product_id(&pool, product_uuid, false)
+        .await
+        .expect("list variations");
+    let with_qty = variations
+        .iter()
+        .find(|v| v.quantity() == Some(500))
+        .expect("variation with quantity 500");
+    assert_eq!(with_qty.label(), "500 g");
+    assert_eq!(with_qty.unit(), "grams");
+}
+
+#[tokio::test]
 async fn product_variation_add_fails_when_product_not_found() {
     let dir = tempfile::tempdir().expect("temp dir");
     let db_path = dir.path().join("cli_product_variation_add_missing.db");
@@ -720,7 +789,7 @@ async fn product_delete_fails_when_product_has_purchases() {
             v.id()
         } else {
             let var_id = uuid::Uuid::new_v4();
-            let var = ProductVariation::new(var_id, product_uuid, "", "none", now, now, None)
+            let var = ProductVariation::new(var_id, product_uuid, "", "none", None, now, now, None)
                 .expect("valid variation");
             db::product_variation::insert(&pool, &var)
                 .await

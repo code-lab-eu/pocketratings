@@ -63,6 +63,7 @@ pub struct ProductVariation {
     product_id: Uuid,
     label: String,
     unit: String,
+    quantity: Option<u32>,
     created_at: i64,
     updated_at: i64,
     deleted_at: Option<i64>,
@@ -74,11 +75,13 @@ impl ProductVariation {
     /// # Errors
     ///
     /// Returns [`ValidationError`] if `unit` is not one of grams, milliliters, other, none.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         product_id: Uuid,
         label: &str,
         unit: &str,
+        quantity: Option<u32>,
         created_at: i64,
         updated_at: i64,
         deleted_at: Option<i64>,
@@ -89,6 +92,7 @@ impl ProductVariation {
             product_id,
             label: label.trim().to_string(),
             unit: unit_val.to_string(),
+            quantity,
             created_at,
             updated_at,
             deleted_at,
@@ -122,6 +126,11 @@ impl ProductVariation {
     }
 
     #[must_use]
+    pub const fn quantity(&self) -> Option<u32> {
+        self.quantity
+    }
+
+    #[must_use]
     pub const fn created_at(&self) -> i64 {
         self.created_at
     }
@@ -148,6 +157,7 @@ mod tests {
             Uuid::new_v4(),
             "500 g",
             "grams",
+            Some(500),
             1_000,
             1_000,
             None,
@@ -156,6 +166,7 @@ mod tests {
         let v = v.unwrap();
         assert_eq!(v.label(), "500 g");
         assert_eq!(v.unit(), "grams");
+        assert_eq!(v.quantity(), Some(500));
     }
 
     #[test]
@@ -165,11 +176,13 @@ mod tests {
             Uuid::new_v4(),
             "",
             "none",
+            None,
             1_000,
             1_000,
             None,
         );
         assert!(v.is_ok());
+        assert_eq!(v.as_ref().unwrap().quantity(), None);
     }
 
     #[test]
@@ -179,6 +192,7 @@ mod tests {
             Uuid::new_v4(),
             "",
             "kilograms",
+            None,
             1_000,
             1_000,
             None,

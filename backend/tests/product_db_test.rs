@@ -498,7 +498,7 @@ async fn product_soft_delete_fails_when_product_has_purchases() {
         .expect("insert product");
 
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None)
+    let var = ProductVariation::new(var_id, product_id, "", "none", None, now, now, None)
         .expect("valid variation");
     db::product_variation::insert(&pool, &var)
         .await
@@ -590,7 +590,7 @@ async fn product_hard_delete_fails_when_product_has_purchases() {
         .expect("insert product");
 
     let var_id = Uuid::new_v4();
-    let var = ProductVariation::new(var_id, product_id, "", "none", now, now, None)
+    let var = ProductVariation::new(var_id, product_id, "", "none", None, now, now, None)
         .expect("valid variation");
     db::product_variation::insert(&pool, &var)
         .await

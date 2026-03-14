@@ -39,6 +39,8 @@ pub struct VariationRef {
     pub id: Uuid,
     pub label: String,
     pub unit: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<u32>,
 }
 
 /// Request body for creating a purchase.
@@ -111,6 +113,7 @@ fn purchase_with_relations_to_response(p: &PurchaseWithRelations) -> PurchaseRes
             id: p.variation_id,
             label: p.variation_label.clone(),
             unit: p.variation_unit.clone(),
+            quantity: p.variation_quantity,
         },
         location: LocationRef {
             id: p.location_id,

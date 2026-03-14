@@ -8,13 +8,14 @@ CREATE TABLE IF NOT EXISTS product_variations (
     product_id  TEXT    NOT NULL REFERENCES products(id),
     label       TEXT    NOT NULL,
     unit        TEXT    NOT NULL,
+    quantity    INTEGER,
     created_at  INTEGER NOT NULL,
     updated_at  INTEGER NOT NULL,
     deleted_at  INTEGER
 );
 
 -- One default variation per product (use product.updated_at for created_at/updated_at).
-INSERT INTO product_variations (id, product_id, label, unit, created_at, updated_at, deleted_at)
+INSERT INTO product_variations (id, product_id, label, unit, quantity, created_at, updated_at, deleted_at)
 SELECT
     lower(
         hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2)
@@ -24,6 +25,7 @@ SELECT
     id,
     '',
     'none',
+    NULL,
     updated_at,
     updated_at,
     NULL

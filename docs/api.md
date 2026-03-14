@@ -385,8 +385,9 @@ Get a single product by ID.
 
 List active variations for a product (for purchase form variation selector).
 
-**Response:** `200 OK` (array of `{ id, label, unit }`). Ordered by creation. Excludes
-soft-deleted variations.
+**Response:** `200 OK` (array of `{ id, label, unit, quantity? }`). Ordered by
+creation. Excludes soft-deleted variations. `quantity` is optional (unsigned
+integer, e.g. 500 for 500g; when unit is milliliters, 1000 for 1L).
 
 **Errors:**
 - `404 Not Found`: Product not found
@@ -474,7 +475,7 @@ response is `200 OK` with body `[]`.
     "id": "uuid",
     "user": { "id": "uuid", "name": "Alice" },
     "product": { "id": "uuid", "brand": "Brugge", "name": "Belegen" },
-    "variation": { "id": "uuid", "label": "", "unit": "none" },
+    "variation": { "id": "uuid", "label": "", "unit": "none", "quantity": null },
     "location": { "id": "uuid", "name": "Carrefour" },
     "quantity": 1,
     "price": "2.99",

@@ -18,6 +18,7 @@ pub struct PurchaseWithRelations {
     pub variation_id: Uuid,
     pub variation_label: String,
     pub variation_unit: String,
+    pub variation_quantity: Option<u32>,
     pub location_id: Uuid,
     pub quantity: i32,
     pub price: String,
@@ -208,7 +209,7 @@ pub async fn list(
 
 const PURCHASE_JOIN_SELECT: &str = "SELECT p.id, p.user_id, p.product_id, p.variation_id, p.location_id, p.quantity, p.price, p.purchased_at, p.deleted_at, \
     u.name AS user_name, prod.brand AS product_brand, prod.name AS product_name, loc.name AS location_name, \
-    pv.label AS variation_label, pv.unit AS variation_unit ";
+    pv.label AS variation_label, pv.unit AS variation_unit, pv.quantity AS variation_quantity ";
 const PURCHASE_JOIN_FROM: &str = "FROM purchases p \
     JOIN users u ON p.user_id = u.id \
     JOIN products prod ON p.product_id = prod.id \
@@ -233,6 +234,9 @@ fn row_to_purchase_with_relations(
     let location_name: String = row.get("location_name");
     let variation_label: String = row.get("variation_label");
     let variation_unit: String = row.get("variation_unit");
+    // SQLite INTEGER is i64; we use Option<u32> for variation quantity (negative -> None).
+    let variation_quantity: Option<i64> = row.get("variation_quantity");
+    let variation_quantity = variation_quantity.and_then(|q| u32::try_from(q).ok());
 
     let id = Uuid::parse_str(&id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let user_id =
@@ -251,6 +255,7 @@ fn row_to_purchase_with_relations(
         variation_id,
         variation_label,
         variation_unit,
+        variation_quantity,
         location_id,
         quantity,
         price,
