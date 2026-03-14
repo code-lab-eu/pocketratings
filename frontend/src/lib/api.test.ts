@@ -420,6 +420,43 @@ describe('api', () => {
     expect(initMethod(mockFetch)).toBe('POST');
   });
 
+  it('createProduct with first_variation sends it in the body', async () => {
+    vi.mocked(auth.getToken).mockReturnValue('t');
+    const mockFetch = vi.mocked(fetch);
+    const created = {
+      id: 'p2',
+      category: { id: 'c1', name: 'Groceries', ancestors: [] },
+      brand: 'Dairy',
+      name: 'Milk 1L',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null
+    };
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+    );
+
+    await createProduct({
+      name: 'Milk 1L',
+      brand: 'Dairy',
+      category_id: 'c1',
+      first_variation: { label: '1 L', unit: 'milliliters', quantity: 1000 }
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Milk 1L',
+          brand: 'Dairy',
+          category_id: 'c1',
+          first_variation: { label: '1 L', unit: 'milliliters', quantity: 1000 }
+        })
+      })
+    );
+  });
+
   it('updateProduct sends PATCH to /api/v1/products/:id', async () => {
     vi.mocked(auth.getToken).mockReturnValue('t');
     const mockFetch = vi.mocked(fetch);

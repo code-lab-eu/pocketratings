@@ -33,6 +33,8 @@ describe('New product page', () => {
     expect(screen.getByRole('heading', { name: /new product/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
+    expect(screen.getByText(/first variation/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^unit$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /create/i })).toBeInTheDocument();
   });
 

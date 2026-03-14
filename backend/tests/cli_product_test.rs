@@ -4,7 +4,7 @@ use std::io::Cursor;
 
 use pocketratings::cli;
 use pocketratings::db;
-use pocketratings::domain::product_variation::ProductVariation;
+use pocketratings::domain::product_variation::{ProductVariation, Unit};
 use pocketratings::domain::purchase::Purchase;
 use rust_decimal::Decimal;
 use uuid::Uuid;
@@ -131,7 +131,7 @@ async fn product_create_creates_one_default_variation() {
         .await
         .expect("list variations");
     assert_eq!(variations.len(), 1);
-    assert_eq!(variations[0].unit(), "none");
+    assert_eq!(variations[0].unit(), Unit::None);
     assert_eq!(variations[0].label(), "");
 }
 
@@ -199,7 +199,7 @@ async fn product_variation_add_success_with_label_and_unit() {
         .iter()
         .find(|v| v.label() == "500 g")
         .expect("variation with label 500 g");
-    assert_eq!(with_label.unit(), "grams");
+    assert_eq!(with_label.unit(), Unit::Grams);
 }
 
 #[tokio::test]
@@ -268,7 +268,7 @@ async fn product_variation_add_with_quantity_persists_quantity() {
         .find(|v| v.quantity() == Some(500))
         .expect("variation with quantity 500");
     assert_eq!(with_qty.label(), "500 g");
-    assert_eq!(with_qty.unit(), "grams");
+    assert_eq!(with_qty.unit(), Unit::Grams);
 }
 
 #[tokio::test]

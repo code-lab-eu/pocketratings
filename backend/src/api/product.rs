@@ -23,12 +23,21 @@ pub struct ProductRef {
     pub name: String,
 }
 
+/// Optional first variation when creating a product (label/unit/quantity).
+#[derive(Debug, Deserialize)]
+pub struct FirstVariationRequest {
+    pub label: Option<String>,
+    pub unit: String,
+    pub quantity: Option<u32>,
+}
+
 /// Request body for creating a product.
 #[derive(Debug, Deserialize)]
 pub struct CreateProductRequest {
     pub category_id: Uuid,
     pub brand: String,
     pub name: String,
+    pub first_variation: Option<FirstVariationRequest>,
 }
 
 /// Request body for partial update.
@@ -237,9 +246,25 @@ pub async fn create_product(
         .await
         .map_err(|e| map_db_error(&e))?;
     let var_id = Uuid::new_v4();
-    let default_variation = ProductVariation::new(var_id, id, "", "none", None, now, now, None)
-        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
-    db::product_variation::insert(&state.pool, &default_variation)
+    let variation = match &body.first_variation {
+        Some(fv) => {
+            let label = fv.label.as_deref().unwrap_or("").trim();
+            ProductVariation::new(
+                var_id,
+                id,
+                label,
+                fv.unit.trim(),
+                fv.quantity,
+                now,
+                now,
+                None,
+            )
+            .map_err(|e| ApiError::BadRequest(e.to_string()))?
+        }
+        None => ProductVariation::new(var_id, id, "", "none", None, now, now, None)
+            .map_err(|e| ApiError::BadRequest(e.to_string()))?,
+    };
+    db::product_variation::insert(&state.pool, &variation)
         .await
         .map_err(|e| map_db_error(&e))?;
     let created = db::product::get_by_id_with_relations(&state.pool, id, false)
@@ -368,6 +393,8 @@ mod tests {
     use sqlx::SqlitePool;
 
     use rust_decimal::Decimal;
+
+    use crate::domain::product_variation::Unit;
 
     use super::*;
     use crate::config::Config;
@@ -544,8 +571,53 @@ mod tests {
             .await
             .expect("list variations");
         assert_eq!(variations.len(), 1);
-        assert_eq!(variations[0].unit(), "none");
+        assert_eq!(variations[0].unit(), Unit::None);
         assert_eq!(variations[0].label(), "");
+    }
+
+    #[tokio::test]
+    async fn create_product_with_first_variation_creates_custom_variation() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Groceries").await;
+        let app = route().with_state(state.clone());
+        let body = serde_json::json!({
+            "category_id": cat_id.to_string(),
+            "brand": "Dairy Co",
+            "name": "Organic milk",
+            "first_variation": {
+                "label": "1 L",
+                "unit": "milliliters",
+                "quantity": 1000
+            }
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let product_id =
+            Uuid::parse_str(json.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+        let variations = db::product_variation::list_by_product_id(&state.pool, product_id, false)
+            .await
+            .expect("list variations");
+        assert_eq!(variations.len(), 1);
+        assert_eq!(variations[0].label(), "1 L");
+        assert_eq!(variations[0].unit(), Unit::Milliliters);
+        assert_eq!(variations[0].quantity(), Some(1000));
     }
 
     #[tokio::test]
@@ -679,6 +751,31 @@ mod tests {
             "category_id": cat_id.to_string(),
             "brand": "B",
             "name": ""
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn create_product_returns_400_when_first_variation_unit_invalid() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let app = route().with_state(state);
+        let body = serde_json::json!({
+            "category_id": cat_id.to_string(),
+            "brand": "B",
+            "name": "N",
+            "first_variation": { "unit": "liters" }
         });
         let response = app
             .oneshot(

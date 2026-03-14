@@ -4,7 +4,7 @@ use pocketratings::db;
 use pocketratings::domain::category::Category;
 use pocketratings::domain::location::Location;
 use pocketratings::domain::product::Product;
-use pocketratings::domain::product_variation::ProductVariation;
+use pocketratings::domain::product_variation::{ProductVariation, Unit};
 use pocketratings::domain::purchase::Purchase;
 use pocketratings::domain::user::User;
 use rust_decimal::Decimal;
@@ -73,7 +73,7 @@ async fn product_variation_insert_and_get_by_id_roundtrip() {
     assert_eq!(loaded.id(), var_id);
     assert_eq!(loaded.product_id(), product_id);
     assert_eq!(loaded.label(), "500 g");
-    assert_eq!(loaded.unit(), "grams");
+    assert_eq!(loaded.unit(), Unit::Grams);
     assert!(loaded.is_active());
 }
 
@@ -251,7 +251,7 @@ async fn product_variation_update_changes_label_and_unit() {
         .expect("get_by_id")
         .expect("should exist");
     assert_eq!(loaded.label(), "New label");
-    assert_eq!(loaded.unit(), "milliliters");
+    assert_eq!(loaded.unit(), Unit::Milliliters);
 }
 
 #[tokio::test]

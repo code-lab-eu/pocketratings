@@ -401,17 +401,27 @@ Create a new product.
 {
   "name": "Organic milk",
   "brand": "Dairy Co",
-  "category_id": "uuid"
+  "category_id": "uuid",
+  "first_variation": {
+    "label": "1 L",
+    "unit": "milliliters",
+    "quantity": 1000
+  }
 }
 ```
 
+- `name`, `brand`, `category_id` are required.
+- `first_variation` is optional. When present, the first variation is created with the
+  given `label` (optional), `unit` (required: one of `grams`, `milliliters`, `other`,
+  `none`), and `quantity` (optional, e.g. 500 for 500 g, 1000 for 1 L). When absent,
+  one default variation is created (label empty, unit `none`) so purchases can reference
+  a variation without a separate create step.
+
 **Response:** `201 Created` (product object with nested `category: { id, name, ancestors }`).
 
-Creating a product automatically creates one default product variation (label empty, unit
-`none`) so purchases can reference a variation without a separate create step.
-
 **Errors:**
-- `400 Bad Request`: Validation error
+- `400 Bad Request`: Validation error (e.g. empty name/brand, invalid unit in
+  first_variation)
 - `404 Not Found`: Category not found
 
 #### `PATCH /api/v1/products/:id`

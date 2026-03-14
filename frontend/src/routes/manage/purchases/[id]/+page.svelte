@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { updatePurchase, getProductVariations } from '$lib/api';
   import type { ProductVariation } from '$lib/types';
+  import { formatVariationDisplay } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
@@ -101,10 +102,6 @@
     }
   }
 
-  function variationOptionLabel(v: ProductVariation): string {
-    if (v.label.trim()) return v.unit ? `${v.label} (${v.unit})` : v.label;
-    return v.unit && v.unit !== 'none' ? v.unit : 'Default';
-  }
 </script>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
@@ -131,7 +128,7 @@
         <Select
           id="variation"
           label="Variation"
-          options={variations.map((v) => ({ value: v.id, label: variationOptionLabel(v) }))}
+          options={variations.map((v) => ({ value: v.id, label: formatVariationDisplay(v) }))}
           bind:value={variationId}
           placeholder={variationsLoading ? 'Loading…' : 'Select variation'}
           disabled={variationsLoading || variations.length === 0}

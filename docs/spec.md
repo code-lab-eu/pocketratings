@@ -31,9 +31,10 @@
 
 **Products**
 
-- **Create**: User adds a product (name, brand, category). Creating a product
-  automatically creates one default product variation so purchases can reference
-  it.
+- **Create**: User adds a product (name, brand, category). Optionally sets the first
+  variation (label, unit, quantity; e.g. "500 g" or "1 L"). Creating a product
+  automatically creates one product variation (the given one or a default) so
+  purchases can reference it.
 - **List**: User sees products (filter by category, search by name/brand).
 - **Update / soft-delete**: User can edit product or soft-delete it.
 

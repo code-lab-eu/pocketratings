@@ -273,10 +273,25 @@ export function getProductVariations(productId: string): Promise<ProductVariatio
   );
 }
 
+/** Unit options for variation dropdowns (new product, add variation). */
+export const UNIT_OPTIONS = [
+  { value: 'none', label: 'No unit' },
+  { value: 'grams', label: 'Grams' },
+  { value: 'milliliters', label: 'Milliliters' },
+  { value: 'other', label: 'Other' }
+] as const;
+
+export interface FirstVariationBody {
+  label?: string;
+  unit: string;
+  quantity?: number | null;
+}
+
 export interface CreateProductBody {
   name: string;
   brand: string;
   category_id: string;
+  first_variation?: FirstVariationBody;
 }
 
 export function createProduct(body: CreateProductBody): Promise<Product> {
