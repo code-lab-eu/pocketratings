@@ -21,16 +21,21 @@ Exact-string search_replace often fails in these files because they may contain 
 
 3. **When a replace fails (e.g. fuzzy match points elsewhere):** Assume Unicode or whitespace mismatch. Run a **normalization** step to convert Unicode punctuation to ASCII in the file, then retry your intended search_replace. This is fast and avoids re-reading/writing the whole file.
 
-   **Normalize Unicode punctuation** (run from repo root or with the file path; replaces curly double/single quotes and en/em dashes with ASCII):
+   **Normalize curly quotes** (run from repo root; script replaces curly double/single quotes with ASCII):
 
    ```bash
-   perl -i -pe 's/[\x{201C}\x{201D}]/"/g; s/\x{2019}/'"'"'/g; s/[\x{2013}\x{2014}]/-/g' -- path/to/file.md
+   ./scripts/ascii-punctuation.sh fix
+   ```
+   Or for a single file:
+
+   ```bash
+   perl -i -CSD -pe 's/[\x{201C}\x{201D}]/"/g; s/[\x{2018}\x{2019}]/chr(39)/ge' -- path/to/file.md
    ```
 
-   On Linux with GNU sed (same effect):
+   GNU sed equivalent for one file:
 
    ```bash
-   sed -i 's/\xE2\x80\x9C/"/g; s/\xE2\x80\x9D/"/g; s/\xE2\x80\x99/'"'"'/g; s/\xE2\x80\x93/-/g; s/\xE2\x80\x94/-/g' path/to/file.md
+   sed -i 's/\xE2\x80\x9C/"/g; s/\xE2\x80\x9D/"/g; s/\xE2\x80\x98/'"'"'/g; s/\xE2\x80\x99/'"'"'/g' path/to/file.md
    ```
 
    After normalization, your search_replace should match; complete the intended edit.

@@ -1,12 +1,12 @@
 ---
-description: Keep README and docs to 80-character line width for readability and diffs
-globs: README.md, docs/**/*.md
+description: Keep README, docs, and rules/skills to 80-character line width for readability and diffs
+globs: README.md, docs/**/*.md, .cursor/rules/**/*.mdc, .cursor/skills/**/*.mdc
 alwaysApply: false
 ---
 
-# Line width in README and documentation
+# Line width in README, docs, and rules/skills
 
-When editing **README.md** or files under **docs/** (e.g. `docs/spec.md`, `docs/api.md`):
+When editing **README.md**, files under **docs/** (e.g. `docs/spec.md`, `docs/api.md`), or **.mdc** files under **.cursor/rules/** and **.cursor/skills/**:
 
 - **Wrap prose and list text to 80 characters** per line. Break long sentences or
   list items onto the next line rather than exceeding 80 characters.

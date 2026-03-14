@@ -29,6 +29,10 @@ Run **full** frontend quality control (use the **frontend-quality-control** skil
 
 Both must pass.
 
+## ASCII punctuation
+
+Run `./scripts/ascii-punctuation.sh check` from repo root as part of QC. Ensures no curly quotes were introduced in docs, rules, or code.
+
 ## When this applies
 
 - After adding or changing backend or frontend code (features, fixes, tests, coverage).
