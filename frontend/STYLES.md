@@ -17,12 +17,12 @@ Defined in `src/routes/layout.css`:
   - `.pr-heading-section`: section headings (was `mb-3 text-lg font-medium text-gray-900 dark:text-gray-50`).
 
 - **Links**
-  - `.pr-link-inline`: inline link with underline, used in text paragraphs and “Back to …” links.
-  - `.pr-link-muted`: muted navigation link (e.g. “← Manage”, “← Home”).
+  - `.pr-link-inline`: inline link with underline, used in text paragraphs and "Back to …" links.
+  - `.pr-link-muted`: muted navigation link (e.g. "← Manage", "← Home").
 
 - **Buttons**
   - `.pr-btn-primary`: primary action button (dark background in light mode, inverted in dark mode).
-  - `.pr-btn-secondary`: secondary/outline button used for “Cancel” actions and similar.
+  - `.pr-btn-secondary`: secondary/outline button used for "Cancel" actions and similar.
   - Both use a short transition and a slight hover lift and shadow; motion is disabled when the
     user prefers reduced motion (`prefers-reduced-motion: reduce`).
 
@@ -69,7 +69,7 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
 
 - **Buttons and links**
   - Prefer `Button` for primary and secondary actions.
-  - Use `.pr-link-muted` for back-links in headers (e.g. “← Manage”) and `.pr-link-inline` for inline links in text.
+  - Use `.pr-link-muted` for back-links in headers (e.g. "← Manage") and `.pr-link-inline` for inline links in text.
 
 - **Forms**
   - Use `.pr-text-label` for labels and `.pr-input` for all text inputs, selects, and textareas to keep forms consistent across routes.

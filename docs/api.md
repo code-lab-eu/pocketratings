@@ -381,6 +381,17 @@ Get a single product by ID.
 **Errors:**
 - `404 Not Found`: Product not found
 
+#### `GET /api/v1/products/:id/variations`
+
+List active variations for a product (for purchase form variation selector).
+
+**Response:** `200 OK` (array of `{ id, label, unit, quantity? }`). Ordered by
+creation. Excludes soft-deleted variations. `quantity` is optional (unsigned
+integer, e.g. 500 for 500g; when unit is milliliters, 1000 for 1L).
+
+**Errors:**
+- `404 Not Found`: Product not found
+
 #### `POST /api/v1/products`
 
 Create a new product.
@@ -394,7 +405,10 @@ Create a new product.
 }
 ```
 
-**Response:** `201 Created` (product object with nested `category: { id, name, ancestors }`)
+**Response:** `201 Created` (product object with nested `category: { id, name, ancestors }`).
+
+Creating a product automatically creates one default product variation (label empty, unit
+`none`) so purchases can reference a variation without a separate create step.
 
 **Errors:**
 - `400 Bad Request`: Validation error
@@ -450,7 +464,10 @@ List purchases.
 - `from` (optional, ISO 8601 date): Start date
 - `to` (optional, ISO 8601 date): End date
 
-**Response:** `200 OK` — Array of purchases. Each item has the same shape as the example below (nested `user`, `product`, `location`). When there are no matching purchases (e.g. the product exists but has no purchases), the response is `200 OK` with body `[]`.
+**Response:** `200 OK` — Array of purchases. Each item has the same shape as the
+example below (nested `user`, `product`, `variation`, `location`). When there
+are no matching purchases (e.g. the product exists but has no purchases), the
+response is `200 OK` with body `[]`.
 
 ```json
 [
@@ -458,6 +475,7 @@ List purchases.
     "id": "uuid",
     "user": { "id": "uuid", "name": "Alice" },
     "product": { "id": "uuid", "brand": "Brugge", "name": "Belegen" },
+    "variation": { "id": "uuid", "label": "", "unit": "none", "quantity": null },
     "location": { "id": "uuid", "name": "Carrefour" },
     "quantity": 1,
     "price": "2.99",
@@ -471,7 +489,8 @@ List purchases.
 
 Get a single purchase by ID.
 
-**Response:** `200 OK` — Purchase object with the same shape as list (nested `user`, `product`, `location`).
+**Response:** `200 OK` — Purchase object with the same shape as list (nested
+`user`, `product`, `variation`, `location`).
 
 **Errors:**
 - `404 Not Found`: Purchase not found
@@ -484,6 +503,7 @@ Create a new purchase.
 ```json
 {
   "product_id": "uuid",
+  "variation_id": "uuid",
   "location_id": "uuid",
   "quantity": 1,
   "price": "2.99",
@@ -493,11 +513,14 @@ Create a new purchase.
 
 **Constraints:**
 - `product_id` and `location_id` are required
+- `variation_id` is optional; if omitted, the product's first variation is used.
+  To list variations for a product, use `GET /api/v1/products/:id/variations`.
 - `quantity` defaults to 1 if not provided
 - `purchased_at` defaults to current time if not provided
 - `user_id` is automatically set to the current authenticated user
 
-**Response:** `201 Created` — Purchase object with the same shape as list (nested `user`, `product`, `location`).
+**Response:** `201 Created` — Purchase object with the same shape as list (nested
+`user`, `product`, `variation`, `location`).
 
 **Errors:**
 - `400 Bad Request`: Validation error
@@ -511,6 +534,7 @@ Update a purchase. Only the owner (purchase's `user_id` equals current user) may
 ```json
 {
   "product_id": "uuid",
+  "variation_id": "uuid",
   "location_id": "uuid",
   "quantity": 2,
   "price": "3.49",
@@ -518,14 +542,18 @@ Update a purchase. Only the owner (purchase's `user_id` equals current user) may
 }
 ```
 
-All fields are optional. Only provided fields are updated.
+All fields are optional. Only provided fields are updated. If `variation_id` is
+provided without `product_id`, the product is taken from the variation.
 
-**Response:** `200 OK` — Updated purchase object with the same shape as list (nested `user`, `product`, `location`).
+**Response:** `200 OK` — Updated purchase object with the same shape as list
+(nested `user`, `product`, `variation`, `location`).
 
 **Errors:**
-- `400 Bad Request`: Validation error (e.g. quantity < 1, negative price)
+- `400 Bad Request`: Validation error (e.g. quantity < 1, negative price);
+  or product has no variation
 - `403 Forbidden`: Purchase belongs to another user
-- `404 Not Found`: Purchase not found, or product/location not found (if provided)
+- `404 Not Found`: Purchase not found, or product/variation/location not found
+  (if provided)
 
 #### `DELETE /api/v1/purchases/:id`
 

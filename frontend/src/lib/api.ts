@@ -1,5 +1,5 @@
 import { getToken, setToken, clearToken } from '$lib/auth';
-import type { Category, Location, Product, Purchase, Review } from '$lib/types';
+import type { Category, Location, Product, ProductVariation, Purchase, Review } from '$lib/types';
 
 const BASE = typeof import.meta.env !== 'undefined' && import.meta.env.PUBLIC_API_BASE_URL != null
   ? String(import.meta.env.PUBLIC_API_BASE_URL).replace(/\/$/, '')
@@ -266,6 +266,13 @@ export function getProduct(id: string): Promise<Product> {
   return apiGet<Product>(`/api/v1/products/${encodeURIComponent(id)}`);
 }
 
+/** List active variations for a product (for purchase form). */
+export function getProductVariations(productId: string): Promise<ProductVariation[]> {
+  return apiGet<ProductVariation[]>(
+    `/api/v1/products/${encodeURIComponent(productId)}/variations`
+  );
+}
+
 export interface CreateProductBody {
   name: string;
   brand: string;
@@ -302,6 +309,7 @@ export function getPurchase(id: string): Promise<Purchase> {
 
 export interface CreatePurchaseBody {
   product_id: string;
+  variation_id?: string;
   location_id: string;
   quantity?: number;
   price?: string;
@@ -314,7 +322,7 @@ export function createPurchase(body: CreatePurchaseBody): Promise<Purchase> {
 
 export function updatePurchase(
   id: string,
-  body: { product_id?: string; location_id?: string; quantity?: number; price?: string; purchased_at?: string }
+  body: { product_id?: string; variation_id?: string; location_id?: string; quantity?: number; price?: string; purchased_at?: string }
 ): Promise<Purchase> {
   return apiPatch<Purchase>(`/api/v1/purchases/${encodeURIComponent(id)}`, body);
 }

@@ -1,13 +1,13 @@
 ---
 name: backend-build-and-test
-description: Run build, lint, and test for the Pocket Ratings backend (Rust). Use when the user asks to build, lint, or test the backend, or verify backend before submit.
+description: Run build, lint, or test for the Pocket Ratings backend (Rust). Use when the user asks to build, lint, or test the backend. For task completion or full verification use backend-quality-control.
 ---
 
 # Backend Build and Test
 
-Use this skill when running backend build, lint, or test. Run commands from the repo root with `cd backend` or set `working-directory: backend` in CI.
+Use this skill when the user asks to **build**, **lint**, or **test** the backend (individual or combined). Run commands from the repo root with `cd backend` or set `working-directory: backend` in CI.
 
-**For full quality control** (format, then lint, then test with strict Clippy), use the **backend-quality-control** skill instead.
+**For task completion or full verification** (format, lint, test, and coverage): use the **backend-quality-control** skill. Do not use this skill as the completion gate; it does not include format or coverage.
 
 ## Consistency expectations
 
@@ -47,7 +47,9 @@ cd backend
 cargo test --release -- --skip server_start_and_stop_via_cli
 ```
 
-## All checks (build + lint + test)
+## All checks (build + lint + test only)
+
+This runs build, lint, and test **only**. It does **not** include format or coverage. For the full gate (format, Clippy, test, coverage) use **backend-quality-control**.
 
 ```bash
 cd backend

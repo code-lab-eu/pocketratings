@@ -3,6 +3,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import FormError from '$lib/FormError.svelte';
+  import { formatVariationDisplay } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
   let { data } = $props();
@@ -116,6 +117,7 @@
               <li class="flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
                 <span>{formatDate(purchase.purchased_at)}</span>
                 <span>{purchase.location.name}</span>
+                <span class="pr-text-muted">{formatVariationDisplay(purchase.variation)}</span>
                 <span>{purchase.price} €</span>
               </li>
             {/each}

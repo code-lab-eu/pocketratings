@@ -109,6 +109,16 @@ pub async fn create(
 
     let user_id_resolved = resolve_user_id(pool, user_id, email).await?;
 
+    let variations = db::product_variation::list_by_product_id(pool, product_id, false).await?;
+    let variation_id = variations
+        .first()
+        .map(crate::domain::product_variation::ProductVariation::id)
+        .ok_or_else(|| {
+            CliError::Validation(format!(
+                "product {product_id_str} has no variation (create one first)"
+            ))
+        })?;
+
     let price: Decimal = price_str
         .parse()
         .map_err(|_| CliError::Validation(format!("invalid price: {price_str}")))?;
@@ -119,6 +129,7 @@ pub async fn create(
         Uuid::new_v4(),
         user_id_resolved,
         product_id,
+        variation_id,
         location_id,
         quantity,
         price,

@@ -130,9 +130,9 @@ variations.
 - Add product variation model and migration; link variations to products.
 - Add unit field (grams, milliliters, other, or none) and ensure easy
   selection in UI.
-- On product create, create one initial variation.
-- Associate purchases with a product variation (API, DB, frontend).
-- Document in [spec.md](spec.md) and [api.md](api.md).
+- On product create, create one initial variation. - DONE
+- Associate purchases with a product variation (API, DB, frontend). - DONE
+- Document in [spec.md](spec.md) and [api.md](api.md). - DONE
 
 ### 7. Accessibility audit [FE]
 

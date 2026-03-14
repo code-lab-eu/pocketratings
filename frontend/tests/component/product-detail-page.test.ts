@@ -29,6 +29,7 @@ const purchase: Purchase = {
   id: 'pur-1',
   user: { id: 'u1', name: 'Alice' },
   product: { id: 'prod-1', brand: 'Acme', name: 'Milk' },
+  variation: { id: 'var-1', label: '', unit: 'none' },
   location: { id: 'loc-1', name: 'Store A' },
   quantity: 1,
   price: '2.99',
@@ -111,13 +112,27 @@ describe('Product detail page', () => {
     expect(screen.getByText(/by alice/i)).toBeInTheDocument();
   });
 
-  it('shows purchase history with date, location, price', () => {
+  it('shows purchase history with date, location, variation, price', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }
     });
     expect(screen.getByRole('heading', { name: /purchase history/i })).toBeInTheDocument();
     expect(screen.getByText(/store a/i)).toBeInTheDocument();
+    expect(screen.getByText(/default/i)).toBeInTheDocument();
     expect(screen.getByText(/2\.99 €/)).toBeInTheDocument();
+  });
+
+  it('shows variation label in purchase history when set', () => {
+    const purchaseWithLabel: Purchase = {
+      ...purchase,
+      variation: { id: 'var-2', label: '500 g', unit: 'grams' }
+    };
+    render(ProductDetailPage, {
+      props: {
+        data: { ...defaultData, purchases: [purchaseWithLabel] } as PageData
+      }
+    });
+    expect(screen.getByText(/500 g/i)).toBeInTheDocument();
   });
 
   it('shows Add review and Add purchase placeholder links', () => {

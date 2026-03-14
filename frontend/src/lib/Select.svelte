@@ -11,6 +11,7 @@
     value: string;
     placeholder?: string;
     required?: boolean;
+    disabled?: boolean;
   }
 
   let {
@@ -19,13 +20,14 @@
     options,
     value = $bindable(),
     placeholder = '',
-    required = false
+    required = false,
+    disabled = false
   }: Props = $props();
 </script>
 
 <div>
   <label for={id} class="mb-1 block pr-text-label">{label}</label>
-  <select {id} bind:value {required} class="pr-input" autocomplete="off">
+  <select {id} bind:value {required} {disabled} class="pr-input" autocomplete="off">
     {#if placeholder}
       <option value="">{placeholder}</option>
     {/if}

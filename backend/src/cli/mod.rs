@@ -23,6 +23,25 @@ use crate::cli::review as review_cli;
 use crate::cli::server as server_cli;
 use crate::cli::user as user_cli;
 
+/// True if the CLI subcommand (first, second) requires a database pool.
+///
+/// Used by the binary to decide whether to load config and create the pool before invoking `run`.
+/// Must stay in sync with subcommands that use the pool in this module.
+#[must_use]
+pub fn subcommand_needs_db(first: Option<&str>, second: Option<&str>) -> bool {
+    matches!(
+        (first, second),
+        (Some("user"), Some("register" | "list" | "delete"))
+            | (
+                Some("category" | "location" | "product" | "purchase" | "review"),
+                Some("create" | "list" | "show" | "update" | "delete")
+            )
+            | (Some("product"), Some("variation-add"))
+            | (Some("server"), Some("start"))
+            | (Some("database"), Some("backup"))
+    )
+}
+
 /// Pocket Ratings — product reviews and ratings.
 #[derive(Parser)]
 #[command(name = "pocketratings")]
@@ -123,6 +142,8 @@ pub enum ProductCmd {
     Update(ProductUpdateOpts),
     /// Soft-delete or remove a product.
     Delete(ProductDeleteOpts),
+    /// Add a variation to a product.
+    VariationAdd(ProductVariationAddOpts),
 }
 
 #[derive(clap::Args)]
@@ -180,6 +201,22 @@ pub struct ProductDeleteOpts {
     /// Remove the product row from the database instead of soft-deleting.
     #[arg(long)]
     pub force: bool,
+}
+
+#[derive(clap::Args)]
+pub struct ProductVariationAddOpts {
+    /// Product UUID to add the variation to.
+    #[arg(long)]
+    pub product_id: String,
+    /// Label (e.g. "500 g", "Large").
+    #[arg(long, value_name = "LABEL")]
+    pub label: Option<String>,
+    /// Unit: one of grams, milliliters, other, none.
+    #[arg(long, value_name = "UNIT", default_value = "other")]
+    pub unit: String,
+    /// Optional quantity (e.g. 500 for 500g; when unit is milliliters, 1000 for 1L).
+    #[arg(long, value_name = "QTY")]
+    pub quantity: Option<u32>,
 }
 
 /// Manage locations (stores): create, list, show, update, and delete.
@@ -740,6 +777,23 @@ pub async fn run(
                 })?;
                 product_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
             }
+            ProductCmd::VariationAdd(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for product variation-add"
+                    ))
+                })?;
+                product_cli::variation_add(
+                    pool,
+                    &opts.product_id,
+                    opts.label.as_deref().unwrap_or(""),
+                    &opts.unit,
+                    opts.quantity,
+                    stdout,
+                    stderr,
+                )
+                .await
+            }
         },
         Some(Commands::Purchase(pur_args)) => match pur_args.command {
             PurchaseCmd::Create(opts) => {
@@ -900,5 +954,29 @@ pub async fn run(
                 .map_err(|e| CliError::Other(e.into()))?;
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::subcommand_needs_db;
+
+    #[test]
+    fn subcommand_needs_db_returns_true_for_commands_that_use_pool() {
+        assert!(subcommand_needs_db(Some("user"), Some("register")));
+        assert!(subcommand_needs_db(Some("user"), Some("list")));
+        assert!(subcommand_needs_db(Some("category"), Some("create")));
+        assert!(subcommand_needs_db(Some("product"), Some("list")));
+        assert!(subcommand_needs_db(Some("product"), Some("variation-add")));
+        assert!(subcommand_needs_db(Some("purchase"), Some("create")));
+        assert!(subcommand_needs_db(Some("server"), Some("start")));
+        assert!(subcommand_needs_db(Some("database"), Some("backup")));
+    }
+
+    #[test]
+    fn subcommand_needs_db_returns_false_when_no_db_needed() {
+        assert!(!subcommand_needs_db(None, None));
+        assert!(!subcommand_needs_db(Some("server"), Some("stop")));
+        assert!(!subcommand_needs_db(Some("product"), Some("invalid")));
     }
 }

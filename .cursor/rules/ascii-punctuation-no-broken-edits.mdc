@@ -7,13 +7,15 @@ alwaysApply: true
 
 ## Punctuation
 
-- **Use ASCII only** when writing or rewriting content: straight double quote `"`, straight single quote `'`, hyphen-minus `-`. Do not use curly/smart quotes (`"` `"`) or en/em dashes (`–` `—`) in code, config, or documentation.
+- **Curly quotes (enforced):** Use straight double quote `"` and straight single quote `'` (ASCII). Do not use curly/smart quotes (Unicode U+201C, U+201D, U+2018, U+2019) in code, config, or documentation. They are the main cause of search_replace failures when the file has Unicode quotes and your edit uses ASCII.
+- **En/em dashes (optional):** You may also use hyphen-minus `-` instead of en dash (U+2013) or em dash (U+2014) for consistency; the script does not check or replace these.
 - This keeps search_replace reliable and avoids mismatches when the file already contains Unicode punctuation.
+- **Enforcement:** `./scripts/ascii-punctuation.sh check` runs on pre-push and in CI; fix with `./scripts/ascii-punctuation.sh fix`.
 
 ## Edits
 
 - **Do not leave broken or half-updated text.** If a search_replace would change only part of a sentence or leave redundant/duplicate phrasing (e.g. "for \"very responsive\" **debounceMs**"), fix the whole span in one go or use Read + Write for the affected section.
-- When a replace fails repeatedly (e.g. due to Unicode), do not retry with hex dumps or scripts. Prefer: (1) replace a smaller ASCII-only substring, or (2) Read the file and Write the corrected version with ASCII punctuation throughout.
+- When a replace fails repeatedly (e.g. due to Unicode), do not retry with hex dumps or custom scripts. Prefer: (1) run `./scripts/ascii-punctuation.sh fix` to normalize the file(s), or (2) replace a smaller ASCII-only substring. For files outside the script's scope or if the script cannot run, ask the developer to run the fix script or fix the punctuation manually; avoid Read+Write of very long files (token-heavy).
 
 ## For markdown and plan files
 

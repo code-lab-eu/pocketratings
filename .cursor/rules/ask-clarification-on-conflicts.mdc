@@ -1,0 +1,24 @@
+---
+description: When user instructions conflict with plans or docs, ask for clarification instead of deciding unilaterally
+alwaysApply: true
+---
+
+# Ask clarification on conflicts
+
+When you notice a **conflict** between:
+
+- Something the user said (in the current or a recent message) and what a **plan**, **spec**, or other **document** says to do, or
+- Two parts of the same plan or doc that point in different directions,
+
+**ask the user for clarification** before acting. Do not unilaterally choose one side and skip or change the other.
+
+## What to do
+
+1. State briefly what conflicts (e.g. "You said X; the plan says to do Y").
+2. Ask which interpretation applies or what the user wants (e.g. "Should I do Y, or did you mean only Z?")
+3. Proceed only after the user clarifies.
+
+## What not to do
+
+- Do not assume an earlier instruction overrides the plan or doc.
+- Do not silently drop part of a plan because of a prior "don't do X" without confirming that X is still out of scope.

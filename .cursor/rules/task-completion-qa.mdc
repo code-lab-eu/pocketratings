@@ -1,0 +1,42 @@
+---
+description: Run full quality control before marking any code-changing task complete
+alwaysApply: true
+---
+
+# Task completion: run quality control
+
+When completing any task that **modifies code** (backend or frontend), you must run
+the **full** quality control for that area **before** marking the task complete. Do not
+consider the task done until QC has been run and all checks pass.
+
+## Backend
+
+Run **full** backend quality control (use the **backend-quality-control** skill):
+
+1. Format: `cargo fmt`
+2. Lint: `cargo clippy --all-targets --release -- -W clippy::pedantic -W clippy::nursery -W clippy::cargo -D warnings`
+3. Test: `cargo test --release -- --skip server_start_and_stop_via_cli`
+4. Coverage: `./scripts/backend-coverage.sh` (from repo root)
+
+All four must pass. Running only tests or only coverage is **not** sufficient.
+
+## Frontend
+
+Run **full** frontend quality control (use the **frontend-quality-control** skill):
+
+- Lint: `cd frontend && bun run lint`
+- Test: `cd frontend && bun run test`
+
+Both must pass.
+
+## ASCII punctuation
+
+Run `./scripts/ascii-punctuation.sh check` from repo root as part of QC. Ensures no curly quotes were introduced in docs, rules, or code.
+
+## When this applies
+
+- After adding or changing backend or frontend code (features, fixes, tests, coverage).
+- After a skill or rule tells you to "run QC" or "before marking work done": that means run the **full** QC for that area, not a subset.
+- **Phased plans:** When work is split into phases, each phase must include its own test coverage and full QC before that phase is considered complete. Do not defer tests to a later phase. Ideally write tests first (they describe the expected outcome), then implement.
+
+If you skip QC or run only part of it (e.g. only coverage, or only tests), the task is not complete.

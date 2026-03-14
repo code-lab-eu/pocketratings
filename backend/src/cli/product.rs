@@ -11,6 +11,7 @@ use crate::cli::CliError;
 use crate::db;
 use crate::domain::category::Category;
 use crate::domain::product::{Product, ValidationError};
+use crate::domain::product_variation::ProductVariation;
 
 /// Format category for CLI output: uses [`Category`]'s Display when available, else `uuid (?)`.
 fn format_category_display(cat: Option<&Category>, id: Uuid) -> String {
@@ -58,6 +59,12 @@ pub async fn create(
     .map_err(|e| map_validation_error(&e))?;
 
     db::product::insert(pool, &product).await?;
+
+    let var_id = Uuid::new_v4();
+    let default_variation =
+        ProductVariation::new(var_id, product.id(), "", "none", None, now, now, None)
+            .map_err(|e| CliError::Validation(e.to_string()))?;
+    db::product_variation::insert(pool, &default_variation).await?;
 
     if output_json {
         let out = serde_json::json!({
@@ -280,5 +287,39 @@ pub async fn delete(
         db::product::soft_delete(pool, id).await?;
         writeln!(stdout, "Product deleted: {id_str}").map_err(|e| CliError::Other(e.into()))?;
     }
+    Ok(())
+}
+
+/// Add a variation to an existing product.
+pub async fn variation_add(
+    pool: &SqlitePool,
+    product_id_str: &str,
+    label: &str,
+    unit: &str,
+    quantity: Option<u32>,
+    stdout: &mut impl Write,
+    _stderr: &mut impl Write,
+) -> Result<(), CliError> {
+    let product_id = Uuid::parse_str(product_id_str)
+        .map_err(|_| CliError::Validation(format!("invalid product_id: {product_id_str}")))?;
+
+    let Some(_product) = db::product::get_by_id(pool, product_id, false).await? else {
+        return Err(CliError::Validation(format!(
+            "product not found: {product_id_str}"
+        )));
+    };
+
+    let now = Utc::now().timestamp();
+    let var_id = Uuid::new_v4();
+    let variation =
+        ProductVariation::new(var_id, product_id, label, unit, quantity, now, now, None)
+            .map_err(|e| CliError::Validation(e.to_string()))?;
+    db::product_variation::insert(pool, &variation).await?;
+
+    writeln!(
+        stdout,
+        "Variation added: {var_id} (product {product_id_str})"
+    )
+    .map_err(|e| CliError::Other(e.into()))?;
     Ok(())
 }

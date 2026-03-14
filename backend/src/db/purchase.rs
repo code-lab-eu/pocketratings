@@ -9,12 +9,16 @@ use uuid::Uuid;
 
 use crate::domain::purchase::Purchase;
 
-/// One purchase row with joined user, product, and location names for API responses.
+/// One purchase row with joined user, product, location, and variation for API responses.
 #[derive(Debug, Clone)]
 pub struct PurchaseWithRelations {
     pub id: Uuid,
     pub user_id: Uuid,
     pub product_id: Uuid,
+    pub variation_id: Uuid,
+    pub variation_label: String,
+    pub variation_unit: String,
+    pub variation_quantity: Option<u32>,
     pub location_id: Uuid,
     pub quantity: i32,
     pub price: String,
@@ -32,6 +36,7 @@ fn row_to_purchase(
     id: &str,
     user_id: &str,
     product_id: &str,
+    variation_id: &str,
     location_id: &str,
     quantity: i32,
     price_str: &str,
@@ -43,6 +48,8 @@ fn row_to_purchase(
         Uuid::parse_str(user_id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let product_id =
         Uuid::parse_str(product_id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
+    let variation_id = Uuid::parse_str(variation_id)
+        .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let location_id =
         Uuid::parse_str(location_id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let price: Decimal = price_str
@@ -53,6 +60,7 @@ fn row_to_purchase(
         id,
         user_id,
         product_id,
+        variation_id,
         location_id,
         quantity,
         price,
@@ -78,14 +86,14 @@ pub async fn get_by_id(
     let id_str = id.to_string();
     let row = if include_deleted {
         sqlx::query(
-            "SELECT id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE id = ?",
+            "SELECT id, user_id, product_id, variation_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE id = ?",
         )
         .bind(&id_str)
         .fetch_optional(pool)
         .await?
     } else {
         sqlx::query(
-            "SELECT id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE id = ? AND deleted_at IS NULL",
+            "SELECT id, user_id, product_id, variation_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE id = ? AND deleted_at IS NULL",
         )
         .bind(&id_str)
         .fetch_optional(pool)
@@ -99,6 +107,7 @@ pub async fn get_by_id(
     let id: String = row.get("id");
     let user_id: String = row.get("user_id");
     let product_id: String = row.get("product_id");
+    let variation_id: String = row.get("variation_id");
     let location_id: String = row.get("location_id");
     let quantity: i32 = row.get("quantity");
     let price: String = row.get("price");
@@ -109,6 +118,7 @@ pub async fn get_by_id(
         &id,
         &user_id,
         &product_id,
+        &variation_id,
         &location_id,
         quantity,
         &price,
@@ -161,7 +171,7 @@ pub async fn list(
 
     let where_clause = conditions.join(" AND ");
     let sql = format!(
-        "SELECT id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE {where_clause} ORDER BY purchased_at DESC"
+        "SELECT id, user_id, product_id, variation_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE {where_clause} ORDER BY purchased_at DESC"
     );
 
     let mut query = sqlx::query(&sql);
@@ -175,6 +185,7 @@ pub async fn list(
         let id: String = row.get("id");
         let user_id: String = row.get("user_id");
         let product_id: String = row.get("product_id");
+        let variation_id: String = row.get("variation_id");
         let location_id: String = row.get("location_id");
         let quantity: i32 = row.get("quantity");
         let price: String = row.get("price");
@@ -184,6 +195,7 @@ pub async fn list(
             &id,
             &user_id,
             &product_id,
+            &variation_id,
             &location_id,
             quantity,
             &price,
@@ -195,12 +207,14 @@ pub async fn list(
     Ok(out)
 }
 
-const PURCHASE_JOIN_SELECT: &str = "SELECT p.id, p.user_id, p.product_id, p.location_id, p.quantity, p.price, p.purchased_at, p.deleted_at, \
-    u.name AS user_name, prod.brand AS product_brand, prod.name AS product_name, loc.name AS location_name ";
+const PURCHASE_JOIN_SELECT: &str = "SELECT p.id, p.user_id, p.product_id, p.variation_id, p.location_id, p.quantity, p.price, p.purchased_at, p.deleted_at, \
+    u.name AS user_name, prod.brand AS product_brand, prod.name AS product_name, loc.name AS location_name, \
+    pv.label AS variation_label, pv.unit AS variation_unit, pv.quantity AS variation_quantity ";
 const PURCHASE_JOIN_FROM: &str = "FROM purchases p \
     JOIN users u ON p.user_id = u.id \
     JOIN products prod ON p.product_id = prod.id \
-    JOIN locations loc ON p.location_id = loc.id";
+    JOIN locations loc ON p.location_id = loc.id \
+    JOIN product_variations pv ON p.variation_id = pv.id";
 
 fn row_to_purchase_with_relations(
     row: &sqlx::sqlite::SqliteRow,
@@ -208,6 +222,7 @@ fn row_to_purchase_with_relations(
     let id: String = row.get("id");
     let user_id: String = row.get("user_id");
     let product_id: String = row.get("product_id");
+    let variation_id: String = row.get("variation_id");
     let location_id: String = row.get("location_id");
     let quantity: i32 = row.get("quantity");
     let price: String = row.get("price");
@@ -217,12 +232,19 @@ fn row_to_purchase_with_relations(
     let product_brand: String = row.get("product_brand");
     let product_name: String = row.get("product_name");
     let location_name: String = row.get("location_name");
+    let variation_label: String = row.get("variation_label");
+    let variation_unit: String = row.get("variation_unit");
+    // SQLite INTEGER is i64; we use Option<u32> for variation quantity (negative -> None).
+    let variation_quantity: Option<i64> = row.get("variation_quantity");
+    let variation_quantity = variation_quantity.and_then(|q| u32::try_from(q).ok());
 
     let id = Uuid::parse_str(&id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let user_id =
         Uuid::parse_str(&user_id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let product_id =
         Uuid::parse_str(&product_id).map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
+    let variation_id = Uuid::parse_str(&variation_id)
+        .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
     let location_id = Uuid::parse_str(&location_id)
         .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
 
@@ -230,6 +252,10 @@ fn row_to_purchase_with_relations(
         id,
         user_id,
         product_id,
+        variation_id,
+        variation_label,
+        variation_unit,
+        variation_quantity,
         location_id,
         quantity,
         price,
@@ -338,11 +364,12 @@ pub async fn get_by_id_with_relations(
 /// Returns [`crate::db::DbError`] on query failure.
 pub async fn insert(pool: &SqlitePool, purchase: &Purchase) -> Result<(), crate::db::DbError> {
     sqlx::query(
-        "INSERT INTO purchases (id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO purchases (id, user_id, product_id, variation_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(purchase.id().to_string())
     .bind(purchase.user_id().to_string())
     .bind(purchase.product_id().to_string())
+    .bind(purchase.variation_id().to_string())
     .bind(purchase.location_id().to_string())
     .bind(purchase.quantity())
     .bind(purchase.price().to_string())
@@ -362,10 +389,11 @@ pub async fn insert(pool: &SqlitePool, purchase: &Purchase) -> Result<(), crate:
 pub async fn update(pool: &SqlitePool, purchase: &Purchase) -> Result<(), crate::db::DbError> {
     let id_str = purchase.id().to_string();
     let result = sqlx::query(
-        "UPDATE purchases SET user_id = ?, product_id = ?, location_id = ?, quantity = ?, price = ?, purchased_at = ? WHERE id = ? AND deleted_at IS NULL",
+        "UPDATE purchases SET user_id = ?, product_id = ?, variation_id = ?, location_id = ?, quantity = ?, price = ?, purchased_at = ? WHERE id = ? AND deleted_at IS NULL",
     )
     .bind(purchase.user_id().to_string())
     .bind(purchase.product_id().to_string())
+    .bind(purchase.variation_id().to_string())
     .bind(purchase.location_id().to_string())
     .bind(purchase.quantity())
     .bind(purchase.price().to_string())
