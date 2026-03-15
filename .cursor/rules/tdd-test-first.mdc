@@ -1,0 +1,20 @@
+---
+description: Enforce test-first for any behaviour change; never implement without a test
+alwaysApply: true
+---
+
+# Test first, then implement
+
+When you are about to **add or change behaviour** (frontend or backend):
+
+1. **First:** Add or update a test that specifies the expected outcome. Run the test;
+   it should fail (or be red) until the behaviour exists.
+2. **Then:** Implement the code so the test passes.
+3. **Do not** implement new or changed behaviour and only add a test afterward. If you
+   already implemented, add the test in the same change and treat the work as
+   incomplete until the test exists and passes.
+
+Applies to: new or changed UI (pages, components), API client helpers, API
+endpoints, DB/CLI behaviour. Use the frontend-development skill for frontend,
+rust-backend-workflow for backend; this rule makes the order (test then code)
+mandatory.
