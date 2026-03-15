@@ -374,9 +374,11 @@ List products.
 
 #### `GET /api/v1/products/:id`
 
-Get a single product by ID.
+Get a single product by ID (includes its variations).
 
-**Response:** `200 OK` (product object with nested `category: { id, name, ancestors }`)
+**Response:** `200 OK` (product object with nested `category: { id, name, ancestors }`
+and `variations`: array of `{ id, label, unit, quantity?, purchase_count }`).
+Same variation shape as `GET /api/v1/products/:id/variations`.
 
 **Errors:**
 - `404 Not Found`: Product not found

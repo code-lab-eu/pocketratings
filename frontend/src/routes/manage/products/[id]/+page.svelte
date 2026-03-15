@@ -4,7 +4,7 @@
   import {
     deleteProduct,
     updateProduct,
-    getProductVariations,
+    getProduct,
     createVariation,
     updateVariation,
     deleteVariation,
@@ -54,15 +54,21 @@
   });
 
   $effect(() => {
-    if (data.variations && Array.isArray(data.variations)) {
-      variations = data.variations;
+    if (product?.variations && Array.isArray(product.variations)) {
+      variations = product.variations;
     }
   });
 
   async function refetchVariations() {
     if (!product) return;
-    variations = await getProductVariations(product.id);
+    const p = await getProduct(product.id);
+    variations = p.variations;
   }
+
+  /** True when any variation has purchases; used to disable Delete product (not Save). */
+  const productHasPurchases = $derived(
+    variations.some((v) => (v.purchase_count ?? 0) > 0)
+  );
 
   function canDeleteVariation(v: ProductVariation): boolean {
     const hasPurchases = (v.purchase_count ?? 0) > 0;
@@ -242,8 +248,10 @@
         </Button>
         <button
           type="button"
+          disabled={productHasPurchases}
+          title={productHasPurchases ? 'Cannot delete: product has purchases.' : undefined}
           onclick={handleDelete}
-          class="rounded-lg border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50 dark:border-red-500 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950"
+          class="rounded-lg border border-red-300 px-4 py-2 text-red-700 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-red-50 dark:border-red-500 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950"
         >
           Delete
         </button>

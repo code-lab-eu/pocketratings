@@ -331,7 +331,7 @@ pub async fn list_with_relations(
     Ok(out)
 }
 
-/// Count non-deleted purchases per variation id. Returns a map from variation_id to count;
+/// Count non-deleted purchases per variation id. Returns a map from `variation_id` to count;
 /// variations with zero purchases are omitted from the map.
 ///
 /// # Errors

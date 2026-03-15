@@ -5,6 +5,7 @@ mod category;
 mod error;
 mod location;
 mod product;
+mod product_variations;
 mod purchase;
 mod review;
 mod router;

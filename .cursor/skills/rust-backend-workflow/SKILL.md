@@ -30,6 +30,8 @@ Three layers are required:
 2. **CLI tests** — For every CLI command (e.g. `user register`, `user list`, `category create`). Test by invoking the CLI entry point with arguments and captured stdout/stderr; assert on exit code and output. Use integration tests in `backend/tests/` that call the CLI API with a temp DB. Cover success and error cases (e.g. duplicate email, invalid input, `--output json`).
 3. **REST endpoint tests** — For every API route under `/api/v1/`. Put **one endpoint per file** in `backend/src/api/` (e.g. `version.rs`). In that file: define the handler, response types, and a `route()` that returns a `Router` for this endpoint; add a `#[cfg(test)] mod tests` with in-process tests (e.g. `tower::ServiceExt::oneshot` on `route()`; assert status and response body). Do not start a real server or use TCP. The main `api/router.rs` composes the API by merging each endpoint's `route()`. Cover success and error cases (401/403, 400 validation, 404).
 
+**Module layout:** Code for different domain models should live in separate API files. For example, product variation handlers and types belong in `api/product_variations.rs`, not mixed into `api/product.rs`; the product router can merge the variation route. This keeps each model's API in its own file and matches the pattern of one module per entity (category, location, product, purchase, review).
+
 **Rule:** When adding a new DB function, CLI command, or REST endpoint, add the corresponding test in the same change. New behaviour without a test is not done.
 
 ### Test helpers and duplication

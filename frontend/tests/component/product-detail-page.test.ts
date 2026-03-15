@@ -2,16 +2,17 @@ import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import ProductDetailPage from '../../src/routes/products/[id]/+page.svelte';
 import type { PageData } from '../../src/routes/products/[id]/$types';
-import type { Product, Purchase, Review } from '../../src/lib/types';
+import type { ProductDetail, Purchase, Review } from '../../src/lib/types';
 
-const product: Product = {
+const product: ProductDetail = {
   id: 'prod-1',
   category: { id: 'cat-1', name: 'Dairy', ancestors: [] },
   brand: 'Acme',
   name: 'Milk',
   created_at: 0,
   updated_at: 0,
-  deleted_at: null
+  deleted_at: null,
+  variations: []
 };
 
 const review: Review = {
@@ -76,7 +77,7 @@ describe('Product detail page', () => {
   });
 
   it('shows full breadcrumb with ancestors when product category has ancestors', () => {
-    const productWithAncestors: Product = {
+    const productWithAncestors: ProductDetail = {
       ...product,
       category: {
         id: 'c2',

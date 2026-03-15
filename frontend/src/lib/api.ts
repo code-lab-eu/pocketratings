@@ -1,5 +1,13 @@
 import { getToken, setToken, clearToken } from '$lib/auth';
-import type { Category, Location, Product, ProductVariation, Purchase, Review } from '$lib/types';
+import type {
+  Category,
+  Location,
+  Product,
+  ProductDetail,
+  ProductVariation,
+  Purchase,
+  Review
+} from '$lib/types';
 
 const BASE = typeof import.meta.env !== 'undefined' && import.meta.env.PUBLIC_API_BASE_URL != null
   ? String(import.meta.env.PUBLIC_API_BASE_URL).replace(/\/$/, '')
@@ -261,9 +269,9 @@ export function deleteReview(id: string): Promise<void> {
   return apiDelete(`/api/v1/reviews/${encodeURIComponent(id)}`);
 }
 
-/** Get a single product by id. */
-export function getProduct(id: string): Promise<Product> {
-  return apiGet<Product>(`/api/v1/products/${encodeURIComponent(id)}`);
+/** Get a single product by id (includes variations). */
+export function getProduct(id: string): Promise<ProductDetail> {
+  return apiGet<ProductDetail>(`/api/v1/products/${encodeURIComponent(id)}`);
 }
 
 /** List active variations for a product (purchase form and edit-product page). */

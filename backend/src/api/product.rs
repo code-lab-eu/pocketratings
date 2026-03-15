@@ -1,5 +1,11 @@
 //! Products REST API: list, get, create, update, delete.
 
+/// Routing method constructors used in [`route()`]: `get`, `post`, `patch`, `delete` are passed to
+/// `.route("/api/v1/products", get(...).post(...))` and
+/// `.route("/api/v1/products/{id}", get(...).patch(...).delete(...))`. Clippy sometimes reports
+/// them as unused because the usage is inside method chains on `Router`; the allow is only for
+/// those four symbols.
+#[allow(unused_imports)] // get, post, patch, delete — see doc above and route() below
 use axum::routing::{delete, get, patch, post};
 use axum::{
     Json, Router,
@@ -10,6 +16,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::category::CategoryRef;
+use crate::api::product_variations;
 use crate::api::{error::ApiError, state::AppState};
 use crate::db;
 use crate::domain::product::Product;
@@ -60,34 +67,6 @@ pub struct ListProductsQuery {
 pub struct DeleteProductQuery {
     #[serde(default, deserialize_with = "parse_force")]
     pub force: bool,
-}
-
-/// One variation in list response (GET /api/v1/products/:id/variations).
-#[derive(Debug, serde::Serialize)]
-pub struct VariationListItem {
-    pub id: Uuid,
-    pub label: String,
-    pub unit: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub quantity: Option<u32>,
-    /// Number of non-deleted purchases referencing this variation (for edit-product UI).
-    pub purchase_count: u64,
-}
-
-/// Request body for creating a variation (POST /api/v1/products/:id/variations).
-#[derive(Debug, Deserialize)]
-pub struct CreateVariationRequest {
-    pub label: Option<String>,
-    pub unit: String,
-    pub quantity: Option<u32>,
-}
-
-/// Request body for updating a variation (PATCH /api/v1/variations/:id).
-#[derive(Debug, Deserialize)]
-pub struct UpdateVariationRequest {
-    pub label: Option<String>,
-    pub unit: Option<String>,
-    pub quantity: Option<Option<u32>>,
 }
 
 /// Response body: product with timestamps as i64 and nested category.
@@ -191,168 +170,41 @@ pub async fn list_products(
     Ok(Json(out))
 }
 
-/// GET /api/v1/products/:id — get one product.
+/// Response body for GET /api/v1/products/:id (product with nested variations).
+#[derive(Debug, serde::Serialize)]
+pub struct ProductDetailResponse {
+    pub id: Uuid,
+    pub category: CategoryRef,
+    pub brand: String,
+    pub name: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<i64>,
+    pub variations: Vec<product_variations::VariationListItem>,
+}
+
+/// GET /api/v1/products/:id — get one product with its variations.
 pub async fn get_product(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<ProductResponse>, ApiError> {
+) -> Result<Json<ProductDetailResponse>, ApiError> {
     let product = db::product::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let product = product.ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
-    Ok(Json(product_with_relations_to_response(&product)))
-}
-
-/// GET /api/v1/products/:id/variations — list active variations for a product.
-pub async fn list_product_variations(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<Vec<VariationListItem>>, ApiError> {
-    let product = db::product::get_by_id(&state.pool, id, false)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    if product.is_none() {
-        return Err(ApiError::NotFound("Product not found.".to_string()));
-    }
-    let variations = db::product_variation::list_by_product_id(&state.pool, id, false)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let ids: Vec<Uuid> = variations.iter().map(ProductVariation::id).collect();
-    let counts = db::purchase::count_by_variation_ids(&state.pool, &ids)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let list: Vec<VariationListItem> = variations
-        .iter()
-        .map(|v| {
-            let purchase_count = counts.get(&v.id()).copied().unwrap_or(0);
-            VariationListItem {
-                id: v.id(),
-                label: v.label().to_string(),
-                unit: v.unit().to_string(),
-                quantity: v.quantity(),
-                purchase_count: u64::try_from(purchase_count).unwrap_or(0),
-            }
-        })
-        .collect();
-    Ok(Json(list))
-}
-
-/// POST /api/v1/products/:id/variations — create a variation for a product.
-pub async fn create_variation(
-    State(state): State<AppState>,
-    Path(product_id): Path<Uuid>,
-    Json(body): Json<CreateVariationRequest>,
-) -> Result<(StatusCode, Json<VariationListItem>), ApiError> {
-    let product = db::product::get_by_id(&state.pool, product_id, false)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    if product.is_none() {
-        return Err(ApiError::NotFound("Product not found.".to_string()));
-    }
-    let label = body.label.as_deref().unwrap_or("").trim();
-    let variation = ProductVariation::new(
-        Uuid::new_v4(),
-        product_id,
-        label,
-        body.unit.trim(),
-        body.quantity,
-        chrono::Utc::now().timestamp(),
-        chrono::Utc::now().timestamp(),
-        None,
-    )
-    .map_err(|e| ApiError::BadRequest(e.to_string()))?;
-    db::product_variation::insert(&state.pool, &variation)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let item = VariationListItem {
-        id: variation.id(),
-        label: variation.label().to_string(),
-        unit: variation.unit().to_string(),
-        quantity: variation.quantity(),
-        purchase_count: 0,
-    };
-    Ok((StatusCode::CREATED, Json(item)))
-}
-
-/// PATCH /api/v1/variations/:id — update a variation.
-pub async fn update_variation(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-    Json(body): Json<UpdateVariationRequest>,
-) -> Result<Json<VariationListItem>, ApiError> {
-    let existing = db::product_variation::get_by_id(&state.pool, id, false)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let existing =
-        existing.ok_or_else(|| ApiError::NotFound("Variation not found.".to_string()))?;
-    let label = body
-        .label
-        .as_deref()
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| existing.label().to_string());
-    let unit_str = body
-        .unit
-        .as_deref()
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| existing.unit().to_string());
-    let quantity = match body.quantity {
-        None => existing.quantity(),
-        Some(opt) => opt,
-    };
-    let updated = ProductVariation::new(
-        existing.id(),
-        existing.product_id(),
-        &label,
-        &unit_str,
-        quantity,
-        existing.created_at(),
-        chrono::Utc::now().timestamp(),
-        existing.deleted_at(),
-    )
-    .map_err(|e| ApiError::BadRequest(e.to_string()))?;
-    db::product_variation::update(&state.pool, &updated)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let count = db::purchase::count_by_variation_ids(&state.pool, &[id])
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let purchase_count = count.get(&id).copied().unwrap_or(0);
-    let item = VariationListItem {
-        id: updated.id(),
-        label: updated.label().to_string(),
-        unit: updated.unit().to_string(),
-        quantity: updated.quantity(),
-        purchase_count: u64::try_from(purchase_count).unwrap_or(0),
-    };
-    Ok(Json(item))
-}
-
-/// DELETE /api/v1/variations/:id — soft-delete a variation.
-pub async fn delete_variation(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> Result<StatusCode, ApiError> {
-    let existing = db::product_variation::get_by_id(&state.pool, id, false)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let existing =
-        existing.ok_or_else(|| ApiError::NotFound("Variation not found.".to_string()))?;
-    db::product_variation::ensure_no_purchases(&state.pool, id)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    let count =
-        db::product_variation::count_by_product_id(&state.pool, existing.product_id(), false)
-            .await
-            .map_err(|e| map_db_error(&e))?;
-    if count <= 1 {
-        return Err(ApiError::Conflict(
-            "Cannot delete the last variation.".to_string(),
-        ));
-    }
-    db::product_variation::soft_delete(&state.pool, id)
-        .await
-        .map_err(|e| map_db_error(&e))?;
-    Ok(StatusCode::NO_CONTENT)
+    let variations = product_variations::list_variations_for_product(&state.pool, id).await?;
+    let base = product_with_relations_to_response(&product);
+    Ok(Json(ProductDetailResponse {
+        id: base.id,
+        category: base.category,
+        brand: base.brand,
+        name: base.name,
+        created_at: base.created_at,
+        updated_at: base.updated_at,
+        deleted_at: base.deleted_at,
+        variations,
+    }))
 }
 
 /// POST /api/v1/products — create a product.
@@ -511,8 +363,8 @@ pub async fn delete_product(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Router for /api/v1/products (list, get, create, update, delete, list variations)
-/// and /api/v1/variations/:id (update, delete).
+/// Router for /api/v1/products (list, get, create, update, delete) and variation
+/// sub-routes (merged from `product_variations`).
 pub fn route() -> Router<AppState> {
     Router::new()
         .route("/api/v1/products", get(list_products).post(create_product))
@@ -522,14 +374,7 @@ pub fn route() -> Router<AppState> {
                 .patch(update_product)
                 .delete(delete_product),
         )
-        .route(
-            "/api/v1/products/{id}/variations",
-            get(list_product_variations).post(create_variation),
-        )
-        .route(
-            "/api/v1/variations/{id}",
-            patch(update_variation).delete(delete_variation),
-        )
+        .merge(product_variations::route())
 }
 
 #[cfg(test)]
@@ -875,8 +720,15 @@ mod tests {
         assert!(json.get("id").and_then(|v| v.as_str()).is_some());
         assert_eq!(json.get("label").and_then(|v| v.as_str()), Some("500 g"));
         assert_eq!(json.get("unit").and_then(|v| v.as_str()), Some("grams"));
-        assert_eq!(json.get("quantity").and_then(|v| v.as_u64()), Some(500));
-        assert_eq!(json.get("purchase_count").and_then(|v| v.as_u64()), Some(0));
+        assert_eq!(
+            json.get("quantity").and_then(serde_json::Value::as_u64),
+            Some(500)
+        );
+        assert_eq!(
+            json.get("purchase_count")
+                .and_then(serde_json::Value::as_u64),
+            Some(0)
+        );
     }
 
     #[tokio::test]
