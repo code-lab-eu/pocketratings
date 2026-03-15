@@ -113,27 +113,75 @@ describe('Product detail page', () => {
     expect(screen.getByText(/by alice/i)).toBeInTheDocument();
   });
 
-  it('shows purchase history with date, location, variation, price', () => {
+  it('shows purchase history with date, location, quantity, price (grouped by variation)', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }
     });
     expect(screen.getByRole('heading', { name: /purchase history/i })).toBeInTheDocument();
     expect(screen.getByText(/store a/i)).toBeInTheDocument();
-    expect(screen.getByText(/default/i)).toBeInTheDocument();
+    expect(screen.getByText(/×1/)).toBeInTheDocument();
     expect(screen.getByText(/2\.99 €/)).toBeInTheDocument();
+    expect(screen.getByText(/feb 15, 2024/i)).toBeInTheDocument();
   });
 
-  it('shows variation label in purchase history when set', () => {
-    const purchaseWithLabel: Purchase = {
+  it('shows quantity in purchase history when greater than one', () => {
+    const purchaseQty2: Purchase = {
       ...purchase,
-      variation: { id: 'var-2', label: '500 g', unit: 'grams' }
+      id: 'pur-1',
+      quantity: 2
+    };
+    render(ProductDetailPage, {
+      props: { data: { ...defaultData, purchases: [purchaseQty2] } as PageData }
+    });
+    expect(screen.getByText(/×2/)).toBeInTheDocument();
+  });
+
+  it('orders purchase history with most recent first', () => {
+    const older: Purchase = {
+      ...purchase,
+      id: 'pur-1',
+      purchased_at: 1704067200,
+      location: { id: 'loc-1', name: 'Store A' }
+    };
+    const newer: Purchase = {
+      ...purchase,
+      id: 'pur-2',
+      purchased_at: 1709251200,
+      location: { id: 'loc-2', name: 'Store B' }
     };
     render(ProductDetailPage, {
       props: {
-        data: { ...defaultData, purchases: [purchaseWithLabel] } as PageData
+        data: { ...defaultData, purchases: [older, newer] } as PageData
       }
     });
-    expect(screen.getByText(/500 g/i)).toBeInTheDocument();
+    const section = screen.getByRole('heading', { name: /purchase history/i }).closest('section');
+    const listItems = section!.querySelectorAll('ul li');
+    expect(listItems).toHaveLength(2);
+    expect(listItems[0]).toHaveTextContent(/store b/i);
+    expect(listItems[0]).toHaveTextContent(/mar 1, 2024/i);
+    expect(listItems[1]).toHaveTextContent(/store a/i);
+    expect(listItems[1]).toHaveTextContent(/jan 1, 2024/i);
+  });
+
+  it('shows variation sub-headings when multiple variations have purchases', () => {
+    const purchaseDefault: Purchase = {
+      ...purchase,
+      id: 'pur-1',
+      variation: { id: 'var-1', label: '', unit: 'none' }
+    };
+    const purchase500g: Purchase = {
+      ...purchase,
+      id: 'pur-2',
+      variation: { id: 'var-2', label: '500 g', unit: 'grams' },
+      location: { id: 'loc-2', name: 'Store B' }
+    };
+    render(ProductDetailPage, {
+      props: {
+        data: { ...defaultData, purchases: [purchaseDefault, purchase500g] } as PageData
+      }
+    });
+    expect(screen.getByRole('heading', { name: /default/i, level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /500 g/i, level: 3 })).toBeInTheDocument();
   });
 
   it('shows Add review and Add purchase placeholder links', () => {
