@@ -131,7 +131,14 @@ The home screen is **categories + products + search** (one page): categories and
   full category path (Home → … → category → product name), matching the category page
   pattern.
 - **Login:** Email + password; store token; redirect to Home.
-- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and "Record purchase" form; reviews list and "Add review" form. After submitting an add-review form, redirect to the product page.
+- **Menu:** Single place for all entity management (categories, locations,
+  products, purchases, reviews). Implemented: hub at `/manage` with links; full
+  CRUD for categories, locations, products (list, new, edit, delete); purchases
+  list and "Record purchase" form; reviews list and "Add review" form. Edit
+  product page includes a **Variations** section: list (label/unit display),
+  add variation (label, unit, quantity), edit variation (inline), delete
+  variation (disabled when variation has purchases or is the last variation).
+  After submitting an add-review form, redirect to the product page.
 - **Management list rows:** On each management list (categories, products,
   locations, reviews, purchases), rows use a consistent pattern: the **entity
   name** (or primary label) links to the **public view page** when it exists

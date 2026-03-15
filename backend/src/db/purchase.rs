@@ -1,7 +1,10 @@
 //! Purchase persistence.
 //!
 //! Provides DB functions: [`get_by_id`], [`get_by_id_with_relations`], [`list`],
-//! [`list_with_relations`], [`insert`], [`soft_delete`], and [`hard_delete`].
+//! [`list_with_relations`], [`insert`], [`soft_delete`], [`hard_delete`], and
+//! [`count_by_variation_ids`].
+
+use std::collections::HashMap;
 
 use rust_decimal::Decimal;
 use sqlx::{Row, SqlitePool};
@@ -324,6 +327,35 @@ pub async fn list_with_relations(
     let mut out = Vec::with_capacity(rows.len());
     for row in rows {
         out.push(row_to_purchase_with_relations(&row)?);
+    }
+    Ok(out)
+}
+
+/// Count non-deleted purchases per variation id. Returns a map from variation_id to count;
+/// variations with zero purchases are omitted from the map.
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure.
+pub async fn count_by_variation_ids(
+    pool: &SqlitePool,
+    variation_ids: &[Uuid],
+) -> Result<HashMap<Uuid, i64>, crate::db::DbError> {
+    if variation_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let mut out = HashMap::new();
+    for id in variation_ids {
+        let id_str = id.to_string();
+        let row: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM purchases WHERE variation_id = ? AND deleted_at IS NULL",
+        )
+        .bind(&id_str)
+        .fetch_one(pool)
+        .await?;
+        if row.0 > 0 {
+            out.insert(*id, row.0);
+        }
     }
     Ok(out)
 }

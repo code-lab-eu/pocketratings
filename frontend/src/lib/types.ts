@@ -46,6 +46,8 @@ export interface ProductVariation {
   label: string;
   unit: string;
   quantity?: number | null;
+  /** Number of purchases referencing this variation (edit-product UI). */
+  purchase_count?: number;
 }
 
 /** Purchase from GET /api/v1/purchases (and :id). Response includes nested user, product, variation, location. */

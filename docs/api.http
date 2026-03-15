@@ -229,6 +229,35 @@ Authorization: Bearer {{token}}
 # DELETE {{baseUrl}}/api/v1/products/{{productId}}?force=true
 # Authorization: Bearer {{token}}
 
+###
+# GET /api/v1/products/:id/variations — List variations (id, label, unit, quantity?, purchase_count)
+GET {{baseUrl}}/api/v1/products/{{productId}}/variations
+Authorization: Bearer {{token}}
+
+###
+# POST /api/v1/products/:id/variations — Body: { label?, unit, quantity? }
+POST {{baseUrl}}/api/v1/products/{{productId}}/variations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "label": "500 g",
+  "unit": "grams",
+  "quantity": 500
+}
+
+###
+# PATCH /api/v1/variations/:id — Body: { label?, unit?, quantity? }
+# PATCH {{baseUrl}}/api/v1/variations/{{variationId}}
+# Authorization: Bearer {{token}}
+# Content-Type: application/json
+# { "label": "1 L", "unit": "milliliters", "quantity": 1000 }
+
+###
+# DELETE /api/v1/variations/:id — 409 if has purchases or last variation
+# DELETE {{baseUrl}}/api/v1/variations/{{variationId}}
+# Authorization: Bearer {{token}}
+
 ### Purchases
 # List, get, create, and update responses include nested user, product, and location (e.g. "user": { "id", "name" }, "product": { "id", "brand", "name" }, "location": { "id", "name" }).
 

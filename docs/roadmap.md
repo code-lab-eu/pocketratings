@@ -133,6 +133,7 @@ variations.
 - On product create, create one initial variation. - DONE
 - Associate purchases with a product variation (API, DB, frontend). - DONE
 - Document in [spec.md](spec.md) and [api.md](api.md). - DONE
+- Edit product: variations CRUD (list, add, edit, delete with guards). - DONE
 
 ### 7. Accessibility audit [FE]
 

@@ -383,14 +383,32 @@ Get a single product by ID.
 
 #### `GET /api/v1/products/:id/variations`
 
-List active variations for a product (for purchase form variation selector).
+List active variations for a product (purchase form and edit-product page).
 
-**Response:** `200 OK` (array of `{ id, label, unit, quantity? }`). Ordered by
-creation. Excludes soft-deleted variations. `quantity` is optional (unsigned
-integer, e.g. 500 for 500g; when unit is milliliters, 1000 for 1L).
+**Response:** `200 OK` (array of `{ id, label, unit, quantity?, purchase_count }`).
+Ordered by creation. Excludes soft-deleted variations. `quantity` is optional.
+`purchase_count` is the number of non-deleted purchases referencing this
+variation (for edit-product UI).
 
 **Errors:**
 - `404 Not Found`: Product not found
+
+#### `POST /api/v1/products/:id/variations`
+
+Create a variation for a product. Body: `label` (optional), `unit` (required:
+one of `grams`, `milliliters`, `other`, `none`), `quantity` (optional). Response:
+`201 Created` (variation with `purchase_count` 0). Errors: `400` (invalid unit),
+`404` (product not found).
+
+#### `PATCH /api/v1/variations/:id`
+
+Update a variation. Body: `label`, `unit`, `quantity` (all optional). Response:
+`200 OK` (updated variation). Errors: `400` (validation), `404` (not found).
+
+#### `DELETE /api/v1/variations/:id`
+
+Soft-delete a variation. Response: `204 No Content`. Errors: `404` (not found),
+`409` (variation has purchases or is the product's last variation).
 
 #### `POST /api/v1/products`
 
