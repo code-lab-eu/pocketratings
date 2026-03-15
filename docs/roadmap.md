@@ -212,6 +212,26 @@ handler errors are not logged.
 - Prefer one consistent approach (middleware vs. per-handler); document in
   README or dev docs how to enable debug logs if needed.
 
+### 14. ProductList styling: star rating, price, layout [FE]
+
+**2 sp.** Improve the design of ProductList so rating and price are shown
+attractively with reusable components and a compact, well-spaced layout.
+Apply UI designer principles: reusable components, clear visual hierarchy,
+accessibility (e.g. aria-label for star rating).
+
+**Tasks:**
+- Add a reusable star-rating component: displays a 1–5 score as 5 stars
+  with half and quarter star granularity (e.g. 4.25 shows 4 full, 1 quarter).
+  Use in ProductList for review_score; ensure accessible (e.g. aria-label).
+- Add a reusable price component: accepts amount string and appends the
+  euro symbol (e.g. "2.99" -> "2.99 EUR" or "2,99 €" per locale). Use in
+  ProductList for price.
+- In ProductList: remove the "Rating: " and "Price: " label prefixes; show
+  only the star rating and price components.
+- Layout: arrange name, brand, star rating, and price inside each list item
+  in a compact but attractive way with sufficient whitespace; keep pr-card
+  and design system consistency.
+
 ---
 
 ## Distant future
