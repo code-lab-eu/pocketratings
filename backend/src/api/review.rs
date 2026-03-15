@@ -102,10 +102,15 @@ fn map_db_error(e: &db::DbError) -> ApiError {
     match e {
         db::DbError::InvalidData(msg) => ApiError::BadRequest(msg.clone()),
         db::DbError::Sqlx(sqlx_err) => {
-            if let sqlx::Error::Database(db) = sqlx_err
-                && (db.is_unique_violation() || db.is_foreign_key_violation())
-            {
-                return ApiError::BadRequest(e.to_string());
+            if let sqlx::Error::Database(db) = sqlx_err {
+                if db.is_foreign_key_violation() {
+                    return ApiError::Unauthorized(
+                        "User not found. Please log in again.".to_string(),
+                    );
+                }
+                if db.is_unique_violation() {
+                    return ApiError::BadRequest(e.to_string());
+                }
             }
             ApiError::Internal
         }
@@ -157,6 +162,14 @@ pub async fn create_review(
     Extension(CurrentUserId(user_id)): Extension<CurrentUserId>,
     Json(body): Json<CreateReviewRequest>,
 ) -> Result<(StatusCode, Json<ReviewResponse>), ApiError> {
+    let user = db::user::get_by_id(&state.pool, user_id, false)
+        .await
+        .map_err(|e| map_db_error(&e))?;
+    if user.is_none() {
+        return Err(ApiError::Unauthorized(
+            "User not found. Please log in again.".to_string(),
+        ));
+    }
     let product = db::product::get_by_id(&state.pool, body.product_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
