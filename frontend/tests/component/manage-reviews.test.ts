@@ -51,7 +51,7 @@ describe('Manage reviews list', () => {
     });
     expect(screen.getByRole('link', { name: 'Milk' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Edit Milk' })).toBeInTheDocument();
-    expect(screen.getByText(/4\/5/)).toBeInTheDocument();
+    expect(screen.getByText(/4\.0\/5/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /delete review/i })).toBeInTheDocument();
   });
 });

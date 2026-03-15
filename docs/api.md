@@ -656,7 +656,7 @@ Create a new review.
 
 **Constraints:**
 - `product_id` and `rating` are required
-- `rating` must be between 1 and 5 (decimal subdivisions allowed, e.g., 4.5)
+- `rating` must be between 1 and 5 (one decimal place allowed, e.g. 3.8, 4.5)
 - `text` is optional
 - `user_id` is automatically set to the current authenticated user
 - Multiple reviews per (user, product) are allowed

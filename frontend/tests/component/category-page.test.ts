@@ -46,7 +46,7 @@ describe('Category page', () => {
     const link = screen.getByRole('link', { name: /milk/i });
     expect(link).toBeInTheDocument();
     expect(link.getAttribute('href')).toContain('/products/prod-1');
-    expect(screen.getByText(/rating: 4\/5/i)).toBeInTheDocument();
+    expect(screen.getByText(/rating: 4\.0\/5/i)).toBeInTheDocument();
   });
 
   it('shows Add product link with category_id to new product form', () => {

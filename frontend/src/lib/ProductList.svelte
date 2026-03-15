@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import type { Product } from '$lib/types';
+  import { formatRating } from '$lib/utils/formatters';
 
   interface ProductWithReview {
     product: Product;
@@ -24,7 +25,7 @@
         {/if}
         {#if rating != null}
           <span class="mt-1 block text-sm pr-rating" aria-label="Your rating">
-            Rating: {rating}/5
+            Rating: {formatRating(rating)}/5
           </span>
         {/if}
         {#if text}

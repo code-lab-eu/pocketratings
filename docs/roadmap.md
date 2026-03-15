@@ -125,7 +125,7 @@ categories in undefined or insertion order.
 - Frontend: Rely on API order; no change if backend returns sorted. If
   frontend sorts locally elsewhere, align with same rule (name ascending).
 
-### 9. Ratings accept one decimal place (e.g. 3.8) [FE]
+### 9. Ratings accept one decimal place (e.g. 3.8) [FE] — DONE
 
 **1 sp.** Allow ratings to be entered and displayed with one decimal place
 (e.g. 3.8) in addition to whole numbers and existing half-step (3.5). The

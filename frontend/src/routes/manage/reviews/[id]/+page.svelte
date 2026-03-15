@@ -34,10 +34,11 @@
       error = 'Rating must be between 1 and 5.';
       return;
     }
+    const ratingRounded = Math.round(r * 10) / 10;
     submitting = true;
     try {
       await updateReview(review.id, {
-        rating: r,
+        rating: ratingRounded,
         text: text.trim() || null
       });
       await goto(resolve(`/products/${review.product.id}`), { invalidateAll: true });
@@ -70,7 +71,7 @@
         bind:value={rating}
         min={1}
         max={5}
-        step={0.5}
+        step={0.1}
       />
       <TextareaField
         id="text"

@@ -6,6 +6,7 @@
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
+  import { formatRating } from '$lib/utils/formatters';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
   import type { Review } from '$lib/types';
@@ -59,7 +60,7 @@
           onDelete={() => handleDelete(review)}
           deleting={deletingId === review.id}
         >
-          <span class="pr-rating"> — {review.rating}/5</span>
+          <span class="pr-rating"> — {formatRating(review.rating)}/5</span>
           <span class="pr-text-muted"> · {review.user.name}</span>
           {#if review.text}
             <p class="mt-1 truncate text-sm pr-text-muted">{review.text}</p>

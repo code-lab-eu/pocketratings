@@ -3,7 +3,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import FormError from '$lib/FormError.svelte';
-  import { formatVariationDisplay } from '$lib/utils/formatters';
+  import { formatRating, formatVariationDisplay } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
   let { data } = $props();
@@ -119,7 +119,7 @@
             {#each reviews as review (review.id)}
               <li class="pr-panel">
                 <p class="font-medium pr-text-body pr-rating">
-                  Rating: {review.rating}/5
+                  Rating: {formatRating(review.rating)}/5
                 </p>
                 {#if review.text}
                   <p class="mt-1 pr-text-body">{review.text}</p>

@@ -1,4 +1,11 @@
 /**
+ * Rating 1–5 formatted to one decimal place (e.g. "3.8", "4.0").
+ */
+export function formatRating(r: number): string {
+  return Number(r).toFixed(1);
+}
+
+/**
  * Display string for a product variation (label/unit) in lists and purchase history.
  * Use label when set; otherwise show unit or "Default" when unit is "none".
  */

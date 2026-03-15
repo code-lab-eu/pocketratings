@@ -772,6 +772,54 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_review_accepts_one_decimal_rating_3_8() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
+        let app = app_with_user(state.clone(), user_id);
+        let body = serde_json::json!({
+            "product_id": product_id.to_string(),
+            "rating": 3.8,
+            "text": "Fine."
+        });
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/reviews")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        assert_eq!(
+            json.get("rating").and_then(serde_json::Value::as_f64),
+            Some(3.8)
+        );
+        let id = json.get("id").and_then(|v| v.as_str()).expect("id");
+        let uuid = Uuid::parse_str(id).expect("uuid");
+        let persisted = db::review::get_by_id(&state.pool, uuid, false)
+            .await
+            .expect("db");
+        let persisted = persisted.expect("review in db");
+        assert_eq!(
+            persisted.rating(),
+            Decimal::from_str("3.8").expect("decimal")
+        );
+    }
+
+    #[tokio::test]
     async fn update_review_returns_200_and_persists() {
         let (state, _dir) = test_pool().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;

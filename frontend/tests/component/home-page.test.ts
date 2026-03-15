@@ -91,7 +91,7 @@ describe('Home page', () => {
     const link = screen.getByRole('link', { name: /milk/i });
     expect(link).toBeInTheDocument();
     expect(link.getAttribute('href')).toContain('/products/prod-1');
-    expect(screen.getByText(/rating: 4\/5/i)).toBeInTheDocument();
+    expect(screen.getByText(/rating: 4\.0\/5/i)).toBeInTheDocument();
   });
 
   it('shows error message when error is set (no categories or products)', () => {

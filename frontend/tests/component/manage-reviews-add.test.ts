@@ -55,4 +55,32 @@ describe('Add review page', () => {
     );
     expect(mocks.goto).toHaveBeenCalledWith('/products/prod-123', { invalidateAll: true });
   });
+
+  it('submits review with one-decimal rating 3.8', async () => {
+    render(AddReviewPage, {
+      props: {
+        data: { products: [product], productId: 'prod-123', error: null }
+      }
+    });
+    const ratingInput = screen.getByLabelText(/rating \(1–5\)/i);
+    await userEvent.clear(ratingInput);
+    await userEvent.type(ratingInput, '3.8');
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(mocks.createReview).toHaveBeenCalledTimes(1);
+    const payload = mocks.createReview.mock.calls[0][0];
+    expect(payload.product_id).toBe('prod-123');
+    expect(payload.rating).toBeCloseTo(3.8, 10);
+    expect(mocks.goto).toHaveBeenCalledWith('/products/prod-123', { invalidateAll: true });
+  });
+
+  it('rating input has step 0.1', () => {
+    render(AddReviewPage, {
+      props: {
+        data: { products: [product], productId: undefined, error: null }
+      }
+    });
+    const ratingInput = screen.getByLabelText(/rating \(1–5\)/i);
+    expect(ratingInput).toHaveAttribute('step', '0.1');
+  });
 });
