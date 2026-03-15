@@ -3,6 +3,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import FormError from '$lib/FormError.svelte';
+  import { formatVariationDisplay } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
   let { data } = $props();
@@ -12,6 +13,34 @@
   let purchases = $derived(data.purchases);
   let error = $derived(data.error);
   let notFound = $derived(data.notFound ?? false);
+
+  /** Groups purchases by variation (only variations with at least one purchase).
+   *  Most recent purchases first; variation order = first occurrence in that order. */
+  let purchasesByVariation = $derived.by(() => {
+    const list = [...(purchases ?? [])].sort(
+      (a, b) => (b.purchased_at ?? 0) - (a.purchased_at ?? 0)
+    );
+    if (list.length === 0) return [];
+    const groups: {
+      variationId: string;
+      displayName: string;
+      purchases: (typeof list)[number][];
+    }[] = [];
+    for (const p of list) {
+      const vid = p.variation?.id ?? '';
+      let g = groups.find((x) => x.variationId === vid);
+      if (!g) {
+        g = {
+          variationId: vid,
+          displayName: formatVariationDisplay(p.variation ?? { label: '', unit: 'none' }),
+          purchases: []
+        };
+        groups.push(g);
+      }
+      g.purchases.push(p);
+    }
+    return groups;
+  });
 
   function formatDate(unixSeconds: number): string {
     return new Date(unixSeconds * 1000).toLocaleDateString(undefined, {
@@ -108,18 +137,26 @@
         <h2 id="purchase-history-heading" class="pr-heading-section">
           Purchase history
         </h2>
-        {#if purchases.length === 0}
+        {#if (purchases ?? []).length === 0}
           <p class="pr-text-muted">No purchases recorded.</p>
         {:else}
-          <ul class="space-y-2">
-            {#each purchases as purchase (purchase.id)}
-              <li class="flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
-                <span>{formatDate(purchase.purchased_at)}</span>
-                <span>{purchase.location.name}</span>
-                <span>{purchase.price} €</span>
-              </li>
-            {/each}
-          </ul>
+          {#each purchasesByVariation as group (group.variationId)}
+            {#if purchasesByVariation.length > 1}
+              <h3 class="mt-4 mb-2 text-sm font-medium pr-text-body first:mt-0">
+                {group.displayName}
+              </h3>
+            {/if}
+            <ul class="space-y-2" class:mt-0={purchasesByVariation.length === 1}>
+              {#each group.purchases as purchase (purchase.id)}
+                <li class="flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
+                  <span>{formatDate(purchase.purchased_at)}</span>
+                  <span>{purchase.location.name}</span>
+                  <span class="pr-text-muted" title="Quantity">×{purchase.quantity}</span>
+                  <span>{purchase.price} €</span>
+                </li>
+              {/each}
+            </ul>
+          {/each}
         {/if}
       </section>
 

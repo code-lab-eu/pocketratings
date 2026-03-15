@@ -33,10 +33,22 @@ pub struct ListPurchasesQuery {
     pub to: Option<String>,
 }
 
+/// Variation reference for purchase response.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct VariationRef {
+    pub id: Uuid,
+    pub label: String,
+    pub unit: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<u32>,
+}
+
 /// Request body for creating a purchase.
 #[derive(Debug, Deserialize)]
 pub struct CreatePurchaseRequest {
     pub product_id: Uuid,
+    /// When absent (backward compat), the product's first variation is used.
+    pub variation_id: Option<Uuid>,
     pub location_id: Uuid,
     #[serde(default)]
     pub quantity: Option<i32>,
@@ -48,6 +60,7 @@ pub struct CreatePurchaseRequest {
 #[derive(Debug, Deserialize)]
 pub struct UpdatePurchaseRequest {
     pub product_id: Option<Uuid>,
+    pub variation_id: Option<Uuid>,
     pub location_id: Option<Uuid>,
     pub quantity: Option<i32>,
     pub price: Option<String>,
@@ -69,12 +82,13 @@ where
     Ok(s.to_lowercase() == "true" || s == "1")
 }
 
-/// Response body: purchase with nested user, product, location; price as string, timestamps as i64.
+/// Response body: purchase with nested user, product, variation, location; price as string, timestamps as i64.
 #[derive(Debug, serde::Serialize)]
 pub struct PurchaseResponse {
     pub id: Uuid,
     pub user: UserRef,
     pub product: ProductRef,
+    pub variation: VariationRef,
     pub location: LocationRef,
     pub quantity: i32,
     pub price: String,
@@ -94,6 +108,12 @@ fn purchase_with_relations_to_response(p: &PurchaseWithRelations) -> PurchaseRes
             id: p.product_id,
             brand: p.product_brand.clone(),
             name: p.product_name.clone(),
+        },
+        variation: VariationRef {
+            id: p.variation_id,
+            label: p.variation_label.clone(),
+            unit: p.variation_unit.clone(),
+            quantity: p.variation_quantity,
         },
         location: LocationRef {
             id: p.location_id,
@@ -175,7 +195,39 @@ pub async fn create_purchase(
     Extension(CurrentUserId(user_id)): Extension<CurrentUserId>,
     Json(body): Json<CreatePurchaseRequest>,
 ) -> Result<(StatusCode, Json<PurchaseResponse>), ApiError> {
-    let product = db::product::get_by_id(&state.pool, body.product_id, false)
+    let (product_id, variation_id) = if let Some(vid) = body.variation_id {
+        let variation = db::product_variation::get_by_id(&state.pool, vid, false)
+            .await
+            .map_err(|e| map_db_error(&e))?
+            .ok_or_else(|| ApiError::NotFound("Variation not found.".to_string()))?;
+        if variation.product_id() != body.product_id {
+            return Err(ApiError::BadRequest(
+                "Variation does not belong to the given product.".to_string(),
+            ));
+        }
+        (body.product_id, vid)
+    } else {
+        if db::product::get_by_id(&state.pool, body.product_id, false)
+            .await
+            .map_err(|e| map_db_error(&e))?
+            .is_none()
+        {
+            return Err(ApiError::NotFound("Product not found.".to_string()));
+        }
+        let variations =
+            db::product_variation::list_by_product_id(&state.pool, body.product_id, false)
+                .await
+                .map_err(|e| map_db_error(&e))?;
+        let vid = variations
+            .first()
+            .map(crate::domain::product_variation::ProductVariation::id)
+            .ok_or_else(|| {
+                ApiError::BadRequest("Product has no variation; provide variation_id.".to_string())
+            })?;
+        (body.product_id, vid)
+    };
+
+    let product = db::product::get_by_id(&state.pool, product_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     if product.is_none() {
@@ -203,7 +255,8 @@ pub async fn create_purchase(
     let purchase = Purchase::new(
         id,
         user_id,
-        body.product_id,
+        product_id,
+        variation_id,
         body.location_id,
         quantity,
         price,
@@ -230,6 +283,7 @@ pub async fn create_purchase(
 }
 
 /// PATCH /api/v1/purchases/:id — partial update; only owner.
+#[allow(clippy::too_many_lines)]
 pub async fn update_purchase(
     State(state): State<AppState>,
     Extension(CurrentUserId(current_user_id)): Extension<CurrentUserId>,
@@ -247,7 +301,52 @@ pub async fn update_purchase(
         ));
     }
 
-    let product_id = body.product_id.unwrap_or_else(|| existing.product_id());
+    let (product_id, variation_id) = match (body.product_id, body.variation_id) {
+        (Some(pid), Some(vid)) => {
+            if db::product::get_by_id(&state.pool, pid, false)
+                .await
+                .map_err(|e| map_db_error(&e))?
+                .is_none()
+            {
+                return Err(ApiError::NotFound("Product not found.".to_string()));
+            }
+            let variation = db::product_variation::get_by_id(&state.pool, vid, false)
+                .await
+                .map_err(|e| map_db_error(&e))?
+                .ok_or_else(|| ApiError::NotFound("Variation not found.".to_string()))?;
+            if variation.product_id() != pid {
+                return Err(ApiError::BadRequest(
+                    "Variation does not belong to the given product.".to_string(),
+                ));
+            }
+            (pid, vid)
+        }
+        (Some(pid), None) => {
+            if db::product::get_by_id(&state.pool, pid, false)
+                .await
+                .map_err(|e| map_db_error(&e))?
+                .is_none()
+            {
+                return Err(ApiError::NotFound("Product not found.".to_string()));
+            }
+            let variations = db::product_variation::list_by_product_id(&state.pool, pid, false)
+                .await
+                .map_err(|e| map_db_error(&e))?;
+            let vid = variations
+                .first()
+                .map(crate::domain::product_variation::ProductVariation::id)
+                .ok_or_else(|| ApiError::BadRequest("Product has no variation.".to_string()))?;
+            (pid, vid)
+        }
+        (None, Some(vid)) => {
+            let variation = db::product_variation::get_by_id(&state.pool, vid, false)
+                .await
+                .map_err(|e| map_db_error(&e))?
+                .ok_or_else(|| ApiError::NotFound("Variation not found.".to_string()))?;
+            (variation.product_id(), vid)
+        }
+        (None, None) => (existing.product_id(), existing.variation_id()),
+    };
     let location_id = body.location_id.unwrap_or_else(|| existing.location_id());
     let quantity = body.quantity.unwrap_or_else(|| existing.quantity());
     let price = body
@@ -265,6 +364,7 @@ pub async fn update_purchase(
         existing.id(),
         existing.user_id(),
         product_id,
+        variation_id,
         location_id,
         quantity,
         price,
@@ -365,7 +465,9 @@ mod tests {
     use crate::api::auth::CurrentUserId;
     use crate::config::Config;
     use crate::db;
-    use crate::test_helpers::{insert_category, insert_location, insert_product, insert_user};
+    use crate::test_helpers::{
+        ensure_product_variation, insert_category, insert_location, insert_product, insert_user,
+    };
 
     /// Build the purchase route with a fixed current user (no auth header needed).
     fn app_with_user(state: AppState, user_id: Uuid) -> axum::Router {
@@ -431,6 +533,7 @@ mod tests {
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let app = app_with_user(state, user_id);
 
@@ -516,6 +619,7 @@ mod tests {
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let app = app_with_user(state, user_id);
 
@@ -524,6 +628,153 @@ mod tests {
             "location_id": location_id,
             "quantity": 1,
             "price": "not-a-number",
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/purchases")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn create_purchase_with_explicit_variation_id_returns_201_and_response_includes_variation()
+     {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let app = app_with_user(state, user_id);
+
+        let body = serde_json::json!({
+            "product_id": product_id,
+            "variation_id": variation_id,
+            "location_id": location_id,
+            "quantity": 1,
+            "price": "2.00",
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/purchases")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let created: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        assert_eq!(
+            created
+                .get("variation")
+                .and_then(|v| v.get("id"))
+                .and_then(|v| v.as_str()),
+            Some(variation_id.to_string().as_str())
+        );
+    }
+
+    #[tokio::test]
+    async fn create_purchase_returns_400_when_variation_id_belongs_to_different_product() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id_a = insert_product(&state.pool, category_id, "B1", "P1").await;
+        let product_id_b = insert_product(&state.pool, category_id, "B2", "P2").await;
+        let variation_id_b = ensure_product_variation(&state.pool, product_id_b).await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let app = app_with_user(state, user_id);
+
+        let body = serde_json::json!({
+            "product_id": product_id_a,
+            "variation_id": variation_id_b,
+            "location_id": location_id,
+            "quantity": 1,
+            "price": "1.00",
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/purchases")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn create_purchase_returns_404_when_variation_id_not_found() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        ensure_product_variation(&state.pool, product_id).await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let app = app_with_user(state, user_id);
+        let fake_variation_id = Uuid::new_v4();
+
+        let body = serde_json::json!({
+            "product_id": product_id,
+            "variation_id": fake_variation_id,
+            "location_id": location_id,
+            "quantity": 1,
+            "price": "1.00",
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/purchases")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn create_purchase_returns_400_when_product_has_no_variation() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let app = app_with_user(state, user_id);
+
+        let body = serde_json::json!({
+            "product_id": product_id,
+            "location_id": location_id,
+            "quantity": 1,
+            "price": "1.00",
         });
 
         let response = app
@@ -568,6 +819,7 @@ mod tests {
         let other = insert_user(&state.pool, "Other", "x@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
 
         let now = chrono::Utc::now().timestamp();
@@ -575,6 +827,7 @@ mod tests {
             Uuid::new_v4(),
             owner,
             product_id,
+            variation_id,
             location_id,
             1,
             Decimal::from(2),
@@ -610,6 +863,7 @@ mod tests {
         let other = insert_user(&state.pool, "Other", "x@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
 
         let now = chrono::Utc::now().timestamp();
@@ -617,6 +871,7 @@ mod tests {
             Uuid::new_v4(),
             owner,
             product_id,
+            variation_id,
             location_id,
             1,
             Decimal::from(2),
@@ -648,7 +903,8 @@ mod tests {
         let (state, _dir) = test_pool().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
-        let _product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let app = app_with_user(state, user_id);
         let fake_product_id = Uuid::new_v4();
@@ -681,6 +937,7 @@ mod tests {
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        ensure_product_variation(&state.pool, product_id).await;
         let _location_id = insert_location(&state.pool, "Store").await;
         let app = app_with_user(state, user_id);
         let fake_location_id = Uuid::new_v4();
@@ -713,12 +970,14 @@ mod tests {
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let now = chrono::Utc::now().timestamp();
         let purchase = Purchase::new(
             Uuid::new_v4(),
             user_id,
             product_id,
+            variation_id,
             location_id,
             1,
             Decimal::from(2),
@@ -801,12 +1060,14 @@ mod tests {
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let now = chrono::Utc::now().timestamp();
         let purchase = Purchase::new(
             Uuid::new_v4(),
             user_id,
             product_id,
+            variation_id,
             location_id,
             1,
             Decimal::from(2),
@@ -874,12 +1135,15 @@ mod tests {
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id_1 = insert_product(&state.pool, cat_id, "B1", "P1").await;
         let product_id_2 = insert_product(&state.pool, cat_id, "B2", "P2").await;
+        let var_id_1 = ensure_product_variation(&state.pool, product_id_1).await;
+        let var_id_2 = ensure_product_variation(&state.pool, product_id_2).await;
         let loc_id = insert_location(&state.pool, "Store").await;
         let now = chrono::Utc::now().timestamp();
         let p1 = Purchase::new(
             Uuid::new_v4(),
             user_id,
             product_id_1,
+            var_id_1,
             loc_id,
             1,
             Decimal::from(1),
@@ -891,6 +1155,7 @@ mod tests {
             Uuid::new_v4(),
             user_id,
             product_id_2,
+            var_id_2,
             loc_id,
             1,
             Decimal::from(2),
@@ -942,12 +1207,14 @@ mod tests {
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let now = chrono::Utc::now().timestamp();
         let purchase = Purchase::new(
             Uuid::new_v4(),
             user_id,
             product_id,
+            variation_id,
             location_id,
             1,
             Decimal::from(2),
@@ -983,12 +1250,14 @@ mod tests {
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let now = chrono::Utc::now().timestamp();
         let purchase = Purchase::new(
             Uuid::new_v4(),
             user_id,
             product_id,
+            variation_id,
             location_id,
             1,
             Decimal::from(2),
@@ -1019,17 +1288,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn update_purchase_returns_400_when_variation_id_belongs_to_different_product() {
+        let (state, _dir) = test_pool().await;
+        let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let category_id = insert_category(&state.pool, "Cat").await;
+        let product_id_a = insert_product(&state.pool, category_id, "B1", "P1").await;
+        let product_id_b = insert_product(&state.pool, category_id, "B2", "P2").await;
+        let variation_id_a = ensure_product_variation(&state.pool, product_id_a).await;
+        let variation_id_b = ensure_product_variation(&state.pool, product_id_b).await;
+        let location_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id_a,
+            variation_id_a,
+            location_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
+        let app = app_with_user(state, user_id);
+
+        let body = serde_json::json!({
+            "product_id": product_id_a,
+            "variation_id": variation_id_b,
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/v1/purchases/{}", purchase.id()))
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
     async fn delete_purchase_with_force_true_hard_deletes() {
         let (state, _dir) = test_pool().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let location_id = insert_location(&state.pool, "Store").await;
         let now = chrono::Utc::now().timestamp();
         let purchase = Purchase::new(
             Uuid::new_v4(),
             user_id,
             product_id,
+            variation_id,
             location_id,
             1,
             Decimal::from(2),

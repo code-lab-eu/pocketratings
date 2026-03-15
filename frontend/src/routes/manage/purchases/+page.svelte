@@ -5,6 +5,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
+  import { formatVariationDisplay } from '$lib/utils/formatters';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
@@ -68,7 +69,8 @@
           deleting={deletingId === purchase.id}
         >
           <span class="pr-text-muted">
-            — {purchase.location.name} · {formatDate(purchase.purchased_at)} · {purchase.price}€
+            — {formatVariationDisplay(purchase.variation)} · {purchase.location.name} ·
+            {formatDate(purchase.purchased_at)} · {purchase.price}€
           </span>
         </ManageListRow>
       {/each}

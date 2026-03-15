@@ -3,7 +3,7 @@
 ## Goals
 
 - **Audience**: Single user or a family. No multi-tenant or public deployment.
-- **Purpose**: Keep a personal record of product purchases: what you bought, where, for how much, and how you’d rate and review it.
+- **Purpose**: Keep a personal record of product purchases: what you bought, where, for how much, and how you'd rate and review it.
 - **Outcomes**: Track products and categories; record purchases (product, location, quantity, unit price in EUR); allow multiple reviews per (user, product) over time; soft-delete and retain history.
 - **Non-goals for v1**: No social features, no public reviews, no multi-currency (EUR only). No barcode scanning (browser support is limited—e.g. Barcode Detection API works on Chrome Android but not Safari iOS; consider later with feature detection and fallback).
 
@@ -31,26 +31,36 @@
 
 **Products**
 
-- **Create**: User adds a product (name, brand, category).
+- **Create**: User adds a product (name, brand, category). Optionally sets the first
+  variation (label, unit, quantity; e.g. "500 g" or "1 L"). Creating a product
+  automatically creates one product variation (the given one or a default) so
+  purchases can reference it.
 - **List**: User sees products (filter by category, search by name/brand).
 - **Update / soft-delete**: User can edit product or soft-delete it.
 
 **Purchases**
 
-- **Record**: User records a purchase: product, location, quantity, unit price (EUR), date. In v1 the current user is always recorded as the purchaser.
-- **List**: User sees purchases (e.g. by product, by location, by date range, or “my purchases”).
+- Purchases are associated with a **product variation** (e.g. size or unit), not
+  only the product. Price history is per variation (e.g. 500 g vs 1 L).
+- **Record**: User records a purchase: product, **variation** (default: product's
+  first variation), location, quantity, unit price (EUR), date. In v1 the current
+  user is always recorded as the purchaser.
+- **List**: User sees purchases (e.g. by product, by location, by date range, or
+  "my purchases"); each purchase shows which variation was bought.
 
-- **Update / soft-delete**: User can edit a purchase (product, location, quantity, price, date) or soft-delete it. Edit and delete only for their own purchases.
+- **Update / soft-delete**: User can edit a purchase (product, variation,
+  location, quantity, price, date) or soft-delete it. Edit and delete only for
+  their own purchases.
 
 **Reviews**
 
 - **Write**: User adds a review for a product (rating 1–5, optional text). Multiple reviews per (user, product) allowed over time.
-- **List**: User sees reviews (by product, or “my reviews”).
+- **List**: User sees reviews (by product, or "my reviews").
 - **Update / soft-delete**: User can edit or soft-delete a review.
 
 **Reading / dashboard (optional for v1)**
 
-- View “recent purchases”, “recent reviews”, or a product’s purchase and review history. Detail can be defined when designing the API and UI.
+- View "recent purchases", "recent reviews", or a product's purchase and review history. Detail can be defined when designing the API and UI.
 
 ---
 
@@ -96,9 +106,9 @@ primary color and are never removed.
 | **Primary** | Search (home and category) | Search appears on both **home** and **category** pages. Results update live
 as the user types (min 2 characters; short debounce); URL is updated with
 replaceState; no full page reload so the input keeps focus. On home it
-filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category’s **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the average rating when available. |
-| **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with the average rating. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` in the frontend; key by `product_id`. It is important to show the **average rating of all reviews from all users**, not just the current user's ratings. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response’s `ancestors` array) above the product list. |
-| **Primary** | Product detail          | Tap product → product with **category name**; full review(s); **purchase history** (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`, Add purchase → `/manage/purchases/add?product_id=<id>`. Uses `GET /api/v1/products/:id`, `GET /api/v1/categories/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (to show location name in purchase history). When there are no purchases or reviews for a product, the corresponding list endpoints still return `200 OK` with an empty JSON array (`[]`), not `404`. |
+filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category's **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the average rating when available. |
+| **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with the average rating. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` in the frontend; key by `product_id`. It is important to show the **average rating of all reviews from all users**, not just the current user's ratings. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response's `ancestors` array) above the product list. |
+| **Primary** | Product detail          | Tap product -> product with **category name**; full review(s); **purchase history** grouped by variation (only variations with at least one purchase; sub-heading per variation, or single list when one variation; each row: date, location, quantity, price); links: Add review, Add purchase. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations`. When there are no purchases or reviews, list endpoints return `200 OK` with `[]`, not `404`. |
 | **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
 
@@ -110,18 +120,26 @@ The home screen is **categories + products + search** (one page): categories and
 - **Category products:** **Search bar** (filters child categories and
   products in that category). **Breadcrumb** (Home → … → current) and
   **child categories** of the current category listed first (each links to
-  that category’s page). **Add product** link →
+  that category's page). **Add product** link →
   `/manage/products/new?category_id=<id>` (form opens with that category
   prefilled). Below that, products in the current category and all its
   descendant categories (with a depth limit) with inline rating (and
   optional short review). Products and reviews merged client-side.
-- **Product detail:** Product with **category name**; full review(s); **purchase history**
-  (date, location, price); links: Add review → `/manage/reviews/add?product_id=<id>`,
-  Add purchase → `/manage/purchases/add?product_id=<id>`. A **breadcrumb** shows the
-  full category path (Home → … → category → product name), matching the category page
-  pattern.
+- **Product detail:** Product with **category name**; full review(s); **purchase
+  history** grouped by variation (only variations with at least one purchase;
+  sub-heading per variation, or single list when one variation; each row: date,
+  location, quantity, price); links: Add review, Add purchase. A **breadcrumb** shows the
+  full category path (Home -> ... -> category -> product name), matching the
+  category page pattern.
 - **Login:** Email + password; store token; redirect to Home.
-- **Menu:** Single place for all entity management (categories, locations, products, purchases, reviews). Implemented: hub at `/manage` with links; full CRUD for categories, locations, products (list, new, edit, delete); purchases list and “Record purchase” form; reviews list and “Add review” form. After submitting an add-review form, redirect to the product page.
+- **Menu:** Single place for all entity management (categories, locations,
+  products, purchases, reviews). Implemented: hub at `/manage` with links; full
+  CRUD for categories, locations, products (list, new, edit, delete); purchases
+  list and "Record purchase" form; reviews list and "Add review" form. Edit
+  product page includes a **Variations** section: list (label/unit display),
+  add variation (label, unit, quantity), edit variation (inline), delete
+  variation (disabled when variation has purchases or is the last variation).
+  After submitting an add-review form, redirect to the product page.
 - **Management list rows:** On each management list (categories, products,
   locations, reviews, purchases), rows use a consistent pattern: the **entity
   name** (or primary label) links to the **public view page** when it exists
@@ -142,11 +160,11 @@ The home screen is **categories + products + search** (one page): categories and
 - **Products on home:** `GET /api/v1/products` (no filter when no search) or `GET /api/v1/products?q=<string>` when user has entered a search query. Merge with all reviews in the frontend and compute per-product average ratings from all matching reviews.
 - **Product search:** `GET /api/v1/products?q=<string>` (name/brand). Used on home when `q` is present; on category page combined with `category_id`.
 - **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id` only for **highlighting** the user's own rating (e.g. badge or secondary indicator). The primary rating shown for each product remains the global average computed from all reviews.
-- **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/categories/:id`
-  (category name), `GET /api/v1/reviews?product_id=:id`, `GET
-  /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (resolve
-  location_id to name for purchase history). Purchase history shows date,
-  location (name), price.
+- **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`,
+  `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (resolve
+  location_id to name). Purchase history is **grouped by variation** (only
+  variations with at least one purchase); single variation omits sub-heading.
+  Each row: date, location (name), quantity, price.
 - **New product form:** Accepts optional `?category_id=<uuid>` in the URL
   (e.g. from category page "Add product"); category select is prefilled when
   the id is valid.
@@ -305,6 +323,7 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 - `pocketratings product show <id>`
 - `pocketratings product update <id> [--name <name>] [--brand <brand>] [--category-id <uuid>]`
 - `pocketratings product delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row. Fails if product has purchases.
+- `pocketratings product variation-add --product-id <uuid> [--label <text>] [--unit grams|milliliters|other|none] [--quantity <n>]` — Add a variation to an existing product. Default unit `other`, label empty. Optional `--quantity` (e.g. 500 for 500g; when unit is milliliters, 1000 for 1L).
 
 **Purchases**
 

@@ -11,7 +11,7 @@ When you or the user make or implement a **decision that changes functionality**
 
 - Changes to **user-facing behavior** (flows, screens, routes, URIs)
 - Changes to **API contract** (endpoints, request/response shape, query params)
-- **Product or UX decisions** (e.g. “search on home only”, “purchase history shows date/location/price”, “placeholder links go to `/manage/reviews/add?product_id=...`”)
+- **Product or UX decisions** (e.g. "search on home only", "purchase history shows date/location/price", "placeholder links go to `/manage/reviews/add?product_id=...`")
 - **Scope or roadmap** (new features, deferred work, technical debt)
 
 ## Artifacts to consider

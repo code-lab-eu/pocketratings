@@ -14,6 +14,10 @@ set -e
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT" || exit 1
 
+# --- ASCII punctuation (curly quotes) ---
+echo "=== ASCII punctuation check ==="
+./scripts/ascii-punctuation.sh check
+
 # --- Backend ---
 echo "=== Backend: format check ==="
 (cd backend && cargo fmt --check) || {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
-  import { createProduct } from '$lib/api';
+  import { createProduct, UNIT_OPTIONS } from '$lib/api';
   import { flattenCategories } from '$lib/categories';
   import BackLink from '$lib/BackLink.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
@@ -19,6 +19,9 @@
   let name = $state('');
   let brand = $state('');
   let categoryId = $state('');
+  let variationLabel = $state('');
+  let variationUnit = $state('none');
+  let variationQuantity = $state('');
   let submitting = $state(false);
   let error = $state<string | null>(null);
 
@@ -28,6 +31,13 @@
     const options = categoryOptions;
     if (id && options.some((o) => o.category.id === id)) {
       categoryId = id;
+    }
+  });
+
+  // Clear quantity when unit is "No unit" so we don't send it
+  $effect(() => {
+    if (variationUnit === 'none') {
+      variationQuantity = '';
     }
   });
 
@@ -43,9 +53,24 @@
       error = 'Category is required.';
       return;
     }
+    const body: Parameters<typeof createProduct>[0] = {
+      name: n,
+      brand: brand.trim(),
+      category_id: categoryId
+    };
+    const qRaw = String(variationQuantity ?? '').trim();
+    const q = qRaw === '' ? undefined : Number.parseInt(qRaw, 10);
+    const hasQuantity = q !== undefined && !Number.isNaN(q);
+    if (variationUnit !== 'none' || String(variationLabel ?? '').trim() || hasQuantity) {
+      body.first_variation = {
+        label: String(variationLabel ?? '').trim() || undefined,
+        unit: variationUnit,
+        quantity: hasQuantity ? q : undefined
+      };
+    }
     submitting = true;
     try {
-      await createProduct({ name: n, brand: brand.trim(), category_id: categoryId });
+      await createProduct(body);
       await goto(resolve('/manage/products'), { invalidateAll: true });
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -74,6 +99,38 @@
         placeholder="Select category"
         required
       />
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium">First variation (optional)</legend>
+        <p class="text-sm pr-text-muted">Set size or unit for this product (e.g. 500 g, 1 L).</p>
+        <InputField
+          id="variation-label"
+          label="Label"
+          bind:value={variationLabel}
+          placeholder="e.g. 500 g"
+        />
+        <div>
+          <label for="variation-unit" class="mb-1 block text-sm font-medium">Unit</label>
+          <select
+            id="variation-unit"
+            bind:value={variationUnit}
+            class="pr-input w-full"
+          >
+            {#each UNIT_OPTIONS as opt (opt.value)}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        {#if variationUnit !== 'none'}
+          <InputField
+            id="variation-quantity"
+            label="Quantity (optional)"
+            type="number"
+            min="1"
+            bind:value={variationQuantity}
+            placeholder="e.g. 500"
+          />
+        {/if}
+      </fieldset>
       <div class="flex gap-2">
         <Button type="submit" disabled={submitting} variant="primary">
           {submitting ? 'Creating…' : 'Create'}

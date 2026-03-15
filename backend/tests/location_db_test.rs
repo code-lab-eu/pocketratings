@@ -2,6 +2,9 @@
 
 use pocketratings::db;
 use pocketratings::domain::location::Location;
+use pocketratings::domain::product_variation::ProductVariation;
+use pocketratings::domain::purchase::Purchase;
+use rust_decimal::Decimal;
 use serial_test::serial;
 use uuid::Uuid;
 
@@ -203,6 +206,13 @@ async fn location_soft_delete_fails_when_location_has_purchases() {
         .await
         .expect("insert product");
 
+    let var_id = Uuid::new_v4();
+    let var = ProductVariation::new(var_id, product_id, "", "none", None, now, now, None)
+        .expect("valid variation");
+    db::product_variation::insert(&pool, &var)
+        .await
+        .expect("insert variation");
+
     let user_id = Uuid::new_v4();
     sqlx::query(
         "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -218,20 +228,21 @@ async fn location_soft_delete_fails_when_location_has_purchases() {
     .await
     .expect("insert user");
 
-    sqlx::query(
-        "INSERT INTO purchases (id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    let purchase = Purchase::new(
+        Uuid::new_v4(),
+        user_id,
+        product_id,
+        var_id,
+        loc_id,
+        1,
+        "9.99".parse::<Decimal>().expect("decimal"),
+        now,
+        None,
     )
-    .bind(Uuid::new_v4().to_string())
-    .bind(user_id.to_string())
-    .bind(product_id.to_string())
-    .bind(loc_id.to_string())
-    .bind(1_i32)
-    .bind("9.99")
-    .bind(now)
-    .bind::<Option<i64>>(None)
-    .execute(&pool)
-    .await
-    .expect("insert purchase");
+    .expect("valid purchase");
+    db::purchase::insert(&pool, &purchase)
+        .await
+        .expect("insert purchase");
 
     let result = db::location::soft_delete(&pool, loc_id).await;
     assert!(
@@ -285,6 +296,13 @@ async fn location_hard_delete_fails_when_location_has_purchases() {
         .await
         .expect("insert product");
 
+    let var_id = Uuid::new_v4();
+    let var = ProductVariation::new(var_id, product_id, "", "none", None, now, now, None)
+        .expect("valid variation");
+    db::product_variation::insert(&pool, &var)
+        .await
+        .expect("insert variation");
+
     let user_id = Uuid::new_v4();
     sqlx::query(
         "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -300,20 +318,21 @@ async fn location_hard_delete_fails_when_location_has_purchases() {
     .await
     .expect("insert user");
 
-    sqlx::query(
-        "INSERT INTO purchases (id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    let purchase = Purchase::new(
+        Uuid::new_v4(),
+        user_id,
+        product_id,
+        var_id,
+        loc_id,
+        1,
+        "9.99".parse::<Decimal>().expect("decimal"),
+        now,
+        None,
     )
-    .bind(Uuid::new_v4().to_string())
-    .bind(user_id.to_string())
-    .bind(product_id.to_string())
-    .bind(loc_id.to_string())
-    .bind(1_i32)
-    .bind("9.99")
-    .bind(now)
-    .bind::<Option<i64>>(None)
-    .execute(&pool)
-    .await
-    .expect("insert purchase");
+    .expect("valid purchase");
+    db::purchase::insert(&pool, &purchase)
+        .await
+        .expect("insert purchase");
 
     let result = db::location::hard_delete(&pool, loc_id).await;
     assert!(

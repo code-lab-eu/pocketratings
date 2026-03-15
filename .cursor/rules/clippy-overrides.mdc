@@ -20,10 +20,10 @@ alwaysApply: false
 
 - Keep the override **as narrow as possible** (single item/single module; avoid crate-level `#![allow]`).
 - Prefer `#[expect(...)]` when appropriate so new occurrences still fail CI.
-- Include a short, specific rationale next to the override (what warning, why it’s acceptable here, and the approval reference).
+- Include a short, specific rationale next to the override (what warning, why it's acceptable here, and the approval reference).
 
 ## Common cases to fix instead of overriding
 
 - **`unused_imports`**: remove unused imports, import only what is needed, or use fully-qualified paths.
 - **`doc_markdown`**: fix doc formatting (wrap identifiers in backticks).
-- **`needless_pass_by_value`**: pass by reference if the value isn’t consumed.
+- **`needless_pass_by_value`**: pass by reference if the value isn't consumed.

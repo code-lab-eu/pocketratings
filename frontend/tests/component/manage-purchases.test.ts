@@ -7,6 +7,7 @@ const purchase: Purchase = {
   id: 'pur1',
   user: { id: 'u1', name: 'Alice' },
   product: { id: 'p1', brand: 'B', name: 'Milk' },
+  variation: { id: 'var1', label: '', unit: 'none' },
   location: { id: 'loc1', name: 'Store A' },
   quantity: 1,
   price: '2.99',
@@ -52,5 +53,17 @@ describe('Manage purchases list', () => {
     expect(screen.getByText(/milk — b/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /edit milk — b/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /delete purchase/i })).toBeInTheDocument();
+  });
+
+  it('shows variation in purchase row (Default when no label)', () => {
+    render(PurchasesPage, {
+      props: {
+        data: {
+          purchases: [purchase],
+          error: null
+        }
+      }
+    });
+    expect(screen.getByText(/default/i)).toBeInTheDocument();
   });
 });

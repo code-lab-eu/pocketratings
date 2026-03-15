@@ -110,7 +110,7 @@ products cache.
   product data; remove any separate fetch to `/api/v1/reviews` for list
   display. Update [spec.md](spec.md) if list behaviour is specified there.
 
-### 6. Product variations [FE+BE]
+### 6. Product variations [FE+BE] - DONE
 
 **5 sp.** Products can be sold in different variations (e.g. mayonnaise in
 different jar sizes). Purchases track prices, so we need to differentiate
@@ -130,9 +130,11 @@ variations.
 - Add product variation model and migration; link variations to products.
 - Add unit field (grams, milliliters, other, or none) and ensure easy
   selection in UI.
-- On product create, create one initial variation.
-- Associate purchases with a product variation (API, DB, frontend).
-- Document in [spec.md](spec.md) and [api.md](api.md).
+- On product create, create one initial variation. - DONE
+- Associate purchases with a product variation (API, DB, frontend). - DONE
+- Document in [spec.md](spec.md) and [api.md](api.md). - DONE
+- Edit product: variations CRUD (list, add, edit, delete with guards). - DONE
+- Product detail: purchase history grouped by variation; docs complete. - DONE
 
 ### 7. Accessibility audit [FE]
 

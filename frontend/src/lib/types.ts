@@ -17,7 +17,7 @@ export interface Category {
   children?: Category[];
 }
 
-/** Product from GET /api/v1/products (and :id). Includes nested category with ancestors. */
+/** Product from GET /api/v1/products (list) and :id (detail). Includes nested category. */
 export interface Product {
   id: string;
   category: { id: string; name: string; ancestors: CategoryAncestor[] };
@@ -26,6 +26,11 @@ export interface Product {
   created_at: number;
   updated_at: number;
   deleted_at: number | null;
+}
+
+/** Product from GET /api/v1/products/:id (single product). Includes variations array. */
+export interface ProductDetail extends Product {
+  variations: ProductVariation[];
 }
 
 /** Review from GET /api/v1/reviews (and :id). Rating is 1–5. Response includes nested product and user. */
@@ -40,11 +45,22 @@ export interface Review {
   deleted_at: number | null;
 }
 
-/** Purchase from GET /api/v1/purchases (and :id). Response includes nested user, product, location. */
+/** One variation in GET /api/v1/products/:id/variations. */
+export interface ProductVariation {
+  id: string;
+  label: string;
+  unit: string;
+  quantity?: number | null;
+  /** Number of purchases referencing this variation (edit-product UI). */
+  purchase_count?: number;
+}
+
+/** Purchase from GET /api/v1/purchases (and :id). Response includes nested user, product, variation, location. */
 export interface Purchase {
   id: string;
   user: { id: string; name: string };
   product: { id: string; brand: string; name: string };
+  variation: { id: string; label: string; unit: string; quantity?: number | null };
   location: { id: string; name: string };
   quantity: number;
   price: string;

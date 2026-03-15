@@ -1,6 +1,12 @@
 //! Products REST API: list, get, create, update, delete.
 
-use axum::routing::get;
+/// Routing method constructors used in [`route()`]: `get`, `post`, `patch`, `delete` are passed to
+/// `.route("/api/v1/products", get(...).post(...))` and
+/// `.route("/api/v1/products/{id}", get(...).patch(...).delete(...))`. Clippy sometimes reports
+/// them as unused because the usage is inside method chains on `Router`; the allow is only for
+/// those four symbols.
+#[allow(unused_imports)] // get, post, patch, delete — see doc above and route() below
+use axum::routing::{delete, get, patch, post};
 use axum::{
     Json, Router,
     extract::{Path, Query, State},
@@ -10,9 +16,11 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::category::CategoryRef;
+use crate::api::product_variations;
 use crate::api::{error::ApiError, state::AppState};
 use crate::db;
 use crate::domain::product::Product;
+use crate::domain::product_variation::ProductVariation;
 
 /// Minimal product info for embedding in purchase (and future) responses.
 #[derive(Debug, Clone, serde::Serialize)]
@@ -22,12 +30,21 @@ pub struct ProductRef {
     pub name: String,
 }
 
+/// Optional first variation when creating a product (label/unit/quantity).
+#[derive(Debug, Deserialize)]
+pub struct FirstVariationRequest {
+    pub label: Option<String>,
+    pub unit: String,
+    pub quantity: Option<u32>,
+}
+
 /// Request body for creating a product.
 #[derive(Debug, Deserialize)]
 pub struct CreateProductRequest {
     pub category_id: Uuid,
     pub brand: String,
     pub name: String,
+    pub first_variation: Option<FirstVariationRequest>,
 }
 
 /// Request body for partial update.
@@ -153,16 +170,41 @@ pub async fn list_products(
     Ok(Json(out))
 }
 
-/// GET /api/v1/products/:id — get one product.
+/// Response body for GET /api/v1/products/:id (product with nested variations).
+#[derive(Debug, serde::Serialize)]
+pub struct ProductDetailResponse {
+    pub id: Uuid,
+    pub category: CategoryRef,
+    pub brand: String,
+    pub name: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<i64>,
+    pub variations: Vec<product_variations::VariationListItem>,
+}
+
+/// GET /api/v1/products/:id — get one product with its variations.
 pub async fn get_product(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<ProductResponse>, ApiError> {
+) -> Result<Json<ProductDetailResponse>, ApiError> {
     let product = db::product::get_by_id_with_relations(&state.pool, id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let product = product.ok_or_else(|| ApiError::NotFound("Product not found.".to_string()))?;
-    Ok(Json(product_with_relations_to_response(&product)))
+    let variations = product_variations::list_variations_for_product(&state.pool, id).await?;
+    let base = product_with_relations_to_response(&product);
+    Ok(Json(ProductDetailResponse {
+        id: base.id,
+        category: base.category,
+        brand: base.brand,
+        name: base.name,
+        created_at: base.created_at,
+        updated_at: base.updated_at,
+        deleted_at: base.deleted_at,
+        variations,
+    }))
 }
 
 /// POST /api/v1/products — create a product.
@@ -197,6 +239,28 @@ pub async fn create_product(
     )
     .map_err(|e| ApiError::BadRequest(e.to_string()))?;
     db::product::insert(&state.pool, &product)
+        .await
+        .map_err(|e| map_db_error(&e))?;
+    let var_id = Uuid::new_v4();
+    let variation = match &body.first_variation {
+        Some(fv) => {
+            let label = fv.label.as_deref().unwrap_or("").trim();
+            ProductVariation::new(
+                var_id,
+                id,
+                label,
+                fv.unit.trim(),
+                fv.quantity,
+                now,
+                now,
+                None,
+            )
+            .map_err(|e| ApiError::BadRequest(e.to_string()))?
+        }
+        None => ProductVariation::new(var_id, id, "", "none", None, now, now, None)
+            .map_err(|e| ApiError::BadRequest(e.to_string()))?,
+    };
+    db::product_variation::insert(&state.pool, &variation)
         .await
         .map_err(|e| map_db_error(&e))?;
     let created = db::product::get_by_id_with_relations(&state.pool, id, false)
@@ -299,7 +363,8 @@ pub async fn delete_product(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Router for /api/v1/products (all five handlers).
+/// Router for /api/v1/products (list, get, create, update, delete) and variation
+/// sub-routes (merged from `product_variations`).
 pub fn route() -> Router<AppState> {
     Router::new()
         .route("/api/v1/products", get(list_products).post(create_product))
@@ -309,6 +374,7 @@ pub fn route() -> Router<AppState> {
                 .patch(update_product)
                 .delete(delete_product),
         )
+        .merge(product_variations::route())
 }
 
 #[cfg(test)]
@@ -320,10 +386,15 @@ mod tests {
 
     use sqlx::SqlitePool;
 
+    use rust_decimal::Decimal;
+
     use super::*;
     use crate::config::Config;
     use crate::db;
     use crate::domain::category::Category;
+    use crate::domain::product_variation::{ProductVariation, Unit};
+    use crate::domain::purchase::Purchase;
+    use crate::test_helpers::{ensure_product_variation, insert_product};
 
     async fn test_pool() -> (AppState, tempfile::TempDir) {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -459,6 +530,321 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_product_creates_one_default_variation() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Groceries").await;
+        let app = route().with_state(state.clone());
+        let body = serde_json::json!({
+            "category_id": cat_id.to_string(),
+            "brand": "Acme",
+            "name": "Widget"
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let product_id =
+            Uuid::parse_str(json.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+        let variations = db::product_variation::list_by_product_id(&state.pool, product_id, false)
+            .await
+            .expect("list variations");
+        assert_eq!(variations.len(), 1);
+        assert_eq!(variations[0].unit(), Unit::None);
+        assert_eq!(variations[0].label(), "");
+    }
+
+    #[tokio::test]
+    async fn create_product_with_first_variation_creates_custom_variation() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Groceries").await;
+        let app = route().with_state(state.clone());
+        let body = serde_json::json!({
+            "category_id": cat_id.to_string(),
+            "brand": "Dairy Co",
+            "name": "Organic milk",
+            "first_variation": {
+                "label": "1 L",
+                "unit": "milliliters",
+                "quantity": 1000
+            }
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let product_id =
+            Uuid::parse_str(json.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+        let variations = db::product_variation::list_by_product_id(&state.pool, product_id, false)
+            .await
+            .expect("list variations");
+        assert_eq!(variations.len(), 1);
+        assert_eq!(variations[0].label(), "1 L");
+        assert_eq!(variations[0].unit(), Unit::Milliliters);
+        assert_eq!(variations[0].quantity(), Some(1000));
+    }
+
+    #[tokio::test]
+    async fn list_product_variations_returns_404_when_product_not_found() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state);
+        let id = Uuid::new_v4();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products/{id}/variations"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn list_product_variations_returns_200_and_array() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        ensure_product_variation(&state.pool, product_id).await;
+        let app = route().with_state(state.clone());
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products/{product_id}/variations"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0].get("unit").and_then(|v| v.as_str()), Some("none"));
+        assert_eq!(arr[0].get("label").and_then(|v| v.as_str()), Some(""));
+    }
+
+    #[tokio::test]
+    async fn list_product_variations_returns_200_empty_array_when_product_has_no_variations() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        let app = route().with_state(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/products/{product_id}/variations"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert!(arr.is_empty());
+    }
+
+    #[tokio::test]
+    async fn create_variation_returns_201_and_body() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        let app = route().with_state(state.clone());
+        let body = serde_json::json!({
+            "label": "500 g",
+            "unit": "grams",
+            "quantity": 500
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!("/api/v1/products/{product_id}/variations"))
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        assert!(json.get("id").and_then(|v| v.as_str()).is_some());
+        assert_eq!(json.get("label").and_then(|v| v.as_str()), Some("500 g"));
+        assert_eq!(json.get("unit").and_then(|v| v.as_str()), Some("grams"));
+        assert_eq!(
+            json.get("quantity").and_then(serde_json::Value::as_u64),
+            Some(500)
+        );
+        assert_eq!(
+            json.get("purchase_count")
+                .and_then(serde_json::Value::as_u64),
+            Some(0)
+        );
+    }
+
+    #[tokio::test]
+    async fn create_variation_returns_404_when_product_not_found() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state);
+        let product_id = Uuid::new_v4();
+        let body = serde_json::json!({ "unit": "grams" });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!("/api/v1/products/{product_id}/variations"))
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn update_variation_returns_200_and_updated_body() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
+        let app = route().with_state(state.clone());
+        let body = serde_json::json!({
+            "label": "Default",
+            "unit": "other"
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/v1/variations/{variation_id}"))
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        assert_eq!(json.get("label").and_then(|v| v.as_str()), Some("Default"));
+        assert_eq!(json.get("unit").and_then(|v| v.as_str()), Some("other"));
+    }
+
+    #[tokio::test]
+    async fn delete_variation_returns_204_when_second_variation() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        ensure_product_variation(&state.pool, product_id).await;
+        let second_id = {
+            let now = chrono::Utc::now().timestamp();
+            let var_id = Uuid::new_v4();
+            let var = ProductVariation::new(
+                var_id,
+                product_id,
+                "500 g",
+                "grams",
+                Some(500),
+                now,
+                now,
+                None,
+            )
+            .expect("valid");
+            db::product_variation::insert(&state.pool, &var)
+                .await
+                .expect("insert");
+            var_id
+        };
+        let app = route().with_state(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(format!("/api/v1/variations/{second_id}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn delete_variation_returns_409_when_last_variation() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
+        let app = route().with_state(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(format!("/api/v1/variations/{variation_id}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+    }
+
+    #[tokio::test]
     async fn create_product_returns_404_when_category_not_found() {
         let (state, _dir) = test_pool().await;
         let app = route().with_state(state);
@@ -515,6 +901,31 @@ mod tests {
             "category_id": cat_id.to_string(),
             "brand": "B",
             "name": ""
+        });
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/products")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn create_product_returns_400_when_first_variation_unit_invalid() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let app = route().with_state(state);
+        let body = serde_json::json!({
+            "category_id": cat_id.to_string(),
+            "brand": "B",
+            "name": "N",
+            "first_variation": { "unit": "liters" }
         });
         let response = app
             .oneshot(
@@ -1133,6 +1544,7 @@ mod tests {
         let created: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         let product_id =
             Uuid::parse_str(created.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+        let variation_id = ensure_product_variation(&state.pool, product_id).await;
         let now = chrono::Utc::now().timestamp();
         let user_id = Uuid::new_v4();
         let location_id = Uuid::new_v4();
@@ -1156,21 +1568,21 @@ mod tests {
             .execute(&state.pool)
             .await
             .expect("insert location");
-        let purchase_id = Uuid::new_v4();
-        sqlx::query(
-            "INSERT INTO purchases (id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            variation_id,
+            location_id,
+            1,
+            "9.99".parse::<Decimal>().expect("decimal"),
+            now,
+            None,
         )
-        .bind(purchase_id.to_string())
-        .bind(user_id.to_string())
-        .bind(product_id.to_string())
-        .bind(location_id.to_string())
-        .bind(1_i32)
-        .bind("9.99")
-        .bind(now)
-        .bind::<Option<i64>>(None)
-        .execute(&state.pool)
-        .await
-        .expect("insert purchase");
+        .expect("valid purchase");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert purchase");
         let response = app
             .oneshot(
                 Request::builder()

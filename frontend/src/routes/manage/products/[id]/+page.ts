@@ -4,7 +4,12 @@ import { ApiClientError, isValidUuid, getProduct, listCategories } from '$lib/ap
 export const load: PageLoad = async ({ params }) => {
   const id = params.id;
   if (!id || !isValidUuid(id)) {
-    return { product: null, categories: [], notFound: true, error: !id ? 'Missing product id' : null };
+    return {
+      product: null,
+      categories: [],
+      notFound: true,
+      error: !id ? 'Missing product id' : null
+    };
   }
   try {
     const [product, categories] = await Promise.all([getProduct(id), listCategories()]);

@@ -4,6 +4,10 @@ use std::io::Cursor;
 
 use pocketratings::cli;
 use pocketratings::db;
+use pocketratings::domain::product_variation::{ProductVariation, Unit};
+use pocketratings::domain::purchase::Purchase;
+use rust_decimal::Decimal;
+use uuid::Uuid;
 
 async fn run_product(
     pool: &sqlx::SqlitePool,
@@ -87,6 +91,213 @@ async fn product_create_and_show_roundtrip() {
     assert_eq!(
         show_json.get("brand").and_then(|v| v.as_str()),
         Some("Acme")
+    );
+}
+
+#[tokio::test]
+async fn product_create_creates_one_default_variation() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_default_var.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = create_category_and_get_id(&pool, "Food").await;
+
+    let (res, stdout, stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "create",
+            "--name",
+            "Milk",
+            "--brand",
+            "Farm",
+            "--category-id",
+            &cat_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(res.is_ok(), "stderr: {stderr}");
+    let json: serde_json::Value =
+        serde_json::from_str(stdout.lines().next().expect("line")).expect("json");
+    let product_id =
+        Uuid::parse_str(json.get("id").and_then(|v| v.as_str()).expect("id")).expect("uuid");
+
+    let variations = db::product_variation::list_by_product_id(&pool, product_id, false)
+        .await
+        .expect("list variations");
+    assert_eq!(variations.len(), 1);
+    assert_eq!(variations[0].unit(), Unit::None);
+    assert_eq!(variations[0].label(), "");
+}
+
+#[tokio::test]
+async fn product_variation_add_success_with_label_and_unit() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_variation_add.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = create_category_and_get_id(&pool, "Food").await;
+    let (create_res, create_stdout, create_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "create",
+            "--name",
+            "Milk",
+            "--brand",
+            "Farm",
+            "--category-id",
+            &cat_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(create_res.is_ok(), "stderr: {create_stderr}");
+    let product_id =
+        serde_json::from_str::<serde_json::Value>(create_stdout.lines().next().expect("line"))
+            .expect("json")
+            .get("id")
+            .and_then(|v| v.as_str())
+            .expect("id")
+            .to_string();
+
+    let (add_res, add_stdout, add_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "variation-add",
+            "--product-id",
+            &product_id,
+            "--label",
+            "500 g",
+            "--unit",
+            "grams",
+        ],
+    )
+    .await;
+    assert!(add_res.is_ok(), "stderr: {add_stderr}");
+    assert!(
+        add_stdout.contains("Variation added"),
+        "stdout should mention variation added: {add_stdout}"
+    );
+
+    let product_uuid = Uuid::parse_str(&product_id).expect("product id uuid");
+    let variations = db::product_variation::list_by_product_id(&pool, product_uuid, false)
+        .await
+        .expect("list variations");
+    assert_eq!(variations.len(), 2, "product has default + new variation");
+    let with_label = variations
+        .iter()
+        .find(|v| v.label() == "500 g")
+        .expect("variation with label 500 g");
+    assert_eq!(with_label.unit(), Unit::Grams);
+}
+
+#[tokio::test]
+async fn product_variation_add_with_quantity_persists_quantity() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_variation_add_qty.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let cat_id = create_category_and_get_id(&pool, "Food").await;
+    let (create_res, create_stdout, create_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "create",
+            "--name",
+            "Cheese",
+            "--brand",
+            "Farm",
+            "--category-id",
+            &cat_id,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert!(create_res.is_ok(), "stderr: {create_stderr}");
+    let product_id =
+        serde_json::from_str::<serde_json::Value>(create_stdout.lines().next().expect("line"))
+            .expect("json")
+            .get("id")
+            .and_then(|v| v.as_str())
+            .expect("id")
+            .to_string();
+
+    let (add_res, add_stdout, add_stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "variation-add",
+            "--product-id",
+            &product_id,
+            "--label",
+            "500 g",
+            "--unit",
+            "grams",
+            "--quantity",
+            "500",
+        ],
+    )
+    .await;
+    assert!(add_res.is_ok(), "stderr: {add_stderr}");
+    assert!(
+        add_stdout.contains("Variation added"),
+        "stdout: {add_stdout}"
+    );
+
+    let product_uuid = Uuid::parse_str(&product_id).expect("product id uuid");
+    let variations = db::product_variation::list_by_product_id(&pool, product_uuid, false)
+        .await
+        .expect("list variations");
+    let with_qty = variations
+        .iter()
+        .find(|v| v.quantity() == Some(500))
+        .expect("variation with quantity 500");
+    assert_eq!(with_qty.label(), "500 g");
+    assert_eq!(with_qty.unit(), Unit::Grams);
+}
+
+#[tokio::test]
+async fn product_variation_add_fails_when_product_not_found() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_product_variation_add_missing.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let fake_id = Uuid::new_v4().to_string();
+    let (res, stdout, stderr) = run_product(
+        &pool,
+        &[
+            "product",
+            "variation-add",
+            "--product-id",
+            &fake_id,
+            "--label",
+            "Large",
+            "--unit",
+            "other",
+        ],
+    )
+    .await;
+    assert!(
+        res.is_err(),
+        "variation-add should fail when product not found; stdout: {stdout}; stderr: {stderr}"
     );
 }
 
@@ -567,10 +778,28 @@ async fn product_delete_fails_when_product_has_purchases() {
             .and_then(|v| v.as_str())
             .expect("id")
             .to_string();
+    let product_uuid = uuid::Uuid::parse_str(&product_id).expect("product id uuid");
+
+    let now = 1_000_i64;
+    let variation_id = {
+        let existing = db::product_variation::list_by_product_id(&pool, product_uuid, false)
+            .await
+            .expect("list variations");
+        if let Some(v) = existing.first() {
+            v.id()
+        } else {
+            let var_id = uuid::Uuid::new_v4();
+            let var = ProductVariation::new(var_id, product_uuid, "", "none", None, now, now, None)
+                .expect("valid variation");
+            db::product_variation::insert(&pool, &var)
+                .await
+                .expect("insert variation");
+            var_id
+        }
+    };
 
     let user_id = uuid::Uuid::new_v4();
     let location_id = uuid::Uuid::new_v4();
-    let now = 1_000_i64;
     sqlx::query(
         "INSERT INTO users (id, name, email, password, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
@@ -591,20 +820,21 @@ async fn product_delete_fails_when_product_has_purchases() {
         .execute(&pool)
         .await
         .expect("insert location");
-    sqlx::query(
-        "INSERT INTO purchases (id, user_id, product_id, location_id, quantity, price, purchased_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    let purchase = Purchase::new(
+        uuid::Uuid::new_v4(),
+        user_id,
+        product_uuid,
+        variation_id,
+        location_id,
+        1,
+        "9.99".parse::<Decimal>().expect("decimal"),
+        now,
+        None,
     )
-    .bind(uuid::Uuid::new_v4().to_string())
-    .bind(user_id.to_string())
-    .bind(&product_id)
-    .bind(location_id.to_string())
-    .bind(1_i32)
-    .bind("9.99")
-    .bind(now)
-    .bind::<Option<i64>>(None)
-    .execute(&pool)
-    .await
-    .expect("insert purchase");
+    .expect("valid purchase");
+    db::purchase::insert(&pool, &purchase)
+        .await
+        .expect("insert purchase");
 
     let (del_result, _stdout, _stderr) =
         run_product(&pool, &["product", "delete", &product_id]).await;

@@ -1,5 +1,13 @@
 import { getToken, setToken, clearToken } from '$lib/auth';
-import type { Category, Location, Product, Purchase, Review } from '$lib/types';
+import type {
+  Category,
+  Location,
+  Product,
+  ProductDetail,
+  ProductVariation,
+  Purchase,
+  Review
+} from '$lib/types';
 
 const BASE = typeof import.meta.env !== 'undefined' && import.meta.env.PUBLIC_API_BASE_URL != null
   ? String(import.meta.env.PUBLIC_API_BASE_URL).replace(/\/$/, '')
@@ -261,15 +269,76 @@ export function deleteReview(id: string): Promise<void> {
   return apiDelete(`/api/v1/reviews/${encodeURIComponent(id)}`);
 }
 
-/** Get a single product by id. */
-export function getProduct(id: string): Promise<Product> {
-  return apiGet<Product>(`/api/v1/products/${encodeURIComponent(id)}`);
+/** Get a single product by id (includes variations). */
+export function getProduct(id: string): Promise<ProductDetail> {
+  return apiGet<ProductDetail>(`/api/v1/products/${encodeURIComponent(id)}`);
+}
+
+/** List active variations for a product (purchase form and edit-product page). */
+export function getProductVariations(productId: string): Promise<ProductVariation[]> {
+  return apiGet<ProductVariation[]>(
+    `/api/v1/products/${encodeURIComponent(productId)}/variations`
+  );
+}
+
+export interface CreateVariationBody {
+  label?: string;
+  unit: string;
+  quantity?: number | null;
+}
+
+/** Create a variation for a product. Returns the created variation (with purchase_count 0). */
+export function createVariation(
+  productId: string,
+  body: CreateVariationBody
+): Promise<ProductVariation> {
+  return apiPost<ProductVariation>(
+    `/api/v1/products/${encodeURIComponent(productId)}/variations`,
+    body
+  );
+}
+
+export interface UpdateVariationBody {
+  label?: string;
+  unit?: string;
+  quantity?: number | null;
+}
+
+/** Update a variation. Returns the updated variation. */
+export function updateVariation(
+  id: string,
+  body: UpdateVariationBody
+): Promise<ProductVariation> {
+  return apiPatch<ProductVariation>(
+    `/api/v1/variations/${encodeURIComponent(id)}`,
+    body
+  );
+}
+
+/** Soft-delete a variation. 409 if variation has purchases or is the last variation. */
+export function deleteVariation(id: string): Promise<void> {
+  return apiDelete(`/api/v1/variations/${encodeURIComponent(id)}`);
+}
+
+/** Unit options for variation dropdowns (new product, add variation). */
+export const UNIT_OPTIONS = [
+  { value: 'none', label: 'No unit' },
+  { value: 'grams', label: 'Grams' },
+  { value: 'milliliters', label: 'Milliliters' },
+  { value: 'other', label: 'Other' }
+] as const;
+
+export interface FirstVariationBody {
+  label?: string;
+  unit: string;
+  quantity?: number | null;
 }
 
 export interface CreateProductBody {
   name: string;
   brand: string;
   category_id: string;
+  first_variation?: FirstVariationBody;
 }
 
 export function createProduct(body: CreateProductBody): Promise<Product> {
@@ -302,6 +371,7 @@ export function getPurchase(id: string): Promise<Purchase> {
 
 export interface CreatePurchaseBody {
   product_id: string;
+  variation_id?: string;
   location_id: string;
   quantity?: number;
   price?: string;
@@ -314,7 +384,7 @@ export function createPurchase(body: CreatePurchaseBody): Promise<Purchase> {
 
 export function updatePurchase(
   id: string,
-  body: { product_id?: string; location_id?: string; quantity?: number; price?: string; purchased_at?: string }
+  body: { product_id?: string; variation_id?: string; location_id?: string; quantity?: number; price?: string; purchased_at?: string }
 ): Promise<Purchase> {
   return apiPatch<Purchase>(`/api/v1/purchases/${encodeURIComponent(id)}`, body);
 }

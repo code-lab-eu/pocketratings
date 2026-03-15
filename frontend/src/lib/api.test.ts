@@ -14,6 +14,7 @@ import {
   getCategory,
   getLocation,
   getProduct,
+  getProductVariations,
   getPurchase,
   getReview,
   listCategories,
@@ -419,6 +420,43 @@ describe('api', () => {
     expect(initMethod(mockFetch)).toBe('POST');
   });
 
+  it('createProduct with first_variation sends it in the body', async () => {
+    vi.mocked(auth.getToken).mockReturnValue('t');
+    const mockFetch = vi.mocked(fetch);
+    const created = {
+      id: 'p2',
+      category: { id: 'c1', name: 'Groceries', ancestors: [] },
+      brand: 'Dairy',
+      name: 'Milk 1L',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null
+    };
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
+    );
+
+    await createProduct({
+      name: 'Milk 1L',
+      brand: 'Dairy',
+      category_id: 'c1',
+      first_variation: { label: '1 L', unit: 'milliliters', quantity: 1000 }
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Milk 1L',
+          brand: 'Dairy',
+          category_id: 'c1',
+          first_variation: { label: '1 L', unit: 'milliliters', quantity: 1000 }
+        })
+      })
+    );
+  });
+
   it('updateProduct sends PATCH to /api/v1/products/:id', async () => {
     vi.mocked(auth.getToken).mockReturnValue('t');
     const mockFetch = vi.mocked(fetch);
@@ -450,6 +488,29 @@ describe('api', () => {
     await deleteProduct('p1');
 
     expect(initMethod(mockFetch)).toBe('DELETE');
+  });
+
+  it('getProductVariations fetches GET /api/v1/products/:id/variations and returns array', async () => {
+    vi.mocked(auth.getToken).mockReturnValue('t');
+    const mockFetch = vi.mocked(fetch);
+    const variations = [
+      { id: 'v1', label: '500 g', unit: 'g' },
+      { id: 'v2', label: '', unit: 'none' }
+    ];
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(variations), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+
+    const result = await getProductVariations('prod-1');
+
+    expect(result).toEqual(variations);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(String(mockFetch.mock.calls[0][0])).toContain(
+      '/api/v1/products/prod-1/variations'
+    );
   });
 
   it('getPurchase fetches GET /api/v1/purchases/:id', async () => {
@@ -498,6 +559,38 @@ describe('api', () => {
     expect(initMethod(mockFetch)).toBe('POST');
   });
 
+  it('createPurchase sends variation_id in body when provided', async () => {
+    vi.mocked(auth.getToken).mockReturnValue('t');
+    const mockFetch = vi.mocked(fetch);
+    const created = {
+      id: 'pur1',
+      user: { id: 'u1', name: 'Alice' },
+      product: { id: 'p1', brand: 'Brand', name: 'Product' },
+      location: { id: 'loc1', name: 'Store' },
+      variation: { id: 'v1', label: '500 g', unit: 'g' },
+      quantity: 1,
+      price: '2.99',
+      purchased_at: 1708012800,
+      deleted_at: null
+    };
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(created), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+
+    await createPurchase({
+      product_id: 'p1',
+      variation_id: 'v1',
+      location_id: 'loc1',
+      price: '2.99'
+    });
+
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.variation_id).toBe('v1');
+  });
+
   it('updatePurchase sends PATCH to /api/v1/purchases/:id', async () => {
     vi.mocked(auth.getToken).mockReturnValue('t');
     const mockFetch = vi.mocked(fetch);
@@ -520,6 +613,31 @@ describe('api', () => {
     await updatePurchase('pur1', { quantity: 2, price: '3.49' });
 
     expect(initMethod(mockFetch)).toBe('PATCH');
+  });
+
+  it('updatePurchase sends variation_id in body when provided', async () => {
+    vi.mocked(auth.getToken).mockReturnValue('t');
+    const mockFetch = vi.mocked(fetch);
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: 'pur1',
+          user: { id: 'u1', name: 'Alice' },
+          product: { id: 'p1', brand: 'Brand', name: 'Product' },
+          location: { id: 'loc1', name: 'Store' },
+          quantity: 1,
+          price: '2.99',
+          purchased_at: 1708012800,
+          deleted_at: null
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    await updatePurchase('pur1', { variation_id: 'v2' });
+
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.variation_id).toBe('v2');
   });
 
   it('deletePurchase sends DELETE to /api/v1/purchases/:id', async () => {

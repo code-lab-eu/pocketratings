@@ -43,16 +43,7 @@ async fn main() {
     let args: Vec<std::ffi::OsString> = std::env::args_os().collect();
     let first = args.get(1).and_then(|a| a.to_str());
     let second = args.get(2).and_then(|a| a.to_str());
-    let needs_db = matches!(
-        (first, second),
-        (Some("user"), Some("register" | "list" | "delete"))
-            | (
-                Some("category" | "location" | "product" | "purchase" | "review"),
-                Some("create" | "list" | "show" | "update" | "delete")
-            )
-            | (Some("server"), Some("start"))
-            | (Some("database"), Some("backup"))
-    );
+    let needs_db = pocketratings::cli::subcommand_needs_db(first, second);
 
     let pool = if needs_db {
         let config =
