@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. ProductList: review score and price from products API [FE+BE]
+### 1. ProductList: review score and price from products API [FE+BE] — DONE
 
 **3 sp.** When showing products in `ProductList`, include a review score and a
 price. Both values are returned in the product data for `GET

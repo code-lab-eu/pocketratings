@@ -78,13 +78,15 @@ describe('Home page', () => {
       name: 'Milk',
       created_at: 0,
       updated_at: 0,
-      deleted_at: null
+      deleted_at: null,
+      review_score: 4,
+      price: '2.99'
     };
     render(HomePage, {
       props: {
         data: {
           ...defaultData,
-          items: [{ product, rating: 4, text: 'Good' }]
+          items: [{ product }]
         } as PageData
       }
     });
@@ -92,6 +94,7 @@ describe('Home page', () => {
     expect(link).toBeInTheDocument();
     expect(link.getAttribute('href')).toContain('/products/prod-1');
     expect(screen.getByText(/rating: 4\.0\/5/i)).toBeInTheDocument();
+    expect(screen.getByText(/price: 2\.99/i)).toBeInTheDocument();
   });
 
   it('shows error message when error is set (no categories or products)', () => {

@@ -3,17 +3,16 @@
   import type { Product } from '$lib/types';
   import { formatRating } from '$lib/utils/formatters';
 
-  interface ProductWithReview {
+  /** Item for ProductList: product (with optional review_score and price from API). */
+  interface ProductListItem {
     product: Product;
-    rating?: number;
-    text?: string | null;
   }
 
-  let { items = [] }: { items: ProductWithReview[] } = $props();
+  let { items = [] }: { items: ProductListItem[] } = $props();
 </script>
 
 <ul class="space-y-2">
-  {#each items as { product, rating, text } (product.id)}
+  {#each items as { product } (product.id)}
     <li class="min-w-0">
       <a
         href={resolve(`/products/${product.id}`)}
@@ -23,13 +22,13 @@
         {#if product.brand}
           <span class="pr-text-muted"> — {product.brand}</span>
         {/if}
-        {#if rating != null}
-          <span class="mt-1 block text-sm pr-rating" aria-label="Your rating">
-            Rating: {formatRating(rating)}/5
+        {#if product.review_score != null}
+          <span class="mt-1 block text-sm pr-rating" aria-label="Rating">
+            Rating: {formatRating(product.review_score)}/5
           </span>
         {/if}
-        {#if text}
-          <p class="mt-1 line-clamp-1 text-sm pr-text-subtle">{text}</p>
+        {#if product.price != null && product.price !== ''}
+          <span class="mt-1 block text-sm pr-text-muted">Price: {product.price}</span>
         {/if}
       </a>
     </li>

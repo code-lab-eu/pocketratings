@@ -106,8 +106,8 @@ primary color and are never removed.
 | **Primary** | Search (home and category) | Search appears on both **home** and **category** pages. Results update live
 as the user types (min 2 characters; short debounce); URL is updated with
 replaceState; no full page reload so the input keeps focus. On home it
-filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category's **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the average rating when available. |
-| **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with the average rating. Merge `GET /api/v1/products?category_id=X` (or `?q=`) with `GET /api/v1/reviews` in the frontend; key by `product_id`. It is important to show the **average rating of all reviews from all users**, not just the current user's ratings. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response's `ancestors` array) above the product list. |
+filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category's **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the review score (median) and price when available. |
+| **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with review score (median of all reviews) and lowest price. These come from `GET /api/v1/products` (response includes optional `review_score` and `price`); no client-side merge with `GET /api/v1/reviews` for list display. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response's `ancestors` array) above the product list. |
 | **Primary** | Product detail          | Tap product -> product with **category name**; full review(s); **purchase history** grouped by variation (only variations with at least one purchase; sub-heading per variation, or single list when one variation; each row: date, location, quantity, price); links: Add review, Add purchase. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations`. When there are no purchases or reviews, list endpoints return `200 OK` with `[]`, not `404`. |
 | **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
@@ -123,8 +123,8 @@ The home screen is **categories + products + search** (one page): categories and
   that category's page). **Add product** link →
   `/manage/products/new?category_id=<id>` (form opens with that category
   prefilled). Below that, products in the current category and all its
-  descendant categories (with a depth limit) with inline rating (and
-  optional short review). Products and reviews merged client-side.
+  descendant categories (with a depth limit) with inline rating and price
+  from the products API.
 - **Product detail:** Product with **category name**; full review(s); **purchase
   history** grouped by variation (only variations with at least one purchase;
   sub-heading per variation, or single list when one variation; each row: date,
@@ -157,9 +157,9 @@ The home screen is **categories + products + search** (one page): categories and
   `GET /api/v1/products?category_id=<id>&q=<string>`; child categories are filtered
   **client-side** by name (case-insensitive match). If the category does not exist or
   is deleted, the API returns 404.
-- **Products on home:** `GET /api/v1/products` (no filter when no search) or `GET /api/v1/products?q=<string>` when user has entered a search query. Merge with all reviews in the frontend and compute per-product average ratings from all matching reviews.
+- **Products on home:** `GET /api/v1/products` (no filter when no search) or `GET /api/v1/products?q=<string>` when user has entered a search query. Response includes optional `review_score` (median) and `price` (lowest); no separate reviews call for list display.
 - **Product search:** `GET /api/v1/products?q=<string>` (name/brand). Used on home when `q` is present; on category page combined with `category_id`.
-- **My ratings for product list:** `GET /api/v1/reviews` (default: current user). Merge with product list in the frontend by `product_id` only for **highlighting** the user's own rating (e.g. badge or secondary indicator). The primary rating shown for each product remains the global average computed from all reviews.
+- **Product list rating and price:** Shown from `GET /api/v1/products` only (`review_score`, `price`). No client-side merge with reviews for the list.
 - **Product detail:** `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`,
   `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations` (resolve
   location_id to name). Purchase history is **grouped by variation** (only
@@ -169,7 +169,7 @@ The home screen is **categories + products + search** (one page): categories and
   (e.g. from category page "Add product"); category select is prefilled when
   the id is valid.
 
-Two-call pattern for list views (products + reviews) is sufficient; no new backend endpoint required. The frontend is responsible for computing per-product averages from all reviews it fetches (or using a future backend-provided aggregate field if added).
+Product list uses a single call to `GET /api/v1/products`; the API returns optional `review_score` (median) and `price` (lowest) per product.
 
 ---
 

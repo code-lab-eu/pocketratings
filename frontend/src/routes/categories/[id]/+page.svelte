@@ -1,14 +1,14 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { listProducts, listReviews } from '$lib/api';
+  import { listProducts } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import FormError from '$lib/FormError.svelte';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import ProductList from '$lib/ProductList.svelte';
   import SearchForm from '$lib/SearchForm.svelte';
-  import type { Category, Product, Review } from '$lib/types';
-  import type { ProductWithReview } from './+page';
+  import type { Category } from '$lib/types';
+  import type { ProductListItem } from './+page';
 
   let { data } = $props();
 
@@ -16,7 +16,7 @@
   let allChildren = $derived(category?.children ?? []);
   let notFound = $derived(data.notFound ?? false);
 
-  let displayedItems = $state<ProductWithReview[]>([]);
+  let displayedItems = $state<ProductListItem[]>([]);
   let displayedError = $state<string | null>(null);
   let searchQuery = $state('');
 
@@ -33,27 +33,6 @@
         child.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
   );
-
-  function mergeProductsWithReviews(
-    products: Product[],
-    reviews: Review[]
-  ): ProductWithReview[] {
-    const reviewByProductId: Record<string, Review> = {};
-    for (const r of reviews) {
-      const existing = reviewByProductId[r.product.id];
-      if (!existing || r.updated_at > existing.updated_at) {
-        reviewByProductId[r.product.id] = r;
-      }
-    }
-    return products.map((product) => {
-      const review = reviewByProductId[product.id];
-      return {
-        product,
-        rating: review != null ? review.rating : undefined,
-        text: review?.text ?? undefined
-      };
-    });
-  }
 
   async function onQueryChange(q: string) {
     if (!category) return;
@@ -72,11 +51,8 @@
 
     searchQuery = q;
     try {
-      const [products, reviews] = await Promise.all([
-        listProducts({ category_id: category.id, q }),
-        listReviews()
-      ]);
-      displayedItems = mergeProductsWithReviews(products, reviews);
+      const products = await listProducts({ category_id: category.id, q });
+      displayedItems = products.map((product) => ({ product }));
       displayedError = null;
     } catch (e) {
       displayedError = e instanceof Error ? e.message : String(e);

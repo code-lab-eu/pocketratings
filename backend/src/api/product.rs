@@ -80,6 +80,12 @@ pub struct ProductResponse {
     pub updated_at: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<i64>,
+    /// Median review score (all reviews for this product). Omitted if no reviews.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub review_score: Option<f64>,
+    /// Lowest purchase price for this product. Omitted if no purchases.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price: Option<String>,
 }
 
 fn product_with_relations_to_response(p: &db::product::ProductWithRelations) -> ProductResponse {
@@ -96,6 +102,9 @@ fn product_with_relations_to_response(p: &db::product::ProductWithRelations) -> 
             })
             .collect(),
     };
+    let review_score = p
+        .review_score
+        .and_then(|d| d.to_string().parse::<f64>().ok());
     ProductResponse {
         id: p.id,
         category,
@@ -104,6 +113,8 @@ fn product_with_relations_to_response(p: &db::product::ProductWithRelations) -> 
         created_at: p.created_at,
         updated_at: p.updated_at,
         deleted_at: p.deleted_at,
+        review_score,
+        price: p.lowest_price.clone(),
     }
 }
 
@@ -394,7 +405,10 @@ mod tests {
     use crate::domain::category::Category;
     use crate::domain::product_variation::{ProductVariation, Unit};
     use crate::domain::purchase::Purchase;
-    use crate::test_helpers::{ensure_product_variation, insert_product};
+    use crate::domain::review::Review;
+    use crate::test_helpers::{
+        ensure_product_variation, insert_location, insert_product, insert_user,
+    };
 
     async fn test_pool() -> (AppState, tempfile::TempDir) {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -461,6 +475,76 @@ mod tests {
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         assert!(json.is_array());
         assert!(json.as_array().expect("array").is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_products_includes_review_score_and_price_when_present() {
+        let (state, _dir) = test_pool().await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
+        let user_id = insert_user(&state.pool, "User", "u@example.com").await;
+        let now = chrono::Utc::now().timestamp();
+        let review = Review::new(
+            Uuid::new_v4(),
+            product_id,
+            user_id,
+            Decimal::from(4),
+            None,
+            now,
+            now,
+            None,
+        )
+        .expect("valid");
+        db::review::insert(&state.pool, &review)
+            .await
+            .expect("insert");
+        let var_id = ensure_product_variation(&state.pool, product_id).await;
+        let loc_id = insert_location(&state.pool, "Store").await;
+        let price: Decimal = "2.99".parse().expect("decimal");
+        let purchase = Purchase::new(
+            Uuid::new_v4(),
+            user_id,
+            product_id,
+            var_id,
+            loc_id,
+            1,
+            price,
+            now,
+            None,
+        )
+        .expect("valid");
+        db::purchase::insert(&state.pool, &purchase)
+            .await
+            .expect("insert");
+
+        let app = route().with_state(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/products")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        let product = &arr[0];
+        assert_eq!(
+            product
+                .get("review_score")
+                .and_then(serde_json::Value::as_f64),
+            Some(4.0)
+        );
+        assert_eq!(product.get("price").and_then(|v| v.as_str()), Some("2.99"));
     }
 
     #[tokio::test]

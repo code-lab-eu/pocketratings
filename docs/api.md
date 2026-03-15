@@ -339,8 +339,11 @@ Soft-delete a location.
 
 List, get, create, update, and delete responses use the same product shape: `id`, `category`
 (nested `{ id, name, ancestors }`; `ancestors` is the breadcrumb, each item `{ id, name }` only, closest parent first), `brand`, `name`, `created_at`, `updated_at`, and optionally `deleted_at`.
-The product list is served from an in-memory cache; the cache is invalidated on any product
-insert, update, soft-delete, or hard-delete.
+The **list** response (`GET /api/v1/products`) may also include optional `review_score`
+(median of all reviews for the product, number) and `price` (lowest purchase price, string);
+both are omitted when the product has no reviews or no purchases.
+The product list is served from an in-memory cache; the cache is invalidated on any product,
+review, or purchase insert, update, soft-delete, or hard-delete.
 
 #### `GET /api/v1/products`
 
@@ -363,10 +366,14 @@ List products.
     "name": "Organic milk",
     "created_at": 1708012800,
     "updated_at": 1708012800,
-    "deleted_at": null
+    "deleted_at": null,
+    "review_score": 4.5,
+    "price": "2.99"
   }
 ]
 ```
+`review_score` and `price` are present only when the product has at least one review or
+one purchase respectively.
 
 **Errors:**
 - `404 Not Found`: When `category_id` is set but the category does not exist or refers

@@ -409,6 +409,7 @@ pub async fn insert(pool: &SqlitePool, purchase: &Purchase) -> Result<(), crate:
     .bind(purchase.deleted_at())
     .execute(pool)
     .await?;
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }
 
@@ -439,6 +440,7 @@ pub async fn update(pool: &SqlitePool, purchase: &Purchase) -> Result<(), crate:
             "purchase not found or already deleted: {id_str}"
         )));
     }
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }
 
@@ -464,6 +466,7 @@ pub async fn soft_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
         )));
     }
 
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }
 
@@ -486,5 +489,6 @@ pub async fn hard_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
         )));
     }
 
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }

@@ -1,11 +1,10 @@
 import type { PageLoad } from './$types';
-import { ApiClientError, isValidUuid, getCategory, listProducts, listReviews } from '$lib/api';
-import type { Product, Review } from '$lib/types';
+import { ApiClientError, isValidUuid, getCategory, listProducts } from '$lib/api';
+import type { Product } from '$lib/types';
 
-export interface ProductWithReview {
+/** Item for ProductList: product (review_score and price from GET /api/v1/products). */
+export interface ProductListItem {
   product: Product;
-  rating?: number;
-  text?: string | null;
 }
 
 export const load: PageLoad = async ({ params, url }) => {
@@ -15,27 +14,11 @@ export const load: PageLoad = async ({ params, url }) => {
     return { category: null, items: [], query: q, notFound: true, error: !id ? 'Missing category id' : null };
   }
   try {
-    const [category, products, reviews] = await Promise.all([
+    const [category, products] = await Promise.all([
       getCategory(id),
-      listProducts({ category_id: id, ...(q.trim() && { q }) }),
-      listReviews()
+      listProducts({ category_id: id, ...(q.trim() && { q }) })
     ]);
-    // Latest review per product (if multiple)
-    const reviewByProductId = new Map<string, Review>();
-    for (const r of reviews) {
-      const existing = reviewByProductId.get(r.product.id);
-      if (!existing || r.updated_at > existing.updated_at) {
-        reviewByProductId.set(r.product.id, r);
-      }
-    }
-    const items: ProductWithReview[] = products.map((product) => {
-      const review = reviewByProductId.get(product.id);
-      return {
-        product,
-        rating: review != null ? review.rating : undefined,
-        text: review?.text ?? undefined
-      };
-    });
+    const items: ProductListItem[] = products.map((product) => ({ product }));
     return { category, items, query: q, notFound: false, error: null };
   } catch (e) {
     const notFound = e instanceof ApiClientError && e.status === 404;

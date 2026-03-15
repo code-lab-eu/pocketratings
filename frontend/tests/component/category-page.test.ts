@@ -21,22 +21,22 @@ describe('Category page', () => {
       updated_at: 0,
       deleted_at: null
     };
-    const products: Product[] = [
-      {
-        id: 'prod-1',
-        category: { id: 'cat-1', name: 'Beverages', ancestors: [] },
-        brand: 'Acme',
-        name: 'Milk',
-        created_at: 0,
-        updated_at: 0,
-        deleted_at: null
-      }
-    ];
+    const product: Product = {
+      id: 'prod-1',
+      category: { id: 'cat-1', name: 'Beverages', ancestors: [] },
+      brand: 'Acme',
+      name: 'Milk',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      review_score: 4,
+      price: '2.99'
+    };
     render(CategoryPage, {
       props: {
         data: {
           category,
-          items: [{ product: products[0], rating: 4, text: 'Good' }],
+          items: [{ product }],
           ...defaultData
         }
       }
@@ -47,6 +47,7 @@ describe('Category page', () => {
     expect(link).toBeInTheDocument();
     expect(link.getAttribute('href')).toContain('/products/prod-1');
     expect(screen.getByText(/rating: 4\.0\/5/i)).toBeInTheDocument();
+    expect(screen.getByText(/price: 2\.99/i)).toBeInTheDocument();
   });
 
   it('shows Add product link with category_id to new product form', () => {

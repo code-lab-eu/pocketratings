@@ -4,8 +4,10 @@
 //! [`get_all_by_category_id`], [`get_all_filtered`], [`list_with_relations`], [`insert`],
 //! [`update`], [`soft_delete`], and [`hard_delete`].
 
+use std::collections::HashMap;
 use std::sync::{OnceLock, RwLock};
 
+use rust_decimal::Decimal;
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
 
@@ -61,8 +63,9 @@ fn invalidate_product_list_cache() {
     let _ = product_list_cache().write().map(|mut g| *g = None);
 }
 
-/// Invalidate both product caches. Call on insert, update, `soft_delete`, `hard_delete`.
-fn invalidate_all_product_caches() {
+/// Invalidate both product caches. Call on product insert/update/delete, and on review or
+/// purchase mutations so list aggregate fields (`review_score`, `lowest_price`) stay correct.
+pub fn invalidate_all_product_caches() {
     invalidate_simple_product_list_cache();
     invalidate_product_list_cache();
 }
@@ -101,6 +104,10 @@ pub struct ProductWithRelations {
     pub created_at: i64,
     pub updated_at: i64,
     pub deleted_at: Option<i64>,
+    /// Median review score (all non-deleted reviews for this product). None if no reviews.
+    pub review_score: Option<Decimal>,
+    /// Lowest purchase price (all non-deleted purchases for this product). None if no purchases.
+    pub lowest_price: Option<String>,
 }
 
 /// Map a DB row (with `category_name` from JOIN) into [`ProductWithRelations`].
@@ -128,7 +135,73 @@ fn row_to_product_with_relations(
         created_at,
         updated_at,
         deleted_at,
+        review_score: None,
+        lowest_price: None,
     })
+}
+
+/// Fetch per-product median review score and lowest purchase price (non-deleted only).
+/// Returns (`product_id` -> median rating, `product_id` -> min price as string).
+async fn fetch_product_aggregates(
+    pool: &SqlitePool,
+) -> Result<(HashMap<Uuid, Decimal>, HashMap<Uuid, String>), crate::db::DbError> {
+    let review_rows =
+        sqlx::query("SELECT product_id, rating FROM reviews WHERE deleted_at IS NULL")
+            .fetch_all(pool)
+            .await?;
+    let mut by_product: HashMap<Uuid, Vec<Decimal>> = HashMap::new();
+    for row in review_rows {
+        let product_id_str: String = row.get("product_id");
+        let rating_str: String = row.get("rating");
+        let product_id = Uuid::parse_str(&product_id_str)
+            .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
+        let rating: Decimal = rating_str
+            .parse()
+            .map_err(|e: rust_decimal::Error| crate::db::DbError::InvalidData(e.to_string()))?;
+        by_product.entry(product_id).or_default().push(rating);
+    }
+    let median_by_product: HashMap<Uuid, Decimal> = by_product
+        .into_iter()
+        .filter_map(|(product_id, mut ratings)| {
+            ratings.sort();
+            let len = ratings.len();
+            if len == 0 {
+                return None;
+            }
+            let median = if len % 2 == 1 {
+                ratings[len / 2]
+            } else {
+                let mid = len / 2;
+                (ratings[mid - 1] + ratings[mid]) / Decimal::from(2)
+            };
+            Some((product_id, median))
+        })
+        .collect();
+
+    let purchase_rows =
+        sqlx::query("SELECT product_id, price FROM purchases WHERE deleted_at IS NULL")
+            .fetch_all(pool)
+            .await?;
+    let mut price_by_product: HashMap<Uuid, Vec<Decimal>> = HashMap::new();
+    for row in purchase_rows {
+        let product_id_str: String = row.get("product_id");
+        let price_str: String = row.get("price");
+        let product_id = Uuid::parse_str(&product_id_str)
+            .map_err(|e| crate::db::DbError::InvalidData(e.to_string()))?;
+        let price: Decimal = price_str
+            .parse()
+            .map_err(|e: rust_decimal::Error| crate::db::DbError::InvalidData(e.to_string()))?;
+        price_by_product.entry(product_id).or_default().push(price);
+    }
+    let lowest_price_by_product: HashMap<Uuid, String> = price_by_product
+        .into_iter()
+        .filter_map(|(product_id, prices)| {
+            let min_price = prices.into_iter().min()?;
+            Some((product_id, min_price.to_string()))
+        })
+        .collect();
+
+    Ok((median_by_product, lowest_price_by_product))
 }
 
 /// Map a DB row into a [`Product`]. Fails on invalid UUID or domain validation.
@@ -464,7 +537,20 @@ async fn fetch_all_products_with_relations_raw(
             ..p
         });
     }
-    Ok(enriched)
+    let (median_by_product, lowest_price_by_product) = fetch_product_aggregates(pool).await?;
+    let result = enriched
+        .into_iter()
+        .map(|p| {
+            let review_score = median_by_product.get(&p.id).copied();
+            let lowest_price = lowest_price_by_product.get(&p.id).cloned();
+            ProductWithRelations {
+                review_score,
+                lowest_price,
+                ..p
+            }
+        })
+        .collect();
+    Ok(result)
 }
 
 /// Filter products in memory by `category_ids` (when Some, product's category must be in the set),

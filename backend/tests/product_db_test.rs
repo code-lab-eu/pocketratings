@@ -1,9 +1,13 @@
 //! Integration tests for product DB functions.
 
 use pocketratings::db;
+use pocketratings::domain::category::Category;
+use pocketratings::domain::location::Location;
 use pocketratings::domain::product::Product;
 use pocketratings::domain::product_variation::ProductVariation;
 use pocketratings::domain::purchase::Purchase;
+use pocketratings::domain::review::Review;
+use pocketratings::domain::user::User;
 use rust_decimal::Decimal;
 use serial_test::serial;
 use uuid::Uuid;
@@ -1016,6 +1020,218 @@ async fn product_list_with_relations_search_by_category_and_ancestor_name() {
     assert_eq!(by_direct[0].id, product.id());
 }
 
+struct AggregateTestIds {
+    product1_id: Uuid,
+    product2_id: Uuid,
+    var1_id: Uuid,
+    var2_id: Uuid,
+    loc_id: Uuid,
+    user_id: Uuid,
+    now: i64,
+}
+
+async fn insert_aggregate_test_reviews(
+    pool: &sqlx::SqlitePool,
+    product1_id: Uuid,
+    product2_id: Uuid,
+    user_id: Uuid,
+    now: i64,
+) {
+    let r1 = Review::new(
+        Uuid::new_v4(),
+        product1_id,
+        user_id,
+        Decimal::from(3),
+        None,
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    let r2 = Review::new(
+        Uuid::new_v4(),
+        product1_id,
+        user_id,
+        Decimal::from(5),
+        None,
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    let r3 = Review::new(
+        Uuid::new_v4(),
+        product2_id,
+        user_id,
+        Decimal::from(4),
+        None,
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::review::insert(pool, &r1).await.expect("insert");
+    db::review::insert(pool, &r2).await.expect("insert");
+    db::review::insert(pool, &r3).await.expect("insert");
+}
+
+/// Category, two products, user, reviews (P1: 3,5; P2: 4), variations, location.
+async fn setup_aggregate_test_products_and_reviews(pool: &sqlx::SqlitePool) -> AggregateTestIds {
+    let now = 1_000_i64;
+    let cat_id = Uuid::new_v4();
+    let cat = Category::new(cat_id, None, "Cat".to_string(), now, now, None).expect("valid");
+    db::category::insert(pool, &cat).await.expect("insert");
+
+    let product1_id = Uuid::new_v4();
+    let product2_id = Uuid::new_v4();
+    let p1 = Product::new(
+        product1_id,
+        cat_id,
+        "B1".to_string(),
+        "P1".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    let p2 = Product::new(
+        product2_id,
+        cat_id,
+        "B2".to_string(),
+        "P2".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::product::insert(pool, &p1).await.expect("insert");
+    db::product::insert(pool, &p2).await.expect("insert");
+
+    let user_id = Uuid::new_v4();
+    let user = User::new(
+        user_id,
+        "User".to_string(),
+        "u@example.com".to_string(),
+        "hash".to_string(),
+        now,
+        now,
+        None,
+    )
+    .expect("valid");
+    db::user::insert(pool, &user).await.expect("insert");
+
+    insert_aggregate_test_reviews(pool, product1_id, product2_id, user_id, now).await;
+
+    let var1_id = Uuid::new_v4();
+    let var1 = ProductVariation::new(var1_id, product1_id, "", "none", None, now, now, None)
+        .expect("valid");
+    db::product_variation::insert(pool, &var1)
+        .await
+        .expect("insert");
+    let var2_id = Uuid::new_v4();
+    let var2 = ProductVariation::new(var2_id, product2_id, "", "none", None, now, now, None)
+        .expect("valid");
+    db::product_variation::insert(pool, &var2)
+        .await
+        .expect("insert");
+
+    let loc_id = Uuid::new_v4();
+    let loc = Location::new(loc_id, "Store".to_string(), None).expect("valid");
+    db::location::insert(pool, &loc).await.expect("insert");
+
+    AggregateTestIds {
+        product1_id,
+        product2_id,
+        var1_id,
+        var2_id,
+        loc_id,
+        user_id,
+        now,
+    }
+}
+
+async fn insert_aggregate_test_purchases(pool: &sqlx::SqlitePool, ids: &AggregateTestIds) {
+    let price_299: Decimal = "2.99".parse().expect("decimal");
+    let price_150: Decimal = "1.50".parse().expect("decimal");
+    let price_300: Decimal = "3.00".parse().expect("decimal");
+    let pur1 = Purchase::new(
+        Uuid::new_v4(),
+        ids.user_id,
+        ids.product1_id,
+        ids.var1_id,
+        ids.loc_id,
+        1,
+        price_299,
+        ids.now,
+        None,
+    )
+    .expect("valid");
+    let pur2 = Purchase::new(
+        Uuid::new_v4(),
+        ids.user_id,
+        ids.product1_id,
+        ids.var1_id,
+        ids.loc_id,
+        1,
+        price_150,
+        ids.now,
+        None,
+    )
+    .expect("valid");
+    let pur3 = Purchase::new(
+        Uuid::new_v4(),
+        ids.user_id,
+        ids.product2_id,
+        ids.var2_id,
+        ids.loc_id,
+        1,
+        price_300,
+        ids.now,
+        None,
+    )
+    .expect("valid");
+    db::purchase::insert(pool, &pur1).await.expect("insert");
+    db::purchase::insert(pool, &pur2).await.expect("insert");
+    db::purchase::insert(pool, &pur3).await.expect("insert");
+}
+
+#[tokio::test]
+async fn product_list_with_relations_includes_median_review_score_and_lowest_price() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("product_list_aggregates.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let ids = setup_aggregate_test_products_and_reviews(&pool).await;
+    insert_aggregate_test_purchases(&pool, &ids).await;
+    let product1_id = ids.product1_id;
+    let product2_id = ids.product2_id;
+
+    let list = db::product::list_with_relations(&pool, None, None, false)
+        .await
+        .expect("list_with_relations");
+    assert_eq!(list.len(), 2);
+
+    let row1 = list
+        .iter()
+        .find(|p| p.id == product1_id)
+        .expect("product1 in list");
+    assert_eq!(
+        row1.review_score,
+        Some(Decimal::from(4)),
+        "median of 3 and 5 is 4"
+    );
+    assert_eq!(row1.lowest_price.as_deref(), Some("1.50"));
+
+    let row2 = list
+        .iter()
+        .find(|p| p.id == product2_id)
+        .expect("product2 in list");
+    assert_eq!(row2.review_score, Some(Decimal::from(4)));
+    assert_eq!(row2.lowest_price.as_deref(), Some("3.00"));
+}
+
 // --- Product list cache tests (run serially) ---
 
 struct ProductCacheTestGuard;
@@ -1354,6 +1570,8 @@ async fn product_list_cache_is_warmed_on_first_call_and_used_on_subsequent_calls
         created_at: now,
         updated_at: now,
         deleted_at: None,
+        review_score: None,
+        lowest_price: None,
     };
     db::product::set_product_list_cache_for_test(Some(vec![cached.clone()]));
 
@@ -1472,6 +1690,8 @@ async fn product_list_cache_invalidated_after_update() {
         created_at: now,
         updated_at: now,
         deleted_at: None,
+        review_score: None,
+        lowest_price: None,
     };
     db::product::set_product_list_cache_for_test(Some(vec![stale]));
 

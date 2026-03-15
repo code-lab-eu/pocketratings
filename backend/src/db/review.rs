@@ -421,6 +421,7 @@ pub async fn insert(pool: &SqlitePool, review: &Review) -> Result<(), crate::db:
     .execute(pool)
     .await?;
     invalidate_review_list_cache();
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }
 
@@ -442,6 +443,7 @@ pub async fn update(pool: &SqlitePool, review: &Review) -> Result<(), crate::db:
     .execute(pool)
     .await?;
     invalidate_review_list_cache();
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }
 
@@ -470,6 +472,7 @@ pub async fn soft_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
     }
 
     invalidate_review_list_cache();
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }
 
@@ -493,5 +496,6 @@ pub async fn hard_delete(pool: &SqlitePool, id: Uuid) -> Result<(), crate::db::D
     }
 
     invalidate_review_list_cache();
+    crate::db::product::invalidate_all_product_caches();
     Ok(())
 }

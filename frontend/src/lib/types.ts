@@ -26,6 +26,10 @@ export interface Product {
   created_at: number;
   updated_at: number;
   deleted_at: number | null;
+  /** Median review score (list only). Omitted when product has no reviews. */
+  review_score?: number;
+  /** Lowest purchase price (list only). Omitted when product has no purchases. */
+  price?: string;
 }
 
 /** Product from GET /api/v1/products/:id (single product). Includes variations array. */

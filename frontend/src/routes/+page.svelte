@@ -1,19 +1,19 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { listProducts, listReviews } from '$lib/api';
+  import { listProducts } from '$lib/api';
   import CategoryLinkList from '$lib/CategoryLinkList.svelte';
   import FormError from '$lib/FormError.svelte';
   import ProductList from '$lib/ProductList.svelte';
   import SearchForm from '$lib/SearchForm.svelte';
-  import type { Category, Product, Review } from '$lib/types';
-  import type { ProductWithReview } from './+page';
+  import type { Category } from '$lib/types';
+  import type { ProductListItem } from './+page';
 
   type CategoryWithDepth = { category: Category; depth: number };
 
   let { data } = $props();
 
   let displayedCategories = $state<CategoryWithDepth[]>([]);
-  let displayedItems = $state<ProductWithReview[]>([]);
+  let displayedItems = $state<ProductListItem[]>([]);
   let displayedError = $state<string | null>(null);
   let searchQuery = $state('');
 
@@ -23,27 +23,6 @@
     displayedError = data.error;
     searchQuery = data.query;
   });
-
-  function mergeProductsWithReviews(
-    products: Product[],
-    reviews: Review[]
-  ): ProductWithReview[] {
-    const reviewByProductId: Record<string, Review> = {};
-    for (const r of reviews) {
-      const existing = reviewByProductId[r.product.id];
-      if (!existing || r.updated_at > existing.updated_at) {
-        reviewByProductId[r.product.id] = r;
-      }
-    }
-    return products.map((product) => {
-      const review = reviewByProductId[product.id];
-      return {
-        product,
-        rating: review != null ? review.rating : undefined,
-        text: review?.text ?? undefined
-      };
-    });
-  }
 
   async function onQueryChange(q: string) {
     const path = resolve('/');
@@ -62,15 +41,12 @@
 
     searchQuery = q;
     try {
-      const [products, reviews] = await Promise.all([
-        listProducts({ q }),
-        listReviews()
-      ]);
+      const products = await listProducts({ q });
       const full = data.fullCategories ?? data.categories;
       displayedCategories = full.filter(({ category }) =>
         category.name.toLowerCase().includes(q.toLowerCase())
       );
-      displayedItems = mergeProductsWithReviews(products, reviews);
+      displayedItems = products.map((product) => ({ product }));
       displayedError = null;
     } catch (e) {
       displayedError = e instanceof Error ? e.message : String(e);

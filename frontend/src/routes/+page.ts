@@ -1,21 +1,19 @@
 import type { PageLoad } from './$types';
-import { listCategories, listProducts, listReviews } from '$lib/api';
+import { listCategories, listProducts } from '$lib/api';
 import { flattenCategories } from '$lib/categories';
-import type { Product, Review } from '$lib/types';
+import type { Product } from '$lib/types';
 
-export interface ProductWithReview {
+/** Item for ProductList: product (review_score and price come from GET /api/v1/products). */
+export interface ProductListItem {
   product: Product;
-  rating?: number;
-  text?: string | null;
 }
 
 export const load: PageLoad = async ({ url }) => {
   const q = url.searchParams.get('q') ?? '';
   try {
-    const [categoriesTree, products, reviews] = await Promise.all([
+    const [categoriesTree, products] = await Promise.all([
       listCategories(),
-      q ? listProducts({ q }) : listProducts(),
-      listReviews()
+      q ? listProducts({ q }) : listProducts()
     ]);
     const flat = flattenCategories(categoriesTree);
     const categories =
@@ -25,22 +23,7 @@ export const load: PageLoad = async ({ url }) => {
           category.name.toLowerCase().includes(q.toLowerCase())
         );
     const fullCategories = flat;
-    // Latest review per product
-    const reviewByProductId = new Map<string, Review>();
-    for (const r of reviews) {
-      const existing = reviewByProductId.get(r.product.id);
-      if (!existing || r.updated_at > existing.updated_at) {
-        reviewByProductId.set(r.product.id, r);
-      }
-    }
-    const items: ProductWithReview[] = products.map((product) => {
-      const review = reviewByProductId.get(product.id);
-      return {
-        product,
-        rating: review != null ? review.rating : undefined,
-        text: review?.text ?? undefined
-      };
-    });
+    const items: ProductListItem[] = products.map((product) => ({ product }));
     return { categories, items, query: q, error: null, fullCategories };
   } catch (e) {
     return {
