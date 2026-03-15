@@ -198,6 +198,20 @@ prefill product (and default variation for purchase) from the current page.
   full manage flows for edit/delete. Update [spec.md](spec.md) if product
   page behaviour is specified there.
 
+### 13. API error and request logging [BE]
+
+**2 sp.** Log API errors and optionally request/response status so that
+failures (e.g. 4xx/5xx) are visible in the backend process output. Currently
+handler errors are not logged.
+
+**Tasks:**
+- Add logging when a handler returns an error: e.g. a Tower middleware that
+  logs response status (and request method/path) for 4xx/5xx, or log at the
+  point where `ApiError` is returned. Use `tracing` (already in use at
+  startup); avoid logging sensitive data (e.g. no tokens or full bodies).
+- Prefer one consistent approach (middleware vs. per-handler); document in
+  README or dev docs how to enable debug logs if needed.
+
 ---
 
 ## Distant future
