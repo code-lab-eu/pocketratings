@@ -16,7 +16,7 @@
   let loadError = $derived(data.error);
 
   let productId = $state('');
-  let rating = $state(4);
+  let rating = $state(3);
   let text = $state('');
   let submitting = $state(false);
   let error = $state<string | null>(null);
