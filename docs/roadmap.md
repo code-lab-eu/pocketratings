@@ -28,7 +28,7 @@ products cache. **Important.**
   product data; remove any separate fetch to `/api/v1/reviews` for list
   display. Update [spec.md](spec.md) if list behaviour is specified there.
 
-### 2. Product page and product list: show reviews and purchases of all users [FE+BE]
+### 2. Product page and product list: show reviews and purchases of all users [FE+BE] — DONE
 
 **3 sp.** On the product detail page and in product list context, show
 reviews and purchases from **all users** (not only the current user). The
@@ -36,24 +36,21 @@ spec requires the primary rating to be the global average from all reviews;
 the product page should list all users' reviews and purchases. **Important.**
 
 **Tasks:**
-- Backend: When `product_id` is supplied on `GET /api/v1/reviews` or
-  `GET /api/v1/purchases`, do not default `user_id` to the current user so
-  that callers can request "all reviews for this product" or "all purchases
-  for this product". When `product_id` is absent, keep current behaviour
-  (default `user_id` to current user for "my reviews" / "my purchases").
-  Document in [api.md](api.md).
-- Frontend: Product detail page already calls list reviews and list
-  purchases by product_id; ensure no user_id is sent so the updated API
-  returns all. Product list aggregate rating is covered by task 1; ensure
-  any list-level display of "all users' data" uses the same contract.
-  Update [spec.md](spec.md) if needed.
+- Backend: Optional `user_id` query param on `GET /api/v1/reviews` and
+  `GET /api/v1/purchases`. When omitted, no user filter (all users). When
+  set, filter by that user. Document in [api.md](api.md).
+- Frontend: Product detail page calls list reviews and list purchases with
+  product_id only (no user_id), so API returns all users' data. Manage
+  reviews/purchases pages pass current user id (from me()) so lists show
+  only current user's data. Update [spec.md](spec.md) if needed.
 
 ### 3. Accessibility audit [FE]
 
 **2 sp.** Evaluate and fix accessibility issues across the frontend. For
 example: the dark/light mode switch and log-out messages are not clearly
 identifiable as clickable (e.g. no pointer cursor on hover, no focus/active
-affordance). **Important.**
+affordance). **Important.** Do task 7 first so focus-visible styles are in
+place before the audit.
 
 **Tasks:**
 - Audit interactive elements: ensure clickable controls (theme toggle, log
@@ -120,8 +117,10 @@ categories in undefined or insertion order.
 **Tasks:**
 - Backend: When building the category tree or returning list responses, sort
   sibling categories by name (e.g. in `categories_to_response_list` and
-  tree construction). CLI already sorts; ensure REST list/tree order is
-  consistent. Document in [api.md](api.md) if order is part of the contract.
+  tree construction). Verify CLI category list order; if it does not sort by
+  name, include CLI in scope. Ensure REST list/tree order is consistent.
+  Document in [api.md](api.md) that category list/tree order is by name
+  ascending.
 - Frontend: Rely on API order; no change if backend returns sorted. If
   frontend sorts locally elsewhere, align with same rule (name ascending).
 
@@ -161,6 +160,9 @@ extra requests. Uses existing `depth=1` and `parent_id` from categories API.
   render them inline (nested or indented). Update [spec.md](spec.md) so
   category list behaviour is "immediate children only; expand to show
   children inline when present."
+- Manage pages (category parent select, product category select) continue to
+  use full tree for dropdowns; do not switch them to depth=1. API must still
+  support full tree when depth is omitted.
 
 ### 11. Category page: products from current category and all child categories [FE+BE]
 

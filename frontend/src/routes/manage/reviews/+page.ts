@@ -1,9 +1,10 @@
 import type { PageLoad } from './$types';
-import { listReviews } from '$lib/api';
+import { listReviews, me } from '$lib/api';
 
 export const load: PageLoad = async () => {
   try {
-    const reviews = await listReviews();
+    const currentUser = await me();
+    const reviews = await listReviews(undefined, currentUser.user_id);
     return { reviews, error: null };
   } catch (e) {
     return {

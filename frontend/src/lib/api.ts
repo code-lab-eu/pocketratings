@@ -241,9 +241,13 @@ export function listProducts(options?: { category_id?: string; q?: string }): Pr
   return apiGet<Product[]>(path);
 }
 
-/** List reviews; no productId = "my reviews" (current user). */
-export function listReviews(productId?: string): Promise<Review[]> {
-  const path = productId ? `/api/v1/reviews?product_id=${encodeURIComponent(productId)}` : '/api/v1/reviews';
+/** List reviews. Pass productId for a product's reviews (all users). Pass userId to filter by user. */
+export function listReviews(productId?: string, userId?: string): Promise<Review[]> {
+  const params = new URLSearchParams();
+  if (productId) params.set('product_id', productId);
+  if (userId) params.set('user_id', userId);
+  const query = params.toString();
+  const path = query ? `/api/v1/reviews?${query}` : '/api/v1/reviews';
   return apiGet<Review[]>(path);
 }
 
@@ -356,10 +360,11 @@ export function deleteProduct(id: string): Promise<void> {
   return apiDelete(`/api/v1/products/${encodeURIComponent(id)}`);
 }
 
-/** List purchases; optional product_id for filtering (e.g. purchase history on product detail). */
-export function listPurchases(options?: { product_id?: string }): Promise<Purchase[]> {
+/** List purchases. Optional product_id (e.g. product page) and/or user_id to filter by user. */
+export function listPurchases(options?: { product_id?: string; user_id?: string }): Promise<Purchase[]> {
   const params = new URLSearchParams();
   if (options?.product_id) params.set('product_id', options.product_id);
+  if (options?.user_id) params.set('user_id', options.user_id);
   const query = params.toString();
   const path = query ? `/api/v1/purchases?${query}` : '/api/v1/purchases';
   return apiGet<Purchase[]>(path);

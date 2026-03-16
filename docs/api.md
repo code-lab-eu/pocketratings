@@ -495,7 +495,8 @@ Soft-delete a product.
 List purchases.
 
 **Query parameters:**
-- `user_id` (optional, UUID): Filter by user (default: current user)
+- `user_id` (optional, UUID): Filter by user. When omitted, no user filter (all
+  users). When set, only that user's purchases are returned.
 - `product_id` (optional, UUID): Filter by product
 - `location_id` (optional, UUID): Filter by location
 - `from` (optional, ISO 8601 date): Start date
@@ -618,7 +619,8 @@ List reviews.
 
 **Query parameters:**
 - `product_id` (optional, UUID): Filter by product
-- `user_id` (optional, UUID): Filter by user
+- `user_id` (optional, UUID): Filter by user. When omitted, no user filter (all
+  users). When set, only that user's reviews are returned.
 
 **Response:** `200 OK` — Array of reviews. When there are no matching reviews
 (e.g. the product exists but has no reviews), the response is `200 OK` with

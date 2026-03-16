@@ -45,8 +45,10 @@
 - **Record**: User records a purchase: product, **variation** (default: product's
   first variation), location, quantity, unit price (EUR), date. In v1 the current
   user is always recorded as the purchaser.
-- **List**: User sees purchases (e.g. by product, by location, by date range, or
-  "my purchases"); each purchase shows which variation was bought.
+- **List**: User sees purchases (e.g. by product, by location, by date range,
+  or "my purchases"); each purchase shows which variation was bought. The app
+  requests "my purchases" by passing `user_id` (current user from GET
+  /api/v1/me) to the list endpoint.
 
 - **Update / soft-delete**: User can edit a purchase (product, variation,
   location, quantity, price, date) or soft-delete it. Edit and delete only for
@@ -55,7 +57,9 @@
 **Reviews**
 
 - **Write**: User adds a review for a product (rating 1–5, optional text). Multiple reviews per (user, product) allowed over time.
-- **List**: User sees reviews (by product, or "my reviews").
+- **List**: User sees reviews (by product, or "my reviews"). The app requests
+  "my reviews" by passing `user_id` (current user from GET /api/v1/me) to
+  the list endpoint.
 - **Update / soft-delete**: User can edit or soft-delete a review.
 
 **Reading / dashboard (optional for v1)**

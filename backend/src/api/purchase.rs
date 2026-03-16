@@ -149,19 +149,18 @@ fn parse_iso_date_to_ts(s: &str) -> Option<i64> {
         .map(|dt| dt.timestamp())
 }
 
-/// GET /api/v1/purchases — list purchases; default `user_id` = current user.
+/// GET /api/v1/purchases — list purchases; optional `user_id` filter (when set, filter by that user).
 /// Returns 200 with an empty array when there are no matching purchases (e.g. product has none).
 pub async fn list_purchases(
     State(state): State<AppState>,
-    Extension(CurrentUserId(current_user_id)): Extension<CurrentUserId>,
+    Extension(CurrentUserId(_current_user_id)): Extension<CurrentUserId>,
     Query(q): Query<ListPurchasesQuery>,
 ) -> Result<Json<Vec<PurchaseResponse>>, ApiError> {
-    let user_id = q.user_id.or(Some(current_user_id));
     let from_ts = q.from.as_deref().and_then(parse_iso_date_to_ts);
     let to_ts = q.to.as_deref().and_then(parse_iso_date_to_ts);
     let list = db::purchase::list_with_relations(
         &state.pool,
-        user_id,
+        q.user_id,
         q.product_id,
         q.location_id,
         from_ts,
@@ -1198,6 +1197,126 @@ mod tests {
                 .and_then(|p| p.get("id"))
                 .and_then(|v| v.as_str()),
             Some(product_id_1.to_string().as_str())
+        );
+    }
+
+    #[tokio::test]
+    async fn list_purchases_without_user_id_returns_all_users() {
+        let (state, _dir) = test_pool().await;
+        let user_a = insert_user(&state.pool, "Alice", "a@example.com").await;
+        let user_b = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
+        let var_id = ensure_product_variation(&state.pool, product_id).await;
+        let loc_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let p_a = Purchase::new(
+            Uuid::new_v4(),
+            user_a,
+            product_id,
+            var_id,
+            loc_id,
+            1,
+            Decimal::from(1),
+            now,
+            None,
+        )
+        .expect("valid");
+        let p_b = Purchase::new(
+            Uuid::new_v4(),
+            user_b,
+            product_id,
+            var_id,
+            loc_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid");
+        db::purchase::insert(&state.pool, &p_a)
+            .await
+            .expect("insert");
+        db::purchase::insert(&state.pool, &p_b)
+            .await
+            .expect("insert");
+        let app = app_with_user(state, user_a);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/purchases")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(
+            arr.len(),
+            2,
+            "no user_id filter returns all users' purchases"
+        );
+    }
+
+    #[tokio::test]
+    async fn list_purchases_with_user_id_filters_by_that_user() {
+        let (state, _dir) = test_pool().await;
+        let user_a = insert_user(&state.pool, "Alice", "a@example.com").await;
+        let user_b = insert_user(&state.pool, "Bob", "b@example.com").await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
+        let var_id = ensure_product_variation(&state.pool, product_id).await;
+        let loc_id = insert_location(&state.pool, "Store").await;
+        let now = chrono::Utc::now().timestamp();
+        let p_b = Purchase::new(
+            Uuid::new_v4(),
+            user_b,
+            product_id,
+            var_id,
+            loc_id,
+            1,
+            Decimal::from(2),
+            now,
+            None,
+        )
+        .expect("valid");
+        db::purchase::insert(&state.pool, &p_b)
+            .await
+            .expect("insert");
+        let app = app_with_user(state, user_a);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/purchases?user_id={user_b}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 1);
+        assert_eq!(
+            arr[0]
+                .get("user")
+                .and_then(|u| u.get("id"))
+                .and_then(|v| v.as_str()),
+            Some(user_b.to_string().as_str())
         );
     }
 

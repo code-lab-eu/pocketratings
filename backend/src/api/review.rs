@@ -127,14 +127,13 @@ where
     Ok(s.to_lowercase() == "true" || s == "1")
 }
 
-/// GET /api/v1/reviews — list reviews; default `user_id` = current user ("my reviews").
+/// GET /api/v1/reviews — list reviews; optional `user_id` filter (when set, filter by that user).
 pub async fn list_reviews(
     State(state): State<AppState>,
-    Extension(CurrentUserId(current_user_id)): Extension<CurrentUserId>,
+    Extension(CurrentUserId(_current_user_id)): Extension<CurrentUserId>,
     Query(q): Query<ListReviewsQuery>,
 ) -> Result<Json<Vec<ReviewResponse>>, ApiError> {
-    let user_id = q.user_id.or(Some(current_user_id));
-    let list = db::review::list_with_relations(&state.pool, q.product_id, user_id, false)
+    let list = db::review::list_with_relations(&state.pool, q.product_id, q.user_id, false)
         .await
         .map_err(|e| map_db_error(&e))?;
     let responses: Vec<ReviewResponse> = list
@@ -442,7 +441,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn list_reviews_defaults_to_current_user() {
+    async fn list_reviews_without_user_id_returns_all_users() {
         let (state, _dir) = test_pool().await;
         let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
         let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
@@ -496,18 +495,55 @@ mod tests {
             .to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
         let arr = json.as_array().expect("array");
-        assert_eq!(arr.len(), 1, "only current user's review");
-        assert_eq!(
-            arr[0]
-                .get("user")
-                .and_then(|u| u.get("id"))
-                .and_then(|v| v.as_str()),
-            Some(user_a.to_string().as_str())
-        );
+        assert_eq!(arr.len(), 2, "no user_id filter returns all users' reviews");
     }
 
     #[tokio::test]
-    async fn list_reviews_with_explicit_user_id() {
+    async fn list_reviews_with_user_id_current_returns_only_that_users() {
+        let (state, _dir) = test_pool().await;
+        let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
+        let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
+        let cat_id = insert_category(&state.pool, "Cat").await;
+        let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
+        let now = chrono::Utc::now().timestamp();
+        let review_b = Review::new(
+            Uuid::new_v4(),
+            product_id,
+            user_b,
+            Decimal::from(5),
+            Some("great".to_string()),
+            now,
+            now,
+            None,
+        )
+        .expect("valid");
+        db::review::insert(&state.pool, &review_b)
+            .await
+            .expect("insert");
+        let app = app_with_user(state, user_a);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/reviews?user_id={user_a}"))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        assert_eq!(arr.len(), 0, "user_a has no reviews");
+    }
+
+    #[tokio::test]
+    async fn list_reviews_with_user_id_filters_by_that_user() {
         let (state, _dir) = test_pool().await;
         let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
         let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
