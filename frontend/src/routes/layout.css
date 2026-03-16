@@ -22,6 +22,10 @@
   --pr-text-subtle: #78716c;
   --pr-border: #e7e5e4;
   --pr-border-focus: #d97706;
+  /* Focus ring (keyboard focus indicators; WCAG 2.4.7) */
+  --pr-focus-ring-color: var(--pr-primary-500);
+  --pr-focus-ring-width: 2px;
+  --pr-focus-ring-offset: 2px;
   --pr-card-bg: #ffffff;
   --pr-card-bg-hover: #f5f5f4;
   /* Primary button (light: amber bg; dark uses overrides) */
@@ -55,6 +59,9 @@ html.dark {
   --pr-text-subtle: #d6d3d1;
   --pr-border: #44403c;
   --pr-border-focus: #f59e0b;
+  --pr-focus-ring-color: var(--pr-primary-500);
+  --pr-focus-ring-width: 2px;
+  --pr-focus-ring-offset: 2px;
   --pr-card-bg: #292524;
   --pr-card-bg-hover: #44403c;
   --pr-btn-primary-bg: #fef3c7;
@@ -185,8 +192,8 @@ body {
     box-shadow: var(--pr-shadow-hover);
   }
   .pr-btn-primary:focus-visible {
-    outline: 2px solid var(--pr-btn-primary-outline);
-    outline-offset: 2px;
+    outline: var(--pr-focus-ring-width) solid var(--pr-focus-ring-color);
+    outline-offset: var(--pr-focus-ring-offset);
   }
 
   .pr-btn-secondary {
@@ -213,8 +220,8 @@ body {
     box-shadow: var(--pr-shadow-hover);
   }
   .pr-btn-secondary:focus-visible {
-    outline: 2px solid var(--pr-btn-primary-outline);
-    outline-offset: 2px;
+    outline: var(--pr-focus-ring-width) solid var(--pr-focus-ring-color);
+    outline-offset: var(--pr-focus-ring-offset);
   }
 
   /* Cards and list items */
@@ -234,6 +241,10 @@ body {
     background-color: var(--pr-card-bg-hover);
     transform: translateY(-2px);
     box-shadow: var(--pr-shadow-hover);
+  }
+  .pr-card:focus-visible {
+    outline: var(--pr-focus-ring-width) solid var(--pr-focus-ring-color);
+    outline-offset: var(--pr-focus-ring-offset);
   }
 
   .pr-list-item-link {

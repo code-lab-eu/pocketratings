@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Design tokens and focus states in layout.css [FE]
+### 1. Design tokens and focus states in layout.css [FE] — DONE
 
 **2 sp.** Add a minimal design token layer (CSS custom properties for focus
 ring, optional spacing/transition) and visible focus-visible styles for

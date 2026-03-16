@@ -20,6 +20,12 @@ Defined in `src/routes/layout.css`:
   - `.pr-link-inline`: inline link with underline, used in text paragraphs and "Back to …" links.
   - `.pr-link-muted`: muted navigation link (e.g. "← Manage", "← Home").
 
+- **Focus ring (design tokens)**
+  - Focus indicators are controlled by `--pr-focus-ring-color`, `--pr-focus-ring-width`, and
+    `--pr-focus-ring-offset` in `:root` and `html.dark`. Buttons and interactive card links use
+    `:focus-visible` so keyboard users get a clear focus outline (WCAG 2.4.7); mouse users do not
+    see the outline on click.
+
 - **Buttons**
   - `.pr-btn-primary`: primary action button (dark background in light mode, inverted in dark mode).
   - `.pr-btn-secondary`: secondary/outline button used for "Cancel" actions and similar.
