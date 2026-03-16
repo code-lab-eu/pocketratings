@@ -124,7 +124,9 @@ The home screen is **categories + products + search** (one page): categories and
 - **Category products:** **Search bar** (filters child categories and
   products in that category). **Breadcrumb** (Home → … → current) and
   **child categories** of the current category listed first (each links to
-  that category's page). **Add product** link →
+  that category's page). The category list shows immediate children only;
+  categories that have children show an expand control; expanding shows
+  children inline (same behaviour as on home). **Add product** link →
   `/manage/products/new?category_id=<id>` (form opens with that category
   prefilled). Below that, products in the current category and all its
   descendant categories (with a depth limit) with inline rating and price
@@ -159,7 +161,14 @@ The home screen is **categories + products + search** (one page): categories and
 
 **Data flow (current API, no backend changes)**
 
-- **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree). Category and product responses include `ancestors` (breadcrumb: closest parent first). On a category page, use `GET /api/v1/categories/:id` (default: one level of children) for the category, its breadcrumb, and child categories in one request. Home uses no `parent_id` (root categories); when the user searches (`?q=...` on home), filter the category list **client-side** by name (e.g. case-insensitive match). Cache after first load for speed.
+- **Categories:** `GET /api/v1/categories` (optionally `?parent_id=...` for tree).
+  Category and product responses include `ancestors` (breadcrumb: closest
+  parent first). On a category page, use `GET /api/v1/categories/:id?depth=2`
+  for the category, its breadcrumb, and two levels of children so the list
+  can expand inline (same expandable list behaviour as home). Home uses no
+  `parent_id` (root categories); when the user searches (`?q=...` on home),
+  filter the category list **client-side** by name (e.g. case-insensitive
+  match). Cache after first load for speed.
 - **Products in category:** `GET /api/v1/products?category_id=<uuid>`. The API returns
   products whose category is that category or any descendant (subtree), up to a fixed
   depth limit. When the user searches on the category page (`?q=...`), use

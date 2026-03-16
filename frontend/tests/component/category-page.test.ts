@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import { within } from '@testing-library/dom';
 import { describe, expect, it } from 'vitest';
 import CategoryPage from '../../src/routes/categories/[id]/+page.svelte';
@@ -175,6 +176,51 @@ describe('Category page', () => {
     const childLink = screen.getByRole('link', { name: /dairy/i });
     expect(childLink).toBeInTheDocument();
     expect(childLink.getAttribute('href')).toContain('/categories/cat-2');
+  });
+
+  it('shows expand control for child category that has children and expands to show nested category', async () => {
+    const nested: Category = {
+      id: 'cat-3',
+      ancestors: [{ id: 'cat-2', name: 'Dairy' }, { id: 'cat-1', name: 'Food' }],
+      name: 'Cheese',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      children: []
+    };
+    const category: Category = {
+      id: 'cat-1',
+      ancestors: [],
+      name: 'Food',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      children: [
+        {
+          id: 'cat-2',
+          ancestors: [{ id: 'cat-1', name: 'Food' }],
+          name: 'Dairy',
+          created_at: 0,
+          updated_at: 0,
+          deleted_at: null,
+          children: [nested]
+        }
+      ]
+    };
+    render(CategoryPage, {
+      props: {
+        data: { category, items: [], ...defaultData }
+      }
+    });
+
+    const expandButton = screen.getByRole('button', { name: /expand dairy/i });
+    expect(expandButton).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /cheese/i })).not.toBeInTheDocument();
+
+    await userEvent.click(expandButton);
+    const cheeseLink = screen.getByRole('link', { name: /cheese/i });
+    expect(cheeseLink).toBeInTheDocument();
+    expect(cheeseLink.getAttribute('href')).toContain('/categories/cat-3');
   });
 
   it('shows breadcrumb with ancestor link when category has ancestors', () => {

@@ -3,6 +3,8 @@
   import { listProducts } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
+  import CategoryLinkList from '$lib/CategoryLinkList.svelte';
+  import { flattenCategories } from '$lib/categories';
   import FormError from '$lib/FormError.svelte';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import ProductList from '$lib/ProductList.svelte';
@@ -16,6 +18,7 @@
   let allChildren = $derived(category?.children ?? []);
   let notFound = $derived(data.notFound ?? false);
 
+  let expandedIds = $state<string[]>([]);
   let displayedItems = $state<ProductListItem[]>([]);
   let displayedError = $state<string | null>(null);
   let searchQuery = $state('');
@@ -26,13 +29,29 @@
     searchQuery = data.query ?? '';
   });
 
-  let childCategories = $derived(
-    searchQuery.trim() === ''
-      ? allChildren
-      : allChildren.filter((child: Category) =>
-        child.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+  let isSearching = $derived(searchQuery.trim() !== '');
+  let expandedSet = $derived(new Set(expandedIds));
+
+  let childCategoriesTree = $derived(
+    isSearching
+      ? []
+      : allChildren
   );
+  let childCategoriesFlat = $derived(
+    isSearching
+      ? flattenCategories(allChildren).filter(({ category: c }) =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      : []
+  );
+
+  function handleToggle(cat: Category) {
+    if (expandedIds.includes(cat.id)) {
+      expandedIds = expandedIds.filter((id) => id !== cat.id);
+    } else {
+      expandedIds = [...expandedIds, cat.id];
+    }
+  }
 
   async function onQueryChange(q: string) {
     if (!category) return;
@@ -105,21 +124,26 @@
       </a>
       <!-- eslint-enable svelte/no-navigation-without-resolve -->
     </p>
-    {#if childCategories.length > 0}
-      <ul class="mb-6 space-y-2">
-        {#each childCategories as child (child.id)}
-          <li>
-            <a
-              href={resolve(`/categories/${child.id}`)}
-              class="pr-card block"
-            >
-              {child.name}
-            </a>
-          </li>
-        {/each}
-      </ul>
-    {:else if searchQuery.trim() !== ''}
-      <p class="pr-text-muted mb-6">No categories match.</p>
+    {#if isSearching}
+      {#if childCategoriesFlat.length > 0}
+        <div class="mb-6">
+          <CategoryLinkList
+            items={childCategoriesFlat}
+            hrefFor={(id) => resolve('/categories/[id]', { id })}
+          />
+        </div>
+      {:else}
+        <p class="pr-text-muted mb-6">No categories match.</p>
+      {/if}
+    {:else if childCategoriesTree.length > 0}
+      <div class="mb-6">
+        <CategoryLinkList
+          tree={childCategoriesTree}
+          hrefFor={(id) => resolve('/categories/[id]', { id })}
+          expandedIds={expandedSet}
+          onToggle={handleToggle}
+        />
+      </div>
     {/if}
     {#if displayedItems.length === 0}
       <p class="pr-text-muted">No products in this category.</p>

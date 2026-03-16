@@ -15,7 +15,7 @@ export const load: PageLoad = async ({ params, url }) => {
   }
   try {
     const [category, products] = await Promise.all([
-      getCategory(id),
+      getCategory(id, { depth: 2 }),
       listProducts({ category_id: id, ...(q.trim() && { q }) })
     ]);
     const items: ProductListItem[] = products.map((product) => ({ product }));

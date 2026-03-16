@@ -90,4 +90,28 @@ describe('Category page load', () => {
       q: 'milk'
     });
   });
+
+  it('calls getCategory with depth 2 to load two levels of children for expandable list', async () => {
+    mocks.isValidUuid.mockReturnValue(true);
+    mocks.getCategory.mockResolvedValue({
+      id: categoryId,
+      name: 'Food',
+      ancestors: [],
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      children: []
+    });
+    mocks.listProducts.mockResolvedValue([]);
+
+    await load(
+      createLoadEvent({
+        params: { id: categoryId },
+        url: new URL('https://app.example/categories/' + categoryId)
+      })
+    );
+
+    expect(mocks.getCategory).toHaveBeenCalledTimes(1);
+    expect(mocks.getCategory).toHaveBeenCalledWith(categoryId, { depth: 2 });
+  });
 });
