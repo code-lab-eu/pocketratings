@@ -1,0 +1,27 @@
+---
+description: Enforce a code quality review step after every implementation or refactoring, before running QC.
+alwaysApply: true
+---
+
+# Code quality review before QC
+
+After implementing or refactoring code, and BEFORE running QC
+(lint, test, coverage), review every changed file for:
+
+1. **Duplication**: Are there blocks of markup, logic, or code
+   that differ by only one or two values? Extract the variation
+   (ternary, parameter, variable, snippet argument) and share
+   the rest.
+2. **Unnecessary complexity**: Could a reader understand this in
+   one pass? If a simpler structure achieves the same result,
+   use it.
+3. **Proportionality**: Is the amount of code proportional to
+   what it does? A 50-line block that varies one attribute is
+   a smell.
+4. **Carry-forward debt**: During refactoring, did you propagate
+   existing problems instead of fixing them? Refactoring must
+   leave the code better, not the same.
+
+Functional QC (lint, test, coverage, ascii-punctuation) verifies
+correctness. It does not measure quality. Both must pass before
+work is complete.
