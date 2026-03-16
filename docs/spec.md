@@ -106,7 +106,7 @@ primary color and are never removed.
 
 | Priority     | Area                    | Description |
 |-------------|-------------------------|-------------|
-| **Primary** | Category browse         | List categories (flat or tree from `GET /api/v1/categories` with optional `parent_id`). Tap category → products in that category. |
+| **Primary** | Category browse         | List categories (flat or tree from `GET /api/v1/categories` with optional `parent_id`). Tap category → products in that category and its descendant categories (subtree, depth limit). |
 | **Primary** | Search (home and category) | Search appears on both **home** and **category** pages. Results update live
 as the user types (min 2 characters; short debounce); URL is updated with
 replaceState; no full page reload so the input keeps focus. On home it

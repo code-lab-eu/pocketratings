@@ -89,7 +89,7 @@ categories in undefined or insertion order.
 - Frontend: Rely on API order; no change if backend returns sorted. If
   frontend sorts locally elsewhere, align with same rule (name ascending).
 
-### 7. Category page: products from current category and all child categories [FE+BE]
+### 7. Category page: products from current category and all child categories [FE+BE] — DONE
 
 **2 sp.** On the category page, show all products that belong to the current
 category **and** to any descendant category (full subtree). Use a depth limit
