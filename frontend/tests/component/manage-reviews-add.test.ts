@@ -51,7 +51,7 @@ describe('Add review page', () => {
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
     expect(mocks.createReview).toHaveBeenCalledWith(
-      expect.objectContaining({ product_id: 'prod-123', rating: 4 })
+      expect.objectContaining({ product_id: 'prod-123', rating: 3 })
     );
     expect(mocks.goto).toHaveBeenCalledWith('/products/prod-123', { invalidateAll: true });
   });

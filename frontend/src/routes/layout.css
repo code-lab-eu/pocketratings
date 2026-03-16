@@ -102,16 +102,26 @@ body {
   .pr-link-inline {
     color: var(--pr-primary-500);
     text-decoration: underline;
+    cursor: pointer;
   }
   .pr-link-inline:hover {
     text-decoration: none;
   }
+  .pr-link-inline:focus-visible {
+    outline: var(--pr-focus-ring-width) solid var(--pr-focus-ring-color);
+    outline-offset: var(--pr-focus-ring-offset);
+  }
 
   .pr-link-muted {
     color: var(--pr-text-muted);
+    cursor: pointer;
   }
   .pr-link-muted:hover {
     color: var(--pr-text-primary);
+  }
+  .pr-link-muted:focus-visible {
+    outline: var(--pr-focus-ring-width) solid var(--pr-focus-ring-color);
+    outline-offset: var(--pr-focus-ring-offset);
   }
 
   /* Rating highlight (primary amber) */
@@ -176,6 +186,7 @@ body {
     background-color: var(--pr-btn-primary-bg);
     color: var(--pr-btn-primary-text);
     border: none;
+    cursor: pointer;
     transition: transform var(--pr-transition-fast),
       box-shadow var(--pr-transition-fast),
       background-color var(--pr-transition-fast);
@@ -205,6 +216,7 @@ body {
     border: 1px solid var(--pr-border);
     background-color: var(--pr-surface);
     color: var(--pr-text-primary);
+    cursor: pointer;
     transition: transform var(--pr-transition-fast),
       box-shadow var(--pr-transition-fast),
       background-color var(--pr-transition-fast),
@@ -224,6 +236,26 @@ body {
     outline-offset: var(--pr-focus-ring-offset);
   }
 
+  /* Icon/header-style button (theme toggle, log out, edit/delete icons) */
+  .pr-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color var(--pr-transition-fast),
+      opacity var(--pr-transition-fast);
+  }
+  .pr-btn-icon:hover:not(:disabled) {
+    background-color: var(--pr-surface-hover);
+  }
+  .pr-btn-icon:focus-visible {
+    outline: var(--pr-focus-ring-width) solid var(--pr-focus-ring-color);
+    outline-offset: var(--pr-focus-ring-offset);
+  }
+
   /* Cards and list items */
   .pr-card {
     border-radius: 0.5rem;
@@ -231,6 +263,7 @@ body {
     background-color: var(--pr-card-bg);
     padding: 0.75rem 1rem;
     color: var(--pr-text-primary);
+    cursor: pointer;
     transition: transform var(--pr-transition-fast),
       box-shadow var(--pr-transition-fast),
       border-color var(--pr-transition-fast),
@@ -279,7 +312,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pr-card,
   .pr-btn-primary,
-  .pr-btn-secondary {
+  .pr-btn-secondary,
+  .pr-btn-icon {
     transition-duration: 0.01ms;
   }
   .pr-card:hover,

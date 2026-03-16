@@ -48,7 +48,7 @@
         <button
           type="button"
           onclick={toggleDark}
-          class="min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
+          class="pr-btn-icon min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
           aria-label={$dark ? 'Switch to light mode' : 'Switch to dark mode'}
           title={$dark ? 'Light mode' : 'Dark mode'}
         >
@@ -57,7 +57,7 @@
         <button
           type="button"
           onclick={handleLogout}
-          class="min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
+          class="pr-btn-icon min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
         >
           Log out
         </button>

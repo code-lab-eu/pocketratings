@@ -18,23 +18,31 @@ Defined in `src/routes/layout.css`:
 
 - **Links**
   - `.pr-link-inline`: inline link with underline, used in text paragraphs and "Back to …" links.
-  - `.pr-link-muted`: muted navigation link (e.g. "← Manage", "← Home").
+    Has `cursor: pointer` and `:focus-visible` using the focus ring tokens.
+  - `.pr-link-muted`: muted navigation link (e.g. "← Manage", "← Home"). Has `cursor: pointer`
+    and `:focus-visible` using the focus ring tokens.
 
 - **Focus ring (design tokens)**
   - Focus indicators are controlled by `--pr-focus-ring-color`, `--pr-focus-ring-width`, and
-    `--pr-focus-ring-offset` in `:root` and `html.dark`. Buttons and interactive card links use
-    `:focus-visible` so keyboard users get a clear focus outline (WCAG 2.4.7); mouse users do not
-    see the outline on click.
+    `--pr-focus-ring-offset` in `:root` and `html.dark`. Buttons, links, and interactive cards
+    use `:focus-visible` so keyboard users get a clear focus outline (WCAG 2.4.7); mouse users
+    do not see the outline on click.
 
 - **Buttons**
-  - `.pr-btn-primary`: primary action button (dark background in light mode, inverted in dark mode).
-  - `.pr-btn-secondary`: secondary/outline button used for "Cancel" actions and similar.
-  - Both use a short transition and a slight hover lift and shadow; motion is disabled when the
-    user prefers reduced motion (`prefers-reduced-motion: reduce`).
+  - `.pr-btn-primary`: primary action button (dark background in light mode, inverted in dark
+    mode). Has `cursor: pointer` and `:focus-visible`.
+  - `.pr-btn-secondary`: secondary/outline button used for "Cancel" actions and similar. Has
+    `cursor: pointer` and `:focus-visible`.
+  - `.pr-btn-icon`: icon-sized or header-style button (transparent background, hover tint).
+    Use for theme toggle, log out, edit/delete icons in list rows. Has `cursor: pointer` and
+    `:focus-visible`. Combine with `.pr-link-muted` or semantic colour classes as needed.
+  - All button classes use a short transition; motion is disabled when the user prefers
+    reduced motion (`prefers-reduced-motion: reduce`).
 
 - **Cards and list items**
   - `.pr-card`: generic card/list-item container used for products, categories, locations, etc.
-  - Cards use a short transition and a slight hover lift and shadow; motion is disabled when the
+    Has `cursor: pointer` and `:focus-visible` when used as a link or clickable surface. Cards
+    use a short transition and a slight hover lift and shadow; motion is disabled when the
     user prefers reduced motion (`prefers-reduced-motion: reduce`).
   - `.pr-list-item-link`: list row link (min height, underline on hover) used inside cards.
 

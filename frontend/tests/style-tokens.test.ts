@@ -48,4 +48,55 @@ describe('layout.css design tokens and focus states', () => {
       /\.pr-card:focus-visible\s*\{[\s\S]*?outline:[\s\S]*?--pr-focus-ring-width[\s\S]*?--pr-focus-ring-color/
     );
   });
+
+  it('gives .pr-btn-primary cursor: pointer', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-btn-primary\s*\{[\s\S]*?cursor:\s*pointer/
+    );
+  });
+
+  it('gives .pr-btn-secondary cursor: pointer', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-btn-secondary\s*\{[\s\S]*?cursor:\s*pointer/
+    );
+  });
+
+  it('gives .pr-card cursor: pointer', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-card\s*\{[\s\S]*?cursor:\s*pointer/
+    );
+  });
+
+  it('gives .pr-link-muted cursor: pointer and focus-visible using tokens', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-link-muted\s*\{[\s\S]*?cursor:\s*pointer/
+    );
+    expect(css).toMatch(
+      /\.pr-link-muted:focus-visible\s*\{[\s\S]*?--pr-focus-ring-width[\s\S]*?--pr-focus-ring-color[\s\S]*?--pr-focus-ring-offset/
+    );
+  });
+
+  it('gives .pr-link-inline cursor: pointer and focus-visible using tokens', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-link-inline\s*\{[\s\S]*?cursor:\s*pointer/
+    );
+    expect(css).toMatch(
+      /\.pr-link-inline:focus-visible\s*\{[\s\S]*?--pr-focus-ring-width[\s\S]*?--pr-focus-ring-color[\s\S]*?--pr-focus-ring-offset/
+    );
+  });
+
+  it('gives .pr-btn-icon cursor: pointer and focus-visible using tokens', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-btn-icon\s*\{[\s\S]*?cursor:\s*pointer/
+    );
+    expect(css).toMatch(
+      /\.pr-btn-icon:focus-visible\s*\{[\s\S]*?--pr-focus-ring-width[\s\S]*?--pr-focus-ring-color[\s\S]*?--pr-focus-ring-offset/
+    );
+  });
 });

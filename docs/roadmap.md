@@ -24,7 +24,7 @@ focus indicators (WCAG-friendly).
   .pr-btn-secondary and ensure interactive pr-card links have a visible
   focus style.
 
-### 2. Accessibility audit [FE]
+### 2. Accessibility audit [FE] — DONE
 
 **2 sp.** Evaluate and fix accessibility issues across the frontend. For
 example: the dark/light mode switch and log-out messages are not clearly
