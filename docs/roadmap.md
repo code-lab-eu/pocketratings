@@ -224,7 +224,9 @@ accessibility (e.g. aria-label for star rating).
 **Tasks:**
 - Add a reusable star-rating component: displays a 1–5 score as 5 stars
   with half and quarter star granularity (e.g. 4.25 shows 4 full, 1 quarter).
-  Use in ProductList for review_score; ensure accessible (e.g. aria-label).
+  Star rating display follows API range (1–5, step 0.1); quarter/half star is
+  display granularity only, not a new rating step. Use in ProductList for
+  review_score; ensure accessible (e.g. aria-label).
 - Add a reusable price component: accepts amount string and appends the
   euro symbol (e.g. "2.99" -> "2.99 EUR" or "2,99 €" per locale). Use in
   ProductList for price.

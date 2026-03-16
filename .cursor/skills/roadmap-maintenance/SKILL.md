@@ -1,46 +1,67 @@
 ---
 name: roadmap-maintenance
-description: Maintains docs/roadmap.md: removes finished tasks and the Completed section entirely, removes references to finished work, ensures every item has a story point (SP) estimate, identifies blocking tasks, labels tasks with [FE]/[BE]/[FE+BE], and reorders by blocking then important then low-hanging fruit (1–2 SP). Use when updating the roadmap, cleaning completed work, or when the user asks for roadmap maintenance or prioritization.
+description: Maintains docs/roadmap.md. Covers cleanup (remove finished work, reorder, label, estimate), and auditing (validate pending tasks against spec and architecture, fix the roadmap). Use when the user asks for roadmap maintenance, prioritization, or alignment audit.
 ---
 
 # Roadmap maintenance
 
-Apply this workflow when the user asks to update or maintain the roadmap, remove
-finished items, reorder, add FE/BE labels, or estimate story points.
+Apply this workflow when the user asks to update, maintain, or audit the
+roadmap.
 
-## Steps
+## Cleanup
 
-1. **Remove finished work** — Remove the entire "Completed" section from the
-   roadmap. Delete any Planned item that is marked with " — DONE" or "Done" (or
-   similar) or clearly completed; do not move them to another section (finished
-   tasks are removed completely).
+1. **Remove finished work** — Delete any Planned item marked " — DONE" (or
+   similar). Remove the entire "Completed" section if present. Do not move
+   finished tasks to another section.
 
-2. **Remove references** — In remaining Planned items, delete or shorten
-   "Blocked by"/"Ties to" (or similar) that point to completed work.
+2. **Remove references** — In remaining items, delete or shorten references
+   (e.g. "Blocked by", "Ties to") that point to completed work.
 
-3. **Ensure story point estimates** — Every Planned item must have an SP
-   estimate. Put it in the **first line of the task body**, e.g. `**2 sp.**`
-   then the goal text. Scale: 1 = tiny (hours), 2 = small (half day), 3 =
-   medium (1–2 days), 4 = large (week), 5 = very large (multi-week). Add or
-   correct estimates for any item that lacks one.
+3. **Ensure story point estimates** — Every item must have an SP estimate in
+   the **first line of the body**, e.g. `**2 sp.**`. Scale: 1 = tiny, 2 =
+   small (half day), 3 = medium (1-2 days), 4 = large (week), 5 = very
+   large.
 
-4. **Label scope** — For every Planned task, set [FE], [BE], or [FE+BE] in the
-   task title from Goal/Tasks (frontend-only, backend-only, or both).
+4. **Label scope** — Every title ends with [FE], [BE], or [FE+BE].
 
-5. **Identify blocking** — For each task, check if another Planned task depends
-   on it (e.g. "reusable search" before "search by category"). List "A blocks B"
-   and rank blockers by how many tasks they unblock.
+5. **Identify blocking** — Check if any task depends on another. Rank
+   blockers by how many tasks they unblock.
 
-6. **Reorder** — Planned order: (1) Blocking tasks, ranked by number of tasks
-   they block; (2) Tasks marked **Important**; (3) **Low-hanging fruit** (items
-   with **1 or 2 SP**); (4) Remaining. Then **renumber all Planned tasks
-   sequentially** (1, 2, 3, …) so there are no gaps. Keep "Distant future"
-   unchanged.
+6. **Reorder** — (1) Blocking tasks; (2) tasks marked **Important**;
+   (3) low-hanging fruit (1-2 SP); (4) remaining. Renumber sequentially.
+   Keep "Distant future" unchanged.
+
+## Audit
+
+When the user asks for an audit, validate that each pending roadmap task
+aligns with the project's spec ([docs/spec.md](docs/spec.md)), API design
+([docs/api.md](docs/api.md)), and established codebase patterns. The goal is
+to catch task descriptions that would lead an implementer to introduce
+changes that deviate from the overall vision.
+
+For each pending task, check:
+
+- **API design consistency** — Does the proposed API change follow the
+  existing conventions? (e.g. optional query params with no conditional
+  defaults; consistent error codes; documented in api.md.)
+- **Frontend patterns** — Does it match the design system, data-flow
+  patterns, and component conventions already in use?
+- **Scope and audience** — Does it stay within the product's scope (single
+  user or family; no multi-tenant; EUR only; etc.)?
+- **Accurate references** — Do function names, endpoint paths, and
+  component names in the task description match what actually exists in the
+  codebase?
+- **Dependencies** — Does the task depend on or overlap with another task
+  in a way that should be noted (e.g. "do X before Y")?
+
+Fix any issues directly in the roadmap: correct inaccurate descriptions,
+add clarifications, note ordering constraints. Do not create a separate
+audit report file.
 
 ## Conventions
 
-- **FE** = only frontend changes; **BE** = only backend/CLI/DB; **FE+BE** = both.
-- Story points: 1–5 scale; low-hanging fruit = 1–2 SP.
+- **FE** = frontend only; **BE** = backend/CLI/DB only; **FE+BE** = both.
+- Story points: 1-5 scale; low-hanging fruit = 1-2 SP.
 - Optional marker in task body: **Important** (for reorder group 2).
 
 ## Doc rule
