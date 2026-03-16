@@ -26,27 +26,14 @@
     searchCategories = data.categories;
   });
 
-  function buildDisplayList(tree: Category[], expanded: Set<string>, depth = 0): CategoryWithDepth[] {
-    const out: CategoryWithDepth[] = [];
-    for (const cat of tree) {
-      out.push({ category: cat, depth });
-      if (expanded.has(cat.id) && cat.children?.length) {
-        out.push(...buildDisplayList(cat.children, expanded, depth + 1));
-      }
-    }
-    return out;
-  }
-
   let isSearching = $derived(searchQuery.trim() !== '');
 
   let expandedSet = $derived(new Set(expandedIds));
 
-  let treeDisplayList = $derived(
-    buildDisplayList(data.categoriesTree ?? [], expandedSet)
-  );
-
-  let displayedCategories = $derived(
-    isSearching ? searchCategories : treeDisplayList
+  let categoriesEmpty = $derived(
+    isSearching
+      ? searchCategories.length === 0
+      : (data.categoriesTree ?? []).length === 0
   );
 
   function handleToggle(category: Category) {
@@ -105,14 +92,14 @@
       <h2 id="categories-heading" class="pr-heading-section">
         Categories
       </h2>
-      {#if displayedCategories.length === 0}
+      {#if categoriesEmpty}
         <p class="pr-text-muted">No categories match.</p>
       {:else if isSearching}
-        <CategoryLinkList items={displayedCategories} basePath="categories" />
+        <CategoryLinkList items={searchCategories} hrefFor={(id) => resolve('/categories/[id]', { id })} />
       {:else}
         <CategoryLinkList
-          items={displayedCategories}
-          basePath="categories"
+          tree={data.categoriesTree ?? []}
+          hrefFor={(id) => resolve('/categories/[id]', { id })}
           expandedIds={expandedSet}
           onToggle={handleToggle}
         />

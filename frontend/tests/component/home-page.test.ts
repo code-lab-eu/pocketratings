@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import HomePage from '../../src/routes/+page.svelte';
@@ -140,7 +140,9 @@ describe('Home page', () => {
     await user.click(screen.getByRole('button', { name: /expand food/i }));
     expect(screen.getByRole('link', { name: /dairy/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /collapse food/i }));
-    expect(screen.queryByRole('link', { name: /dairy/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: /dairy/i })).not.toBeInTheDocument();
+    });
   });
 
   it('shows product list when items are provided', () => {
