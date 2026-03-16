@@ -167,7 +167,42 @@ extra requests. Uses existing `depth=1` and `parent_id` from categories API.
   use full tree for dropdowns; do not switch them to depth=1. API must still
   support full tree when depth is omitted.
 
-### 11. Product detail page: inline add review and add purchase [FE]
+### 11. Make reusable components route-agnostic [FE]
+
+**1 sp.** `ProductList` hardcodes `/products/[id]` in its href;
+`EmptyState` calls `resolve()` internally instead of receiving a
+pre-resolved href. Reusable components should have no route
+knowledge -- the caller owns route resolution. Follow the pattern
+established in `CategoryLinkList` (`hrefFor` callback or
+pre-resolved href string).
+
+**Tasks:**
+- `ProductList`: replace hardcoded
+  `resolve('/products/${product.id}')` with a caller-provided
+  `hrefFor: (id: string) => string` prop.
+- `EmptyState`: accept a pre-resolved `href` string instead of
+  calling `resolve()` internally; move `resolve()` to callsites.
+- Remove `import { resolve } from '$app/paths'` from both
+  components after the change.
+
+### 12. Frontend code quality review [FE]
+
+**2 sp.** Systematic review of all frontend components and pages
+for code smells: duplication, unnecessary complexity,
+disproportionate code, and carry-forward debt from earlier
+iterations. Fix issues found and ensure adherence to the
+code-quality-review rule.
+
+**Tasks:**
+- Review all files in `src/lib/` and `src/routes/` for
+  duplication (blocks that differ by one or two values),
+  unnecessary complexity, and proportionality (amount of code
+  vs what it does).
+- Review test fixtures for clarity: meaningful names, no
+  redundant/confusing duplicates.
+- Fix all issues found; run full frontend QC after each file.
+
+### 13. Product detail page: inline add review and add purchase [FE]
 
 **3 sp.** On the product detail page, allow the user to add a review or a
 purchase using an inline form (e.g. collapsible section or form below the
