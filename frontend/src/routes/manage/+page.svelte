@@ -19,6 +19,10 @@
   ];
 </script>
 
+<svelte:head>
+  <title>Manage — Pocket Ratings</title>
+</svelte:head>
+
 <main class="mx-auto max-w-2xl px-4 py-8">
   <PageHeading>Manage</PageHeading>
   <nav class="mb-6" aria-label="Management areas">

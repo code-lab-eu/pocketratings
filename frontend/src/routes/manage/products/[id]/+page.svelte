@@ -86,6 +86,10 @@
     return 'Delete variation';
   }
 
+  function productDisplayName(p: { brand: string; name: string }): string {
+    return p.brand ? `${p.brand} - ${p.name}` : p.name;
+  }
+
   async function handleSubmit(e: Event) {
     e.preventDefault();
     if (!product) return;
@@ -209,6 +213,14 @@
     }
   }
 </script>
+
+<svelte:head>
+  <title>
+    {product
+      ? `Edit product: ${productDisplayName(product)} — Pocket Ratings`
+      : 'Product — Pocket Ratings'}
+  </title>
+</svelte:head>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
   <BackLink href={resolve('/manage/products')} label="Products" />

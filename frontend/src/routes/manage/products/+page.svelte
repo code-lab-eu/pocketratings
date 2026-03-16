@@ -34,6 +34,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Products — Pocket Ratings</title>
+</svelte:head>
+
 <main class="mx-auto max-w-2xl px-4 py-8">
   <BackLink href={resolve('/manage')} label="Manage" />
   <PageHeading>Products</PageHeading>

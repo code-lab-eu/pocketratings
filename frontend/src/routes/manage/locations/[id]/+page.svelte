@@ -55,6 +55,14 @@
   }
 </script>
 
+<svelte:head>
+  <title>
+    {location
+      ? `Edit location: ${location.name} — Pocket Ratings`
+      : 'Location — Pocket Ratings'}
+  </title>
+</svelte:head>
+
 <main class="mx-auto max-w-2xl px-4 py-8">
   <BackLink href={resolve('/manage/locations')} label="Locations" />
 

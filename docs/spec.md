@@ -151,6 +151,11 @@ The home screen is **categories + products + search** (one page): categories and
   name is plain text. **Edit** and **Delete** are separate **icon** actions
   (pencil, trash) with accessible labels; Edit links to the manage edit page,
   Delete triggers the existing delete flow.
+- **Page titles:** Every route sets a descriptive document `<title>` (e.g.
+  "Pocket Ratings" on home, "{Category name} — Pocket Ratings" on category
+  pages, "Manage — Pocket Ratings" on the manage hub, and specific titles for
+  all manage list and form pages) for the browser tab, bookmarks, and
+  accessibility.
 
 **Data flow (current API, no backend changes)**
 

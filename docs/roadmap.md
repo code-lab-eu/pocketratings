@@ -41,7 +41,7 @@ place before the audit.
 - Optionally run axe or similar and address critical/serious findings; doc
   any deferred items.
 
-### 3. Page titles for all pages [FE]
+### 3. Page titles for all pages [FE] — DONE
 
 **1 sp.** Ensure every page has a meaningful `<title>` for the browser tab,
 bookmarks, and accessibility. Home and product detail already have titles; add

@@ -61,9 +61,7 @@
 </script>
 
 <svelte:head>
-  {#if category}
-    <title>{category.name} — Pocket Ratings</title>
-  {/if}
+  <title>{category ? `${category.name} — Pocket Ratings` : 'Category — Pocket Ratings'}</title>
 </svelte:head>
 
 <main class="mx-auto max-w-2xl px-4 py-8">

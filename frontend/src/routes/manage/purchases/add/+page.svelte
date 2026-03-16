@@ -102,6 +102,10 @@
 
 </script>
 
+<svelte:head>
+  <title>Add purchase — Pocket Ratings</title>
+</svelte:head>
+
 <main class="mx-auto max-w-2xl px-4 py-8">
   <BackLink href={resolve('/manage/purchases')} label="Purchases" />
   <PageHeading>Record purchase</PageHeading>
