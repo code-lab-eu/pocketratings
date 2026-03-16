@@ -120,7 +120,7 @@ handler errors are not logged.
 - Prefer one consistent approach (middleware vs. per-handler); document in
   README or dev docs how to enable debug logs if needed.
 
-### 9. ProductList styling: star rating, price, layout [FE]
+### 9. ProductList styling: star rating, price, layout [FE] — DONE
 
 **2 sp.** Improve the design of ProductList so rating and price are shown
 attractively with reusable components and a compact, well-spaced layout.

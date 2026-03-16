@@ -1,7 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import PriceDisplay from '$lib/PriceDisplay.svelte';
+  import StarRating from '$lib/StarRating.svelte';
   import type { Product } from '$lib/types';
-  import { formatRating } from '$lib/utils/formatters';
 
   /** Item for ProductList: product (with optional review_score and price from API). */
   interface ProductListItem {
@@ -22,13 +23,17 @@
         {#if product.brand}
           <span class="pr-text-muted"> — {product.brand}</span>
         {/if}
-        {#if product.review_score != null}
-          <span class="mt-1 block text-sm pr-rating" aria-label="Rating">
-            Rating: {formatRating(product.review_score)}/5
-          </span>
-        {/if}
-        {#if product.price != null && product.price !== ''}
-          <span class="mt-1 block text-sm pr-text-muted">Price: {product.price}</span>
+        {#if product.review_score != null || (product.price != null && product.price !== '')}
+          <div class="mt-1 flex min-h-[1.25rem] items-center justify-between gap-2">
+            {#if product.review_score != null}
+              <StarRating score={product.review_score} />
+            {:else}
+              <span></span>
+            {/if}
+            {#if product.price != null && product.price !== ''}
+              <PriceDisplay amount={product.price} />
+            {/if}
+          </div>
         {/if}
       </a>
     </li>
