@@ -9,91 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. ProductList: review score and price from products API [FE+BE] — DONE
-
-**3 sp.** When showing products in `ProductList`, include a review score and a
-price. Both values are returned in the product data for `GET
-/api/v1/products`, so the frontend does not need a separate call to
-`/api/v1/reviews`. Review score is the **median** review score; price is the
-**lowest** price. Both are computed on the backend when populating the
-products cache. **Important.**
-
-**Tasks:**
-- Backend: When building the products cache, compute per product (1) median
-  review score from reviews, (2) lowest price from purchases (or relevant
-  price source). Add `review_score` (or equivalent) and `price` (or
-  `lowest_price`) to the product payload for `GET /api/v1/products`. Document
-  in [api.md](api.md).
-- Frontend: Update `ProductList` to display review score and price from the
-  product data; remove any separate fetch to `/api/v1/reviews` for list
-  display. Update [spec.md](spec.md) if list behaviour is specified there.
-
-### 2. Product page and product list: show reviews and purchases of all users [FE+BE] — DONE
-
-**3 sp.** On the product detail page and in product list context, show
-reviews and purchases from **all users** (not only the current user). The
-spec requires the primary rating to be the global average from all reviews;
-the product page should list all users' reviews and purchases. **Important.**
-
-**Tasks:**
-- Backend: Optional `user_id` query param on `GET /api/v1/reviews` and
-  `GET /api/v1/purchases`. When omitted, no user filter (all users). When
-  set, filter by that user. Document in [api.md](api.md).
-- Frontend: Product detail page calls list reviews and list purchases with
-  product_id only (no user_id), so API returns all users' data. Manage
-  reviews/purchases pages pass current user id (from me()) so lists show
-  only current user's data. Update [spec.md](spec.md) if needed.
-
-### 3. Accessibility audit [FE]
-
-**2 sp.** Evaluate and fix accessibility issues across the frontend. For
-example: the dark/light mode switch and log-out messages are not clearly
-identifiable as clickable (e.g. no pointer cursor on hover, no focus/active
-affordance). **Important.** Do task 7 first so focus-visible styles are in
-place before the audit.
-
-**Tasks:**
-- Audit interactive elements: ensure clickable controls (theme toggle, log
-  out, buttons, links) use `cursor: pointer` (or equivalent) and have clear
-  focus/active states where appropriate.
-- Fix theme switch and log-out UI so they are recognisable as interactive
-  (cursor, aria, and/or visible affordance).
-- Optionally run axe or similar and address critical/serious findings; doc
-  any deferred items.
-
-### 4. Page titles for all pages [FE]
-
-**1 sp.** Ensure every page has a meaningful `<title>` for the browser tab,
-bookmarks, and accessibility. Home and product detail already have titles; add
-or standardise titles for category page, login, manage hub, and all manage
-list/form pages so every route sets a descriptive title.
-
-### 5. Replace emoji with Lucide icons in header and BackLink [FE]
-
-**1 sp.** Use the existing lucide-svelte library for header (menu, sun, moon)
-and BackLink (arrow) so the app has a consistent, accessible icon language
-instead of emoji that render differently across platforms.
-
-**Tasks:**
-- In +layout.svelte: replace ☰ with Menu, ☀ with Sun, ☾ with Moon; keep
-  aria-label/title for theme toggle.
-- In BackLink.svelte: replace "←" with ArrowLeft (or ChevronLeft), size
-  appropriately, aria-hidden="true" on the icon so the link label is the
-  screen-reader focus.
-
-### 6. Unify card and list styling on product detail page [FE]
-
-**1 sp.** Use the design system (pr-card and related utilities) for review
-cards and purchase history on the product detail page instead of ad-hoc
-Tailwind so all card-like surfaces share one visual language.
-
-**Tasks:**
-- In products/[id]/+page.svelte: style review cards with pr-card (or
-  variant) instead of inline rounded-lg border...; style purchase list
-  items with pr-card or the same list pattern used elsewhere so borders,
-  background, and hover align with the rest of the app.
-
-### 7. Design tokens and focus states in layout.css [FE]
+### 1. Design tokens and focus states in layout.css [FE]
 
 **2 sp.** Add a minimal design token layer (CSS custom properties for focus
 ring, optional spacing/transition) and visible focus-visible styles for
@@ -108,7 +24,56 @@ focus indicators (WCAG-friendly).
   .pr-btn-secondary and ensure interactive pr-card links have a visible
   focus style.
 
-### 8. Order categories alphabetically [FE+BE]
+### 2. Accessibility audit [FE]
+
+**2 sp.** Evaluate and fix accessibility issues across the frontend. For
+example: the dark/light mode switch and log-out messages are not clearly
+identifiable as clickable (e.g. no pointer cursor on hover, no focus/active
+affordance). **Important.** Do task 1 first so focus-visible styles are in
+place before the audit.
+
+**Tasks:**
+- Audit interactive elements: ensure clickable controls (theme toggle, log
+  out, buttons, links) use `cursor: pointer` (or equivalent) and have clear
+  focus/active states where appropriate.
+- Fix theme switch and log-out UI so they are recognisable as interactive
+  (cursor, aria, and/or visible affordance).
+- Optionally run axe or similar and address critical/serious findings; doc
+  any deferred items.
+
+### 3. Page titles for all pages [FE]
+
+**1 sp.** Ensure every page has a meaningful `<title>` for the browser tab,
+bookmarks, and accessibility. Home and product detail already have titles; add
+or standardise titles for category page, login, manage hub, and all manage
+list/form pages so every route sets a descriptive title.
+
+### 4. Replace emoji with Lucide icons in header and BackLink [FE]
+
+**1 sp.** Use the existing lucide-svelte library for header (menu, sun, moon)
+and BackLink (arrow) so the app has a consistent, accessible icon language
+instead of emoji that render differently across platforms.
+
+**Tasks:**
+- In +layout.svelte: replace ☰ with Menu, ☀ with Sun, ☾ with Moon; keep
+  aria-label/title for theme toggle.
+- In BackLink.svelte: replace "←" with ArrowLeft (or ChevronLeft), size
+  appropriately, aria-hidden="true" on the icon so the link label is the
+  screen-reader focus.
+
+### 5. Unify card and list styling on product detail page [FE]
+
+**1 sp.** Use the design system (pr-card and related utilities) for review
+cards and purchase history on the product detail page instead of ad-hoc
+Tailwind so all card-like surfaces share one visual language.
+
+**Tasks:**
+- In products/[id]/+page.svelte: style review cards with pr-card (or
+  variant) instead of inline rounded-lg border...; style purchase list
+  items with pr-card or the same list pattern used elsewhere so borders,
+  background, and hover align with the rest of the app.
+
+### 6. Order categories alphabetically [FE+BE]
 
 **1 sp.** Show categories in alphabetical order by name wherever they are
 listed (home, category page, API tree). Today the API and CLI return
@@ -124,20 +89,58 @@ categories in undefined or insertion order.
 - Frontend: Rely on API order; no change if backend returns sorted. If
   frontend sorts locally elsewhere, align with same rule (name ascending).
 
-### 9. Ratings accept one decimal place (e.g. 3.8) [FE] — DONE
+### 7. Category page: products from current category and all child categories [FE+BE]
 
-**1 sp.** Allow ratings to be entered and displayed with one decimal place
-(e.g. 3.8) in addition to whole numbers and existing half-step (3.5). The
-API already accepts decimal ratings; the frontend add/edit review forms
-should allow step 0.1 and validate 1–5 with one decimal place.
+**2 sp.** On the category page, show all products that belong to the current
+category **and** to any descendant category (full subtree). Use a depth limit
+(e.g. depth 5) for "child categories" to avoid unbounded trees.
 
 **Tasks:**
-- Frontend: In manage/reviews add and edit pages, set rating input
-  step=0.1 (or allow one decimal); validate 1 ≤ rating ≤ 5 and display
-  with one decimal where appropriate. Keep error message consistent
-  (e.g. "Rating must be between 1 and 5.").
-- Backend: Confirm validation accepts one-decimal values (e.g. 3.8);
-  document in [api.md](api.md) if not already stated.
+- Backend: **Done.** The API supports subtree via
+  `GET /api/v1/products?category_id=<uuid>` (no new query params): products
+  whose category is that category or any descendant, up to a named constant
+  depth; 404 when category not found or deleted. Documented in [api.md](api.md).
+- Frontend: category page keeps a single request
+  `GET /api/v1/products?category_id=<id>`; no need to fetch descendant IDs or
+  merge. Update [spec.md](spec.md) so category products are described as
+  "current + all descendant categories" (with depth limit); spec already
+  aligned.
+
+### 8. API error and request logging [BE]
+
+**2 sp.** Log API errors and optionally request/response status so that
+failures (e.g. 4xx/5xx) are visible in the backend process output. Currently
+handler errors are not logged.
+
+**Tasks:**
+- Add logging when a handler returns an error: e.g. a Tower middleware that
+  logs response status (and request method/path) for 4xx/5xx, or log at the
+  point where `ApiError` is returned. Use `tracing` (already in use at
+  startup); avoid logging sensitive data (e.g. no tokens or full bodies).
+- Prefer one consistent approach (middleware vs. per-handler); document in
+  README or dev docs how to enable debug logs if needed.
+
+### 9. ProductList styling: star rating, price, layout [FE]
+
+**2 sp.** Improve the design of ProductList so rating and price are shown
+attractively with reusable components and a compact, well-spaced layout.
+Apply UI designer principles: reusable components, clear visual hierarchy,
+accessibility (e.g. aria-label for star rating).
+
+**Tasks:**
+- Add a reusable star-rating component: displays a 1–5 score as 5 stars
+  with half and quarter star granularity (e.g. 4.25 shows 4 full, 1 quarter).
+  Star rating display follows API range (1–5, step 0.1); quarter/half star is
+  display granularity only, not a new rating step. Use in ProductList for
+  review_score; ensure accessible (e.g. aria-label).
+- Add a reusable price component: accepts amount string and appends the
+  euro symbol (e.g. "2.99" -> "2.99 EUR" or "2,99 €" per locale). Use in
+  ProductList for price.
+- In ProductList: remove the "Rating: " and "Price: " label prefixes; show
+  only the star rating and price components.
+- Layout: arrange name, brand, star rating, and price inside each list item
+  in a compact but attractive way with sufficient whitespace; keep pr-card
+  and design system consistency.
 
 ### 10. Category list: immediate children only with inline expand [FE+BE]
 
@@ -164,24 +167,7 @@ extra requests. Uses existing `depth=1` and `parent_id` from categories API.
   use full tree for dropdowns; do not switch them to depth=1. API must still
   support full tree when depth is omitted.
 
-### 11. Category page: products from current category and all child categories [FE+BE]
-
-**2 sp.** On the category page, show all products that belong to the current
-category **and** to any descendant category (full subtree). Use a depth limit
-(e.g. depth 5) for "child categories" to avoid unbounded trees.
-
-**Tasks:**
-- Backend: **Done.** The API supports subtree via
-  `GET /api/v1/products?category_id=<uuid>` (no new query params): products
-  whose category is that category or any descendant, up to a named constant
-  depth; 404 when category not found or deleted. Documented in [api.md](api.md).
-- Frontend: category page keeps a single request
-  `GET /api/v1/products?category_id=<id>`; no need to fetch descendant IDs or
-  merge. Update [spec.md](spec.md) so category products are described as
-  "current + all descendant categories" (with depth limit); spec already
-  aligned.
-
-### 12. Product detail page: inline add review and add purchase [FE]
+### 11. Product detail page: inline add review and add purchase [FE]
 
 **3 sp.** On the product detail page, allow the user to add a review or a
 purchase using an inline form (e.g. collapsible section or form below the
@@ -199,42 +185,6 @@ prefill product (and default variation for purchase) from the current page.
 - Ensure validation and error messages match existing manage pages; link to
   full manage flows for edit/delete. Update [spec.md](spec.md) if product
   page behaviour is specified there.
-
-### 13. API error and request logging [BE]
-
-**2 sp.** Log API errors and optionally request/response status so that
-failures (e.g. 4xx/5xx) are visible in the backend process output. Currently
-handler errors are not logged.
-
-**Tasks:**
-- Add logging when a handler returns an error: e.g. a Tower middleware that
-  logs response status (and request method/path) for 4xx/5xx, or log at the
-  point where `ApiError` is returned. Use `tracing` (already in use at
-  startup); avoid logging sensitive data (e.g. no tokens or full bodies).
-- Prefer one consistent approach (middleware vs. per-handler); document in
-  README or dev docs how to enable debug logs if needed.
-
-### 14. ProductList styling: star rating, price, layout [FE]
-
-**2 sp.** Improve the design of ProductList so rating and price are shown
-attractively with reusable components and a compact, well-spaced layout.
-Apply UI designer principles: reusable components, clear visual hierarchy,
-accessibility (e.g. aria-label for star rating).
-
-**Tasks:**
-- Add a reusable star-rating component: displays a 1–5 score as 5 stars
-  with half and quarter star granularity (e.g. 4.25 shows 4 full, 1 quarter).
-  Star rating display follows API range (1–5, step 0.1); quarter/half star is
-  display granularity only, not a new rating step. Use in ProductList for
-  review_score; ensure accessible (e.g. aria-label).
-- Add a reusable price component: accepts amount string and appends the
-  euro symbol (e.g. "2.99" -> "2.99 EUR" or "2,99 €" per locale). Use in
-  ProductList for price.
-- In ProductList: remove the "Rating: " and "Price: " label prefixes; show
-  only the star rating and price components.
-- Layout: arrange name, brand, star rating, and price inside each list item
-  in a compact but attractive way with sufficient whitespace; keep pr-card
-  and design system consistency.
 
 ---
 
