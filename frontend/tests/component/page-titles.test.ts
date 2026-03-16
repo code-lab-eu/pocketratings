@@ -38,6 +38,7 @@ describe('Page titles', () => {
     render(HomePage, {
       props: {
         data: {
+          categoriesTree: [],
           categories: [],
           items: [],
           query: '',

@@ -1,10 +1,42 @@
 import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import HomePage from '../../src/routes/+page.svelte';
 import type { PageData } from '../../src/routes/$types';
 import type { Category, Product } from '../../src/lib/types';
 
+const dairy: Category = {
+  id: 'cat-2',
+  ancestors: [{ id: 'cat-1', name: 'Food' }],
+  name: 'Dairy',
+  created_at: 0,
+  updated_at: 0,
+  deleted_at: null,
+  children: []
+};
+
+const food: Category = {
+  id: 'cat-1',
+  ancestors: [],
+  name: 'Food',
+  created_at: 0,
+  updated_at: 0,
+  deleted_at: null,
+  children: [dairy]
+};
+
+const drinks: Category = {
+  id: 'cat-3',
+  ancestors: [],
+  name: 'Drinks',
+  created_at: 0,
+  updated_at: 0,
+  deleted_at: null,
+  children: []
+};
+
 const defaultData: PageData = {
+  categoriesTree: [],
   categories: [],
   items: [],
   query: '',
@@ -52,22 +84,63 @@ describe('Home page', () => {
     expect(screen.getByText(/no products match/i)).toBeInTheDocument();
   });
 
-  it('shows category list when categories are provided', () => {
-    const food: Category = {
-      id: 'cat-1',
-      ancestors: [],
-      name: 'Food',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    const categories = [{ category: food, depth: 0 }];
+  it('shows only root categories initially (not children)', () => {
     render(HomePage, {
-      props: { data: { ...defaultData, categories } as PageData }
+      props: {
+        data: {
+          ...defaultData,
+          categoriesTree: [food, drinks]
+        } as PageData
+      }
     });
-    const link = screen.getByRole('link', { name: /food/i });
-    expect(link).toBeInTheDocument();
-    expect(link.getAttribute('href')).toContain('/categories/cat-1');
+    expect(screen.getByRole('link', { name: /food/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /drinks/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /dairy/i })).not.toBeInTheDocument();
+  });
+
+  it('shows expand button for category with children', () => {
+    render(HomePage, {
+      props: {
+        data: {
+          ...defaultData,
+          categoriesTree: [food, drinks]
+        } as PageData
+      }
+    });
+    expect(screen.getByRole('button', { name: /expand food/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /expand drinks/i })).not.toBeInTheDocument();
+  });
+
+  it('expands category to show children when expand button clicked', async () => {
+    const user = userEvent.setup();
+    render(HomePage, {
+      props: {
+        data: {
+          ...defaultData,
+          categoriesTree: [food, drinks]
+        } as PageData
+      }
+    });
+    expect(screen.queryByRole('link', { name: /dairy/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /expand food/i }));
+    expect(screen.getByRole('link', { name: /dairy/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /collapse food/i })).toBeInTheDocument();
+  });
+
+  it('collapses category when collapse button clicked', async () => {
+    const user = userEvent.setup();
+    render(HomePage, {
+      props: {
+        data: {
+          ...defaultData,
+          categoriesTree: [food, drinks]
+        } as PageData
+      }
+    });
+    await user.click(screen.getByRole('button', { name: /expand food/i }));
+    expect(screen.getByRole('link', { name: /dairy/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /collapse food/i }));
+    expect(screen.queryByRole('link', { name: /dairy/i })).not.toBeInTheDocument();
   });
 
   it('shows product list when items are provided', () => {
@@ -111,5 +184,25 @@ describe('Home page', () => {
     });
     const input = screen.getByRole('searchbox');
     expect(input).toHaveValue('milk');
+  });
+
+  it('shows flat filtered categories during search (no expand controls)', () => {
+    const flatCategories = [
+      { category: food, depth: 0 },
+      { category: dairy, depth: 1 }
+    ];
+    render(HomePage, {
+      props: {
+        data: {
+          ...defaultData,
+          categoriesTree: [food, drinks],
+          categories: flatCategories,
+          fullCategories: flatCategories,
+          query: 'dai'
+        } as PageData
+      }
+    });
+    expect(screen.queryByRole('button', { name: /expand/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /collapse/i })).not.toBeInTheDocument();
   });
 });

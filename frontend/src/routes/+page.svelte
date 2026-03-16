@@ -12,17 +12,50 @@
 
   let { data } = $props();
 
-  let displayedCategories = $state<CategoryWithDepth[]>([]);
+  let expandedIds = $state<string[]>([]);
+
   let displayedItems = $state<ProductListItem[]>([]);
   let displayedError = $state<string | null>(null);
   let searchQuery = $state('');
+  let searchCategories = $state<CategoryWithDepth[]>([]);
 
   $effect(() => {
-    displayedCategories = data.categories;
     displayedItems = data.items;
     displayedError = data.error;
     searchQuery = data.query;
+    searchCategories = data.categories;
   });
+
+  function buildDisplayList(tree: Category[], expanded: Set<string>, depth = 0): CategoryWithDepth[] {
+    const out: CategoryWithDepth[] = [];
+    for (const cat of tree) {
+      out.push({ category: cat, depth });
+      if (expanded.has(cat.id) && cat.children?.length) {
+        out.push(...buildDisplayList(cat.children, expanded, depth + 1));
+      }
+    }
+    return out;
+  }
+
+  let isSearching = $derived(searchQuery.trim() !== '');
+
+  let expandedSet = $derived(new Set(expandedIds));
+
+  let treeDisplayList = $derived(
+    buildDisplayList(data.categoriesTree ?? [], expandedSet)
+  );
+
+  let displayedCategories = $derived(
+    isSearching ? searchCategories : treeDisplayList
+  );
+
+  function handleToggle(category: Category) {
+    if (expandedIds.includes(category.id)) {
+      expandedIds = expandedIds.filter((id) => id !== category.id);
+    } else {
+      expandedIds = [...expandedIds, category.id];
+    }
+  }
 
   async function onQueryChange(q: string) {
     const path = resolve('/');
@@ -32,7 +65,7 @@
     }
 
     if (q === '') {
-      displayedCategories = data.categories;
+      searchCategories = data.categories;
       displayedItems = data.items;
       displayedError = data.error;
       searchQuery = '';
@@ -43,7 +76,7 @@
     try {
       const products = await listProducts({ q });
       const full = data.fullCategories ?? data.categories;
-      displayedCategories = full.filter(({ category }) =>
+      searchCategories = full.filter(({ category }) =>
         category.name.toLowerCase().includes(q.toLowerCase())
       );
       displayedItems = products.map((product) => ({ product }));
@@ -74,8 +107,15 @@
       </h2>
       {#if displayedCategories.length === 0}
         <p class="pr-text-muted">No categories match.</p>
-      {:else}
+      {:else if isSearching}
         <CategoryLinkList items={displayedCategories} basePath="categories" />
+      {:else}
+        <CategoryLinkList
+          items={displayedCategories}
+          basePath="categories"
+          expandedIds={expandedSet}
+          onToggle={handleToggle}
+        />
       {/if}
     </section>
 

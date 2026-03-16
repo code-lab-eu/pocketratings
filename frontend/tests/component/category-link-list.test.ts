@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import CategoryLinkList from '../../src/lib/CategoryLinkList.svelte';
 import type { Category } from '../../src/lib/types';
 
@@ -9,7 +10,17 @@ const cat1: Category = {
   name: 'Food',
   created_at: 0,
   updated_at: 0,
-  deleted_at: null
+  deleted_at: null,
+  children: [
+    {
+      id: 'c2',
+      ancestors: [{ id: 'c1', name: 'Food' }],
+      name: 'Dairy',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null
+    }
+  ]
 };
 
 const cat2: Category = {
@@ -19,6 +30,16 @@ const cat2: Category = {
   created_at: 0,
   updated_at: 0,
   deleted_at: null
+};
+
+const catLeaf: Category = {
+  id: 'c3',
+  ancestors: [],
+  name: 'Drinks',
+  created_at: 0,
+  updated_at: 0,
+  deleted_at: null,
+  children: []
 };
 
 describe('CategoryLinkList', () => {
@@ -54,5 +75,62 @@ describe('CategoryLinkList', () => {
     const list = document.querySelector('ul.space-y-2');
     expect(list).toBeInTheDocument();
     expect(list?.children).toHaveLength(0);
+  });
+
+  it('shows expand button when onToggle provided and category has children', () => {
+    const items = [{ category: cat1, depth: 0 }];
+    const onToggle = vi.fn();
+    render(CategoryLinkList, {
+      props: { items, basePath: 'categories', onToggle, expandedIds: new Set<string>() }
+    });
+    const expandBtn = screen.getByRole('button', { name: /expand food/i });
+    expect(expandBtn).toBeInTheDocument();
+  });
+
+  it('does not show expand button for leaf category (no children)', () => {
+    const items = [{ category: catLeaf, depth: 0 }];
+    const onToggle = vi.fn();
+    render(CategoryLinkList, {
+      props: { items, basePath: 'categories', onToggle, expandedIds: new Set<string>() }
+    });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('does not show expand button when onToggle is not provided', () => {
+    const items = [{ category: cat1, depth: 0 }];
+    render(CategoryLinkList, {
+      props: { items, basePath: 'categories' }
+    });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('calls onToggle with category when expand button clicked', async () => {
+    const user = userEvent.setup();
+    const items = [{ category: cat1, depth: 0 }];
+    const onToggle = vi.fn();
+    render(CategoryLinkList, {
+      props: { items, basePath: 'categories', onToggle, expandedIds: new Set<string>() }
+    });
+    await user.click(screen.getByRole('button', { name: /expand food/i }));
+    expect(onToggle).toHaveBeenCalledOnce();
+    expect(onToggle).toHaveBeenCalledWith(cat1);
+  });
+
+  it('shows collapse button when category is in expandedIds', () => {
+    const items = [{ category: cat1, depth: 0 }];
+    const onToggle = vi.fn();
+    render(CategoryLinkList, {
+      props: { items, basePath: 'categories', onToggle, expandedIds: new Set(['c1']) }
+    });
+    const collapseBtn = screen.getByRole('button', { name: /collapse food/i });
+    expect(collapseBtn).toBeInTheDocument();
+  });
+
+  it('does not show expand buttons for manage basePath even with onToggle', () => {
+    const items = [{ category: cat1, depth: 0 }];
+    render(CategoryLinkList, {
+      props: { items, basePath: 'manage/categories' }
+    });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

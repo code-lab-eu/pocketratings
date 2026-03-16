@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
 import { listCategories, listProducts } from '$lib/api';
 import { flattenCategories } from '$lib/categories';
-import type { Product } from '$lib/types';
+import type { Category, Product } from '$lib/types';
 
 /** Item for ProductList: product (review_score and price come from GET /api/v1/products). */
 export interface ProductListItem {
@@ -24,9 +24,10 @@ export const load: PageLoad = async ({ url }) => {
         );
     const fullCategories = flat;
     const items: ProductListItem[] = products.map((product) => ({ product }));
-    return { categories, items, query: q, error: null, fullCategories };
+    return { categoriesTree, categories, items, query: q, error: null, fullCategories };
   } catch (e) {
     return {
+      categoriesTree: [] as Category[],
       categories: [],
       items: [],
       query: q,
