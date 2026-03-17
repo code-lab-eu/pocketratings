@@ -122,6 +122,20 @@ describe('CategoryLinkList', () => {
       expect(spacer).toBeInTheDocument();
     });
 
+    it('uses hasChildrenOverride when provided to show or hide expand button', () => {
+      const onToggle = vi.fn();
+      render(CategoryLinkList, {
+        props: {
+          tree: [drinks],
+          hrefFor: testHref,
+          onToggle,
+          expandedIds: new Set<string>(),
+          hasChildrenOverride: () => true
+        }
+      });
+      expect(screen.getByRole('button', { name: /expand drinks/i })).toBeInTheDocument();
+    });
+
     it('calls onToggle with category when expand button clicked', async () => {
       const user = userEvent.setup();
       const onToggle = vi.fn();

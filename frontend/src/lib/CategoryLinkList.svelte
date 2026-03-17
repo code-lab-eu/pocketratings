@@ -10,12 +10,16 @@
     action?: import('svelte').Snippet<[Category]>;
     expandedIds?: Set<string>;
     onToggle?: (category: Category) => void;
+    /** When provided, used instead of category.children?.length for chevron visibility (e.g. lazy-load). */
+    hasChildrenOverride?: (category: Category) => boolean;
   }
 
-  let { items = [], tree, hrefFor, action, expandedIds, onToggle }: Props = $props();
+  let { items = [], tree, hrefFor, action, expandedIds, onToggle, hasChildrenOverride }: Props = $props();
 
   function hasChildren(category: Category): boolean {
-    return (category.children?.length ?? 0) > 0;
+    const fromData = (category.children?.length ?? 0) > 0;
+    if (hasChildrenOverride) return hasChildrenOverride(category) || fromData;
+    return fromData;
   }
 
   function isExpanded(id: string): boolean {

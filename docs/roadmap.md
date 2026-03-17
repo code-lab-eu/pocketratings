@@ -221,6 +221,8 @@ prefill product (and default variation for purchase) from the current page.
   full manage flows for edit/delete. Update [spec.md](spec.md) if product
   page behaviour is specified there.
 
+### 14. Make the search field more prominent
+
 ---
 
 ## Distant future

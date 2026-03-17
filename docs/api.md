@@ -192,8 +192,8 @@ Each category object has shape `{ id, name, ancestors, ... }`; `ancestors` is th
 Get a single category by ID.
 
 **Query parameters:**
-- `depth` (optional, integer): When **omitted**, the response includes **1 level of children**
-  (default). When `0`, `children` is empty. When `1`, `2`, `3`, ..., the response includes that
+- `depth` (optional, integer): When **omitted**, the response includes the **full subtree** of
+  children. When `0`, `children` is empty. When `1`, `2`, `3`, ..., the response includes that
   many levels of nested `children`.
 
 **Response:** `200 OK` (same shape as list item: `id`, `ancestors`, `name`, `created_at`,

@@ -39,7 +39,7 @@ pub struct ListCategoriesQuery {
 /// Query params for GET /api/v1/categories/:id (optional depth for nested children).
 #[derive(Debug, Default, Deserialize)]
 pub struct GetCategoryQuery {
-    /// When omitted, default 1 level of children. When 0, empty children. When 1, 2, 3, ..., that many levels.
+    /// When omitted, full subtree. When 0, empty children. When 1, 2, 3, ..., that many levels.
     #[serde(default)]
     pub depth: Option<u8>,
 }
@@ -179,7 +179,7 @@ pub async fn list_categories(
     Ok(Json(response))
 }
 
-/// GET /api/v1/categories/:id — get one category. Optional `?depth=N`: omitted = 1 level of children, 0 = none, 1+ = N levels.
+/// GET /api/v1/categories/:id — get one category. Optional `?depth=N`: omitted = full subtree, 0 = no children, 1+ = N levels.
 pub async fn get_category(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -194,16 +194,10 @@ pub async fn get_category(
     let children = if depth == Some(0) {
         Vec::new()
     } else {
-        let effective_depth = depth.unwrap_or(1);
         let all = db::category::get_all(&state.pool, false)
             .await
             .map_err(|e| map_db_error(&e))?;
-        let tree = db::category::Categories::from_list(
-            all,
-            Some(category.clone()),
-            Some(effective_depth),
-            false,
-        );
+        let tree = db::category::Categories::from_list(all, Some(category.clone()), depth, false);
         categories_to_response_list(&state.pool, &tree.children).await?
     };
 
@@ -1081,7 +1075,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_category_without_depth_returns_one_level_of_children() {
+    async fn get_category_without_depth_returns_full_subtree() {
         let (state, _dir) = test_pool().await;
         let app = route().with_state(state.clone());
         let create_body = serde_json::json!({ "name": "Root" });

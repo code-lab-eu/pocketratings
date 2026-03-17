@@ -1,12 +1,22 @@
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { within } from '@testing-library/dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CategoryPage from '../../src/routes/categories/[id]/+page.svelte';
 import type { PageData } from '../../src/routes/categories/[id]/$types';
 import type { Category, Product } from '../../src/lib/types';
 
+const getCategoryMock = vi.hoisted(() => vi.fn());
+vi.mock('$lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/lib/api')>();
+  return { ...actual, getCategory: (...args: unknown[]) => getCategoryMock(...args) };
+});
+
 describe('Category page', () => {
+  beforeEach(() => {
+    getCategoryMock.mockReset();
+  });
+
   const defaultData = {
     query: '',
     notFound: false,
@@ -221,6 +231,38 @@ describe('Category page', () => {
     const cheeseLink = screen.getByRole('link', { name: /cheese/i });
     expect(cheeseLink).toBeInTheDocument();
     expect(cheeseLink.getAttribute('href')).toContain('/categories/cat-3');
+  });
+
+  it('does not show expand button for leaf category (no children in data)', () => {
+    const category: Category = {
+      id: 'cat-1',
+      ancestors: [],
+      name: 'Food',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      children: [
+        {
+          id: 'cat-2',
+          ancestors: [{ id: 'cat-1', name: 'Food' }],
+          name: 'Dairy',
+          created_at: 0,
+          updated_at: 0,
+          deleted_at: null,
+          children: []
+        }
+      ]
+    };
+
+    render(CategoryPage, {
+      props: {
+        data: { category, items: [], ...defaultData }
+      }
+    });
+
+    expect(screen.queryByRole('button', { name: /expand dairy/i })).not.toBeInTheDocument();
+    const dairyLink = screen.getByRole('link', { name: /dairy/i });
+    expect(dairyLink.querySelector('[data-testid="chevron-spacer"]')).toBeInTheDocument();
   });
 
   it('shows breadcrumb with ancestor link when category has ancestors', () => {

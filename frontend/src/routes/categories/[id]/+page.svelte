@@ -32,11 +32,7 @@
   let isSearching = $derived(searchQuery.trim() !== '');
   let expandedSet = $derived(new Set(expandedIds));
 
-  let childCategoriesTree = $derived(
-    isSearching
-      ? []
-      : allChildren
-  );
+  let childCategoriesTree = $derived(isSearching ? [] : allChildren);
   let childCategoriesFlat = $derived(
     isSearching
       ? flattenCategories(allChildren).filter(({ category: c }) =>
@@ -44,6 +40,10 @@
       )
       : []
   );
+
+  function hasChildrenOverride(cat: Category): boolean {
+    return (cat.children?.length ?? 0) > 0;
+  }
 
   function handleToggle(cat: Category) {
     if (expandedIds.includes(cat.id)) {
@@ -142,6 +142,7 @@
           hrefFor={(id) => resolve('/categories/[id]', { id })}
           expandedIds={expandedSet}
           onToggle={handleToggle}
+          hasChildrenOverride={hasChildrenOverride}
         />
       </div>
     {/if}

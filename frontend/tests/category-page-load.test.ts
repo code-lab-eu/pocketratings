@@ -91,7 +91,7 @@ describe('Category page load', () => {
     });
   });
 
-  it('calls getCategory with depth 2 to load two levels of children for expandable list', async () => {
+  it('calls getCategory without depth to load full subtree for list and search', async () => {
     mocks.isValidUuid.mockReturnValue(true);
     mocks.getCategory.mockResolvedValue({
       id: categoryId,
@@ -112,6 +112,6 @@ describe('Category page load', () => {
     );
 
     expect(mocks.getCategory).toHaveBeenCalledTimes(1);
-    expect(mocks.getCategory).toHaveBeenCalledWith(categoryId, { depth: 2 });
+    expect(mocks.getCategory).toHaveBeenCalledWith(categoryId);
   });
 });
