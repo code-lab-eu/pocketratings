@@ -150,19 +150,7 @@ A subtle pulse animation on release provides tactile feedback.
 - Respect `prefers-reduced-motion` (skip pulse, keep instant
   fill).
 
-### 10. Page transitions with crossfade [FE]
-
-**1 sp.** Add a subtle page transition so navigations feel smooth
-instead of abrupt. Outgoing page fades out (120 ms) while
-incoming page fades in with a slight upward slide (180 ms, 8 px).
-Uses Svelte built-in `fade`/`fly` transitions keyed on pathname.
-
-**Tasks:**
-- In `+layout.svelte`, wrap `{@render children()}` in a keyed
-  block (`{#key $page.url.pathname}`) with `in:fly` / `out:fade`.
-- Respect `prefers-reduced-motion` (instant swap, no animation).
-
-### 11. Playful empty states with contextual icons [FE]
+### 10. Playful empty states with contextual icons [FE]
 
 **2 sp.** Enhance `EmptyState.svelte` with a small inline SVG
 icon above the message (magnifying glass for no search results,
@@ -180,7 +168,7 @@ fade-in + slide-up entrance animation plays on mount.
   and friendlier copy.
 - Respect `prefers-reduced-motion`.
 
-### 12. Animated sun/moon theme toggle [FE]
+### 11. Animated sun/moon theme toggle [FE]
 
 **1 sp.** Replace the static Unicode sun/moon characters in the
 header theme toggle with SVG icons that morph and rotate into
@@ -194,7 +182,7 @@ a crescent slides in; reverse for moon-to-sun.
 - Add rotation keyframes and reduced-motion override to
   `layout.css`.
 
-### 13. Search no-results state with personality [FE]
+### 12. Search no-results state with personality [FE]
 
 **1 sp.** When search returns zero categories and zero products,
 show a consolidated no-results state: a shrug character or small
