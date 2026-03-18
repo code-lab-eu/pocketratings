@@ -103,6 +103,35 @@ describe('Product detail page', () => {
     expect(currentSegment).toHaveTextContent(/milk.*acme/i);
   });
 
+  it('does not mutate ancestors array across re-renders (breadcrumb order regression)', () => {
+    const ancestors = [
+      { id: 'dairy-id', name: 'Dairy' },
+      { id: 'food-id', name: 'Food' }
+    ];
+    const productWithAncestors: ProductDetail = {
+      ...product,
+      category: { id: 'cheese-id', name: 'Cheese', ancestors }
+    };
+    const props = {
+      data: { ...defaultData, product: productWithAncestors } as PageData
+    };
+
+    const { unmount } = render(ProductDetailPage, { props });
+    unmount();
+    render(ProductDetailPage, { props });
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const links = nav.querySelectorAll('a');
+    expect(links).toHaveLength(4);
+    expect(links[0]).toHaveAccessibleName('Home');
+    expect(links[1]).toHaveAccessibleName('Food');
+    expect(links[2]).toHaveAccessibleName('Dairy');
+    expect(links[3]).toHaveAccessibleName('Cheese');
+
+    expect(ancestors[0].name).toBe('Dairy');
+    expect(ancestors[1].name).toBe('Food');
+  });
+
   it('shows reviews section with rating, text, and user name', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }

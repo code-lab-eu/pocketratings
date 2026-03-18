@@ -54,7 +54,7 @@
   {#if product}
     {@const breadcrumbSegments = [
       { label: 'Home', href: resolve('/') },
-      ...(product.category.ancestors ?? []).reverse().map((a) => ({
+      ...(product.category.ancestors ?? []).toReversed().map((a) => ({
         label: a.name,
         href: resolve(`/categories/${a.id}`)
       })),

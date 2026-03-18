@@ -340,6 +340,38 @@ describe('Category page', () => {
     expect(currentItem).toHaveTextContent('Goat cheese');
   });
 
+  it('does not mutate ancestors array across re-renders (breadcrumb order regression)', () => {
+    const ancestors = [
+      { id: 'cheese-id', name: 'Cheese' },
+      { id: 'dairy-id', name: 'Dairy' },
+      { id: 'food-id', name: 'Food' }
+    ];
+    const category: Category = {
+      id: 'goat-cheese-id',
+      ancestors,
+      name: 'Goat cheese',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null
+    };
+    const props = { data: { category, items: [], ...defaultData } };
+
+    const { unmount } = render(CategoryPage, { props });
+    unmount();
+    render(CategoryPage, { props });
+
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const links = within(nav).getAllByRole('link');
+    expect(links).toHaveLength(4);
+    expect(links[0]).toHaveAccessibleName('Home');
+    expect(links[1]).toHaveAccessibleName('Food');
+    expect(links[2]).toHaveAccessibleName('Dairy');
+    expect(links[3]).toHaveAccessibleName('Cheese');
+
+    expect(ancestors[0].name).toBe('Cheese');
+    expect(ancestors[2].name).toBe('Food');
+  });
+
   it('shows search form with action to current category', () => {
     const category: Category = {
       id: 'cat-search-1',
