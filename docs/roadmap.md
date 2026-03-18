@@ -130,6 +130,86 @@ prefill product (and default variation for purchase) from the current page.
   full manage flows for edit/delete. Update [spec.md](spec.md) if product
   page behaviour is specified there.
 
+### 9. Draggable star slider rating input [FE]
+
+**2 sp.** Replace the plain number input for review rating with a
+draggable star slider. A transparent native range input is layered
+over 5 SVG stars; stars fill continuously as the user drags. A
+floating label above the thumb shows the precise value (e.g. 3.8)
+in real time. On release the value snaps to the nearest 0.25.
+A subtle pulse animation on release provides tactile feedback.
+
+**Tasks:**
+- New component `StarRatingInput.svelte`: range input (min 1,
+  max 5, step 0.25) layered over SVG star row; floating numeric
+  label tracks thumb position; pulse keyframe on release.
+- Swap number input for `StarRatingInput` in
+  `manage/reviews/add/+page.svelte` and
+  `manage/reviews/[id]/+page.svelte`.
+- Add pulse keyframe and slider thumb styling to `layout.css`.
+- Respect `prefers-reduced-motion` (skip pulse, keep instant
+  fill).
+
+### 10. Page transitions with crossfade [FE]
+
+**1 sp.** Add a subtle page transition so navigations feel smooth
+instead of abrupt. Outgoing page fades out (120 ms) while
+incoming page fades in with a slight upward slide (180 ms, 8 px).
+Uses Svelte built-in `fade`/`fly` transitions keyed on pathname.
+
+**Tasks:**
+- In `+layout.svelte`, wrap `{@render children()}` in a keyed
+  block (`{#key $page.url.pathname}`) with `in:fly` / `out:fade`.
+- Respect `prefers-reduced-motion` (instant swap, no animation).
+
+### 11. Playful empty states with contextual icons [FE]
+
+**2 sp.** Enhance `EmptyState.svelte` with a small inline SVG
+icon above the message (magnifying glass for no search results,
+shopping cart for no purchases, star for no reviews, folder for
+no categories) and friendlier copy that encourages action.
+Icons use `currentColor` for theme compatibility. A subtle
+fade-in + slide-up entrance animation plays on mount.
+
+**Tasks:**
+- Add optional `icon` prop to `EmptyState.svelte`; add entrance
+  animation (fade + translateY).
+- Create small inline SVG icon set (4-5 icons, ~200-400 bytes
+  each) in `$lib/icons/` or directly in the component.
+- Update all `EmptyState` callsites with contextual icon choice
+  and friendlier copy.
+- Respect `prefers-reduced-motion`.
+
+### 12. Animated sun/moon theme toggle [FE]
+
+**1 sp.** Replace the static Unicode sun/moon characters in the
+header theme toggle with SVG icons that morph and rotate into
+each other on toggle (~400 ms, CSS-only). Sun rays retract while
+a crescent slides in; reverse for moon-to-sun.
+
+**Tasks:**
+- In `+layout.svelte`, replace Unicode chars with two layered
+  SVGs (sun and moon); toggle visibility and rotation via CSS
+  transition on a wrapper element.
+- Add rotation keyframes and reduced-motion override to
+  `layout.css`.
+
+### 13. Search no-results state with personality [FE]
+
+**1 sp.** When search returns zero categories and zero products,
+show a consolidated no-results state: a shrug character or small
+SVG illustration, the query echoed back ("Nothing found for
+'oat milk'"), a suggestion ("Try a shorter search or browse
+categories"), and a "Clear search" action that resets the field.
+
+**Tasks:**
+- In `+page.svelte` (home) and `categories/[id]/+page.svelte`,
+  add a consolidated no-results block when `isSearching` and
+  both lists are empty.
+- Optionally expose a `clear()` callback or method from
+  `SearchForm.svelte`.
+- Respect `prefers-reduced-motion` for any entrance animation.
+
 ---
 
 ## Distant future
