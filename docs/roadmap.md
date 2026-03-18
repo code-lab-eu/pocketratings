@@ -9,71 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Design tokens and focus states in layout.css [FE] — DONE
-
-**2 sp.** Add a minimal design token layer (CSS custom properties for focus
-ring, optional spacing/transition) and visible focus-visible styles for
-buttons and card links so theming is easier and keyboard users get clear
-focus indicators (WCAG-friendly).
-
-**Tasks:**
-- In layout.css: add :root (and html.dark) variables for focus ring
-  (e.g. --pr-focus-ring-color, --pr-focus-ring-offset) and optionally
-  one or two spacing/transition tokens; use them in pr-btn-* and pr-card.
-- Add focus-visible:outline (and optionally ring) to .pr-btn-primary and
-  .pr-btn-secondary and ensure interactive pr-card links have a visible
-  focus style.
-
-### 2. Accessibility audit [FE] — DONE
-
-**2 sp.** Evaluate and fix accessibility issues across the frontend. For
-example: the dark/light mode switch and log-out messages are not clearly
-identifiable as clickable (e.g. no pointer cursor on hover, no focus/active
-affordance). **Important.** Do task 1 first so focus-visible styles are in
-place before the audit.
-
-**Tasks:**
-- Audit interactive elements: ensure clickable controls (theme toggle, log
-  out, buttons, links) use `cursor: pointer` (or equivalent) and have clear
-  focus/active states where appropriate.
-- Fix theme switch and log-out UI so they are recognisable as interactive
-  (cursor, aria, and/or visible affordance).
-- Optionally run axe or similar and address critical/serious findings; doc
-  any deferred items.
-
-### 3. Page titles for all pages [FE] — DONE
-
-**1 sp.** Ensure every page has a meaningful `<title>` for the browser tab,
-bookmarks, and accessibility. Home and product detail already have titles; add
-or standardise titles for category page, login, manage hub, and all manage
-list/form pages so every route sets a descriptive title.
-
-### 4. Replace emoji with Lucide icons in header and BackLink [FE]
-
-**1 sp.** Use the existing lucide-svelte library for header (menu, sun, moon)
-and BackLink (arrow) so the app has a consistent, accessible icon language
-instead of emoji that render differently across platforms.
-
-**Tasks:**
-- In +layout.svelte: replace ☰ with Menu, ☀ with Sun, ☾ with Moon; keep
-  aria-label/title for theme toggle.
-- In BackLink.svelte: replace "←" with ArrowLeft (or ChevronLeft), size
-  appropriately, aria-hidden="true" on the icon so the link label is the
-  screen-reader focus.
-
-### 5. Unify card and list styling on product detail page [FE]
-
-**1 sp.** Use the design system (pr-card and related utilities) for review
-cards and purchase history on the product detail page instead of ad-hoc
-Tailwind so all card-like surfaces share one visual language.
-
-**Tasks:**
-- In products/[id]/+page.svelte: style review cards with pr-card (or
-  variant) instead of inline rounded-lg border...; style purchase list
-  items with pr-card or the same list pattern used elsewhere so borders,
-  background, and hover align with the rest of the app.
-
-### 6. Order categories alphabetically [FE+BE]
+### 1. Order categories alphabetically [FE+BE]
 
 **1 sp.** Show categories in alphabetical order by name wherever they are
 listed (home, category page, API tree). Today the API and CLI return
@@ -89,24 +25,79 @@ categories in undefined or insertion order.
 - Frontend: Rely on API order; no change if backend returns sorted. If
   frontend sorts locally elsewhere, align with same rule (name ascending).
 
-### 7. Category page: products from current category and all child categories [FE+BE] — DONE
+### 2. Frontend code quality review [FE]
 
-**2 sp.** On the category page, show all products that belong to the current
-category **and** to any descendant category (full subtree). Use a depth limit
-(e.g. depth 5) for "child categories" to avoid unbounded trees.
+**2 sp.** Systematic review of all frontend components and pages for code
+smells: duplication, unnecessary complexity, disproportionate code, and
+carry-forward debt from earlier iterations. Fix issues found and ensure
+adherence to the code-quality-review rule. **Important.**
 
 **Tasks:**
-- Backend: **Done.** The API supports subtree via
-  `GET /api/v1/products?category_id=<uuid>` (no new query params): products
-  whose category is that category or any descendant, up to a named constant
-  depth; 404 when category not found or deleted. Documented in [api.md](api.md).
-- Frontend: category page keeps a single request
-  `GET /api/v1/products?category_id=<id>`; no need to fetch descendant IDs or
-  merge. Update [spec.md](spec.md) so category products are described as
-  "current + all descendant categories" (with depth limit); spec already
-  aligned.
+- Review all files in `src/lib/` and `src/routes/` for duplication (blocks
+  that differ by one or two values), unnecessary complexity, and
+  proportionality (amount of code vs what it does).
+- Review test fixtures for clarity: meaningful names, no redundant/confusing
+  duplicates.
+- Fix all issues found; run full frontend QC after each file.
 
-### 8. API error and request logging [BE]
+### 3. Replace emoji with Lucide icons in header and BackLink [FE]
+
+**1 sp.** Use the existing lucide-svelte library for header (menu, sun, moon)
+and BackLink (arrow) so the app has a consistent, accessible icon language
+instead of emoji that render differently across platforms.
+
+**Tasks:**
+- In +layout.svelte: replace ☰ with Menu, ☀ with Sun, ☾ with Moon; keep
+  aria-label/title for theme toggle.
+- In BackLink.svelte: replace "←" with ArrowLeft (or ChevronLeft), size
+  appropriately, aria-hidden="true" on the icon so the link label is the
+  screen-reader focus.
+
+### 4. Unify card and list styling on product detail page [FE]
+
+**1 sp.** Use the design system (pr-card and related utilities) for review
+cards and purchase history on the product detail page instead of ad-hoc
+Tailwind so all card-like surfaces share one visual language.
+
+**Tasks:**
+- In products/[id]/+page.svelte: style review cards with pr-card (or
+  variant) instead of inline rounded-lg border...; style purchase list
+  items with pr-card or the same list pattern used elsewhere so borders,
+  background, and hover align with the rest of the app.
+
+### 5. Make reusable components route-agnostic [FE]
+
+**1 sp.** `ProductList` hardcodes `/products/[id]` in its href;
+`EmptyState` calls `resolve()` internally instead of receiving a
+pre-resolved href. Reusable components should have no route
+knowledge -- the caller owns route resolution. Follow the pattern
+established in `CategoryLinkList` (`hrefFor` callback or
+pre-resolved href string). Prefer doing this before adding new
+ProductList callsites so href wiring stays in one place per page.
+
+**Tasks:**
+- `ProductList`: replace hardcoded
+  `resolve('/products/${product.id}')` with a caller-provided
+  `hrefFor: (id: string) => string` prop.
+- `EmptyState`: accept a pre-resolved `href` string instead of
+  calling `resolve()` internally; move `resolve()` to callsites.
+- Remove `import { resolve } from '$app/paths'` from both
+  components after the change.
+
+### 6. Make the search field more prominent [FE]
+
+**1 sp.** Home and category pages already expose search per [spec.md](spec.md);
+improve visual hierarchy so the search input reads as a primary control
+(larger tap target, clearer label or placeholder, spacing) without adding a
+separate search route.
+
+**Tasks:**
+- Audit home and category page layout: compare search prominence to spec
+  ("prominent search bar" on home; search on category).
+- Adjust styles (and minimal markup if needed) so search is easy to find;
+  keep debounced behaviour and API usage unchanged.
+
+### 7. API error and request logging [BE]
 
 **2 sp.** Log API errors and optionally request/response status so that
 failures (e.g. 4xx/5xx) are visible in the backend process output. Currently
@@ -120,89 +111,7 @@ handler errors are not logged.
 - Prefer one consistent approach (middleware vs. per-handler); document in
   README or dev docs how to enable debug logs if needed.
 
-### 9. ProductList styling: star rating, price, layout [FE] — DONE
-
-**2 sp.** Improve the design of ProductList so rating and price are shown
-attractively with reusable components and a compact, well-spaced layout.
-Apply UI designer principles: reusable components, clear visual hierarchy,
-accessibility (e.g. aria-label for star rating).
-
-**Tasks:**
-- Add a reusable star-rating component: displays a 1–5 score as 5 stars
-  with half and quarter star granularity (e.g. 4.25 shows 4 full, 1 quarter).
-  Star rating display follows API range (1–5, step 0.1); quarter/half star is
-  display granularity only, not a new rating step. Use in ProductList for
-  review_score; ensure accessible (e.g. aria-label).
-- Add a reusable price component: accepts amount string and appends the
-  euro symbol (e.g. "2.99" -> "2.99 EUR" or "2,99 €" per locale). Use in
-  ProductList for price.
-- In ProductList: remove the "Rating: " and "Price: " label prefixes; show
-  only the star rating and price components.
-- Layout: arrange name, brand, star rating, and price inside each list item
-  in a compact but attractive way with sufficient whitespace; keep pr-card
-  and design system consistency.
-
-### 10. Category list: immediate children only with inline expand [FE+BE]
-
-**3 sp.** On the homepage and on category pages, the category list shows only
-**immediate children** (one level), not the full tree. Each category in the
-list can be **expanded inline** via a link/control that loads and shows its
-children; this expand control is shown **only if the category has children**.
-Requires the REST API to expose a **`has_children: bool`** on each category in
-list/detail responses so the frontend can show/hide the expand link without
-extra requests. Uses existing `depth=1` and `parent_id` from categories API.
-
-**Tasks:**
-- Backend: Add `has_children: bool` to category payloads returned by the
-  REST API (list and by-id). Compute from existence of any non-deleted child
-  category. Document in [api.md](api.md).
-- Frontend (home + category page): Request only direct children (e.g.
-  `depth=1` (available); or use `parent_id` and ensure only one level is
-  shown). Render each category with an expand control only when
-  `has_children === true`. On expand, fetch children for that category and
-  render them inline (nested or indented). Update [spec.md](spec.md) so
-  category list behaviour is "immediate children only; expand to show
-  children inline when present."
-- Manage pages (category parent select, product category select) continue to
-  use full tree for dropdowns; do not switch them to depth=1. API must still
-  support full tree when depth is omitted.
-
-### 11. Make reusable components route-agnostic [FE]
-
-**1 sp.** `ProductList` hardcodes `/products/[id]` in its href;
-`EmptyState` calls `resolve()` internally instead of receiving a
-pre-resolved href. Reusable components should have no route
-knowledge -- the caller owns route resolution. Follow the pattern
-established in `CategoryLinkList` (`hrefFor` callback or
-pre-resolved href string).
-
-**Tasks:**
-- `ProductList`: replace hardcoded
-  `resolve('/products/${product.id}')` with a caller-provided
-  `hrefFor: (id: string) => string` prop.
-- `EmptyState`: accept a pre-resolved `href` string instead of
-  calling `resolve()` internally; move `resolve()` to callsites.
-- Remove `import { resolve } from '$app/paths'` from both
-  components after the change.
-
-### 12. Frontend code quality review [FE]
-
-**2 sp.** Systematic review of all frontend components and pages
-for code smells: duplication, unnecessary complexity,
-disproportionate code, and carry-forward debt from earlier
-iterations. Fix issues found and ensure adherence to the
-code-quality-review rule.
-
-**Tasks:**
-- Review all files in `src/lib/` and `src/routes/` for
-  duplication (blocks that differ by one or two values),
-  unnecessary complexity, and proportionality (amount of code
-  vs what it does).
-- Review test fixtures for clarity: meaningful names, no
-  redundant/confusing duplicates.
-- Fix all issues found; run full frontend QC after each file.
-
-### 13. Product detail page: inline add review and add purchase [FE]
+### 8. Product detail page: inline add review and add purchase [FE]
 
 **3 sp.** On the product detail page, allow the user to add a review or a
 purchase using an inline form (e.g. collapsible section or form below the
@@ -220,8 +129,6 @@ prefill product (and default variation for purchase) from the current page.
 - Ensure validation and error messages match existing manage pages; link to
   full manage flows for edit/delete. Update [spec.md](spec.md) if product
   page behaviour is specified there.
-
-### 14. Make the search field more prominent
 
 ---
 
