@@ -123,7 +123,7 @@ pub fn set_category_list_cache_for_test(list: Option<Vec<Category>>) {
 /// Fetch all categories from the database (active and soft-deleted). Used to fill the cache.
 async fn fetch_all_categories_raw(pool: &SqlitePool) -> Result<Vec<Category>, crate::db::DbError> {
     let rows = sqlx::query(
-        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories",
+        "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories ORDER BY name",
     )
     .fetch_all(pool)
     .await?;
@@ -166,10 +166,11 @@ fn children_for(
     if remaining_depth == Some(0) {
         return Vec::new();
     }
-    let list = match map.get(&parent_id) {
+    let mut list = match map.get(&parent_id) {
         Some(v) => v.clone(),
         None => return Vec::new(),
     };
+    list.sort_by(|a, b| a.name().cmp(b.name()));
     let next_depth = remaining_depth.map(|n| n.saturating_sub(1));
     list.into_iter()
         .map(|c| Categories {
@@ -383,7 +384,7 @@ pub async fn get_children(
         Some(pid) => {
             let parent_str = pid.to_string();
             sqlx::query(
-                "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE parent_id = ? AND deleted_at IS NULL",
+                "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE parent_id = ? AND deleted_at IS NULL ORDER BY name",
             )
             .bind(&parent_str)
             .fetch_all(pool)
@@ -391,7 +392,7 @@ pub async fn get_children(
         }
         None => {
             sqlx::query(
-                "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE parent_id IS NULL AND deleted_at IS NULL",
+                "SELECT id, parent_id, name, created_at, updated_at, deleted_at FROM categories WHERE parent_id IS NULL AND deleted_at IS NULL ORDER BY name",
             )
             .fetch_all(pool)
             .await?
@@ -957,6 +958,40 @@ mod tests {
         let sub = tree.find_subtree_by_id(root_id).unwrap();
         let ids = sub.collect_ids_to_depth(1);
         assert_eq!(ids, vec![root_id]);
+    }
+
+    #[test]
+    fn from_list_siblings_sorted_by_name() {
+        let flat = vec![
+            make_category(Uuid::new_v4(), None, "Cherry"),
+            make_category(Uuid::new_v4(), None, "Apple"),
+            make_category(Uuid::new_v4(), None, "Banana"),
+        ];
+        let tree = Categories::from_list(flat, None, None, false);
+        let names: Vec<&str> = tree
+            .children
+            .iter()
+            .map(|n| n.category.as_ref().unwrap().name())
+            .collect();
+        assert_eq!(names, vec!["Apple", "Banana", "Cherry"]);
+    }
+
+    #[test]
+    fn from_list_nested_siblings_sorted_by_name() {
+        let parent_id = Uuid::new_v4();
+        let flat = vec![
+            make_category(parent_id, None, "Parent"),
+            make_category(Uuid::new_v4(), Some(parent_id), "Zebra"),
+            make_category(Uuid::new_v4(), Some(parent_id), "Alpha"),
+            make_category(Uuid::new_v4(), Some(parent_id), "Mango"),
+        ];
+        let tree = Categories::from_list(flat, None, None, false);
+        let child_names: Vec<&str> = tree.children[0]
+            .children
+            .iter()
+            .map(|n| n.category.as_ref().unwrap().name())
+            .collect();
+        assert_eq!(child_names, vec!["Alpha", "Mango", "Zebra"]);
     }
 
     #[test]

@@ -155,7 +155,12 @@ Returns the current authenticated user's id and name (e.g. for display in the fr
 
 #### `GET /api/v1/categories`
 
-List categories as a **nested tree**. Each category object includes a `children` array of the same shape (nested categories). Top-level array: root categories when `parent_id` is omitted, or direct children of the given parent when `parent_id` is set.
+List categories as a **nested tree**. Each category object includes
+a `children` array of the same shape (nested categories). Top-level
+array: root categories when `parent_id` is omitted, or direct
+children of the given parent when `parent_id` is set. Categories
+are sorted alphabetically by name (ascending) at each level of the
+tree.
 
 **Query parameters:**
 - `parent_id` (optional, UUID): When set, the top-level array is the direct children of this category. Omit for the full tree (roots at top level).
@@ -189,11 +194,13 @@ Each category object has shape `{ id, name, ancestors, ... }`; `ancestors` is th
 
 #### `GET /api/v1/categories/:id`
 
-Get a single category by ID.
+Get a single category by ID. Children are sorted alphabetically
+by name at each level.
 
 **Query parameters:**
-- `depth` (optional, integer): When **omitted**, the response includes the **full subtree** of
-  children. When `0`, `children` is empty. When `1`, `2`, `3`, ..., the response includes that
+- `depth` (optional, integer): When **omitted**, the response
+  includes the **full subtree** of children. When `0`, `children`
+  is empty. When `1`, `2`, `3`, ..., the response includes that
   many levels of nested `children`.
 
 **Response:** `200 OK` (same shape as list item: `id`, `ancestors`, `name`, `created_at`,

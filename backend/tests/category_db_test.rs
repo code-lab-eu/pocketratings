@@ -534,6 +534,70 @@ async fn category_get_by_id_uses_cache_when_warm() {
     );
 }
 
+#[tokio::test]
+async fn get_all_returns_categories_sorted_by_name() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("category_sorted_all.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let now = 1_000_i64;
+    for name in ["Zebra", "Apple", "Mango"] {
+        let cat =
+            Category::new(Uuid::new_v4(), None, name.to_string(), now, now, None).expect("valid");
+        db::category::insert(&pool, &cat).await.expect("insert");
+    }
+
+    let all = db::category::get_all(&pool, false).await.expect("get_all");
+    let names: Vec<&str> = all.iter().map(Category::name).collect();
+    assert_eq!(names, vec!["Apple", "Mango", "Zebra"]);
+}
+
+#[tokio::test]
+async fn get_children_returns_children_sorted_by_name() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("category_sorted_children.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let parent_id = Uuid::new_v4();
+    let now = 1_000_i64;
+    let parent =
+        Category::new(parent_id, None, "Parent".to_string(), now, now, None).expect("valid");
+    db::category::insert(&pool, &parent)
+        .await
+        .expect("insert parent");
+
+    for name in ["Zebra", "Apple", "Mango"] {
+        let cat = Category::new(
+            Uuid::new_v4(),
+            Some(parent_id),
+            name.to_string(),
+            now + 1,
+            now + 1,
+            None,
+        )
+        .expect("valid");
+        db::category::insert(&pool, &cat).await.expect("insert");
+    }
+
+    let children = db::category::get_children(&pool, Some(parent_id))
+        .await
+        .expect("get_children");
+    let names: Vec<&str> = children.iter().map(Category::name).collect();
+    assert_eq!(names, vec!["Apple", "Mango", "Zebra"]);
+
+    let roots = db::category::get_children(&pool, None)
+        .await
+        .expect("get_children(None)");
+    assert_eq!(roots.len(), 1);
+    assert_eq!(roots[0].name(), "Parent");
+}
+
 struct CacheTestGuard;
 
 impl Drop for CacheTestGuard {

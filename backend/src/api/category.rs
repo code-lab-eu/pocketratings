@@ -972,6 +972,50 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_categories_returns_siblings_sorted_by_name() {
+        let (state, _dir) = test_pool().await;
+        let app = route().with_state(state);
+        for name in ["Zebra", "Apple", "Mango"] {
+            let body = serde_json::json!({ "name": name });
+            let _ = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri("/api/v1/categories")
+                        .header("content-type", "application/json")
+                        .body(Body::from(serde_json::to_vec(&body).expect("json")))
+                        .expect("request"),
+                )
+                .await
+                .expect("service");
+        }
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/categories")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("service");
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response
+            .into_body()
+            .collect()
+            .await
+            .expect("body")
+            .to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+        let arr = json.as_array().expect("array");
+        let names: Vec<&str> = arr
+            .iter()
+            .map(|v| v.get("name").and_then(|n| n.as_str()).expect("name"))
+            .collect();
+        assert_eq!(names, vec!["Apple", "Mango", "Zebra"]);
+    }
+
+    #[tokio::test]
     async fn create_category_returns_404_when_parent_missing() {
         let (state, _dir) = test_pool().await;
         let app = route().with_state(state);
