@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { ApiClientError, isValidUuid, getCategory, listCategories } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 
 export const load: PageLoad = async ({ params }) => {
   const id = params.id;
@@ -15,7 +16,7 @@ export const load: PageLoad = async ({ params }) => {
       category: null,
       categories: [],
       notFound,
-      error: e instanceof Error ? e.message : String(e)
+      error: errorMessage(e)
     };
   }
 };

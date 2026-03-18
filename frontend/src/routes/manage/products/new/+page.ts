@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { listCategories } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 
 export const load: PageLoad = async ({ url }) => {
   const categoryId = url.searchParams.get('category_id') ?? null;
@@ -10,7 +11,7 @@ export const load: PageLoad = async ({ url }) => {
     return {
       categories: [],
       categoryId,
-      error: e instanceof Error ? e.message : String(e)
+      error: errorMessage(e)
     };
   }
 };

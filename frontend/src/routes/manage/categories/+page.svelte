@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { deleteCategory } from '$lib/api';
+  import { errorMessage } from '$lib/utils/formatters';
   import { flattenCategories } from '$lib/categories';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
@@ -25,7 +26,7 @@
       await deleteCategory(c.id);
       await goto(resolve('/manage/categories'), { invalidateAll: true });
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+      alert(errorMessage(e));
     } finally {
       deletingId = null;
     }

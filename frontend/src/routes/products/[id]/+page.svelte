@@ -3,7 +3,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import FormError from '$lib/FormError.svelte';
-  import { formatRating, formatVariationDisplay } from '$lib/utils/formatters';
+  import { formatDate, formatProductDisplayName, formatRating, formatVariationDisplay } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
   let { data } = $props();
@@ -42,22 +42,11 @@
     return groups;
   });
 
-  function formatDate(unixSeconds: number): string {
-    return new Date(unixSeconds * 1000).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  }
-
-  function productDisplayName(p: { brand: string; name: string }): string {
-    return p.brand ? `${p.brand} - ${p.name}` : p.name;
-  }
 </script>
 
 <svelte:head>
   <title>
-    {product ? `${productDisplayName(product)} — Pocket Ratings` : 'Product — Pocket Ratings'}
+    {product ? `${formatProductDisplayName(product)} — Pocket Ratings` : 'Product — Pocket Ratings'}
   </title>
 </svelte:head>
 
@@ -70,7 +59,7 @@
         href: resolve(`/categories/${a.id}`)
       })),
       { label: product.category.name, href: resolve('/categories/[id]', { id: product.category.id }) },
-      { label: productDisplayName(product) }
+      { label: formatProductDisplayName(product) }
     ]}
     <Breadcrumb segments={breadcrumbSegments} />
   {:else}

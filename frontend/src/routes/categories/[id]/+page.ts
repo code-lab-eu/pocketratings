@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { ApiClientError, isValidUuid, getCategory, listProducts } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 import type { Product } from '$lib/types';
 
 /** Item for ProductList: product (review_score and price from GET /api/v1/products). */
@@ -27,7 +28,7 @@ export const load: PageLoad = async ({ params, url }) => {
       items: [],
       query: q,
       notFound,
-      error: e instanceof Error ? e.message : String(e)
+      error: errorMessage(e)
     };
   }
 };

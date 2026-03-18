@@ -73,7 +73,7 @@ describe('Product detail page', () => {
     expect(categoryLinkInBreadcrumb).toHaveTextContent(/dairy/i);
     const currentSegment = nav.querySelector('[aria-current="page"]');
     expect(currentSegment).toBeInTheDocument();
-    expect(currentSegment).toHaveTextContent(/acme - milk/i);
+    expect(currentSegment).toHaveTextContent(/milk.*acme/i);
   });
 
   it('shows full breadcrumb with ancestors when product category has ancestors', () => {
@@ -100,7 +100,7 @@ describe('Product detail page', () => {
     expect(links[1]).toHaveAccessibleName('Food');
     expect(links[2]).toHaveAccessibleName('Dairy');
     const currentSegment = nav.querySelector('[aria-current="page"]');
-    expect(currentSegment).toHaveTextContent(/acme - milk/i);
+    expect(currentSegment).toHaveTextContent(/milk.*acme/i);
   });
 
   it('shows reviews section with rating, text, and user name', () => {

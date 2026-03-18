@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { deleteLocation } from '$lib/api';
+  import { errorMessage } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
@@ -23,7 +24,7 @@
       await deleteLocation(loc.id);
       await goto(resolve('/manage/locations'), { invalidateAll: true });
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+      alert(errorMessage(e));
     } finally {
       deletingId = null;
     }

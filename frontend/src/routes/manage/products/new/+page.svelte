@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { createProduct, UNIT_OPTIONS } from '$lib/api';
+  import { errorMessage } from '$lib/utils/formatters';
   import { flattenCategories } from '$lib/categories';
   import BackLink from '$lib/BackLink.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
@@ -73,7 +74,7 @@
       await createProduct(body);
       await goto(resolve('/manage/products'), { invalidateAll: true });
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      error = errorMessage(e);
     } finally {
       submitting = false;
     }

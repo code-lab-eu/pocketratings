@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { ApiClientError, isValidUuid, getProduct, listPurchases, listReviews } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 
 const empty = {
   product: null,
@@ -26,7 +27,7 @@ export const load: PageLoad = async ({ params }) => {
     return {
       ...empty,
       notFound,
-      error: e instanceof Error ? e.message : String(e)
+      error: errorMessage(e)
     };
   }
 };

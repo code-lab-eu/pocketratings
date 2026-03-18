@@ -18,3 +18,8 @@ export function flattenCategories(
   }
   return out;
 }
+
+/** Toggle an id in/out of an expanded-ids list (immutable). */
+export function toggleExpanded(ids: string[], id: string): string[] {
+  return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+}

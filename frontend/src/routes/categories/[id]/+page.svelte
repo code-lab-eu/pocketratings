@@ -1,10 +1,11 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { listProducts } from '$lib/api';
+  import { errorMessage } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import CategoryLinkList from '$lib/CategoryLinkList.svelte';
-  import { flattenCategories } from '$lib/categories';
+  import { flattenCategories, toggleExpanded } from '$lib/categories';
   import FormError from '$lib/FormError.svelte';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import ProductList from '$lib/ProductList.svelte';
@@ -46,11 +47,7 @@
   }
 
   function handleToggle(cat: Category) {
-    if (expandedIds.includes(cat.id)) {
-      expandedIds = expandedIds.filter((id) => id !== cat.id);
-    } else {
-      expandedIds = [...expandedIds, cat.id];
-    }
+    expandedIds = toggleExpanded(expandedIds, cat.id);
   }
 
   async function onQueryChange(q: string) {
@@ -74,7 +71,7 @@
       displayedItems = products.map((product) => ({ product }));
       displayedError = null;
     } catch (e) {
-      displayedError = e instanceof Error ? e.message : String(e);
+      displayedError = errorMessage(e);
     }
   }
 </script>

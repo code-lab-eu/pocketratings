@@ -140,7 +140,7 @@ describe('Page titles', () => {
         }
       }
     });
-    expect(document.title).toBe('Edit product: Acme - Milk' + APP_SUFFIX);
+    expect(document.title).toBe('Edit product: Milk \u2014 Acme' + APP_SUFFIX);
   });
 
   it('manage new product sets title', () => {

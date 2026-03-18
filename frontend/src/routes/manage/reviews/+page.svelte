@@ -6,7 +6,7 @@
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import ManageListRow from '$lib/ManageListRow.svelte';
-  import { formatRating } from '$lib/utils/formatters';
+  import { errorMessage, formatRating } from '$lib/utils/formatters';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
   import type { Review } from '$lib/types';
@@ -24,7 +24,7 @@
       await deleteReview(r.id);
       await goto(resolve('/manage/reviews'), { invalidateAll: true });
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+      alert(errorMessage(e));
     } finally {
       deletingId = null;
     }

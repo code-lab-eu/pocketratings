@@ -236,6 +236,37 @@ body {
     outline-offset: var(--pr-focus-ring-offset);
   }
 
+  .pr-btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid #fca5a5;
+    background-color: transparent;
+    color: #b91c1c;
+    cursor: pointer;
+    transition: background-color var(--pr-transition-fast);
+  }
+  .pr-btn-danger:hover:not(:disabled) {
+    background-color: #fef2f2;
+  }
+  .pr-btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .pr-btn-danger:focus-visible {
+    outline: var(--pr-focus-ring-width) solid var(--pr-focus-ring-color);
+    outline-offset: var(--pr-focus-ring-offset);
+  }
+  .dark .pr-btn-danger {
+    border-color: #ef4444;
+    color: #fca5a5;
+  }
+  .dark .pr-btn-danger:hover:not(:disabled) {
+    background-color: rgb(69 10 10 / 0.5);
+  }
+
   /* Icon/header-style button (theme toggle, log out, edit/delete icons) */
   .pr-btn-icon {
     display: inline-flex;

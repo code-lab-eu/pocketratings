@@ -2,8 +2,10 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { deleteCategory, updateCategory } from '$lib/api';
+  import { errorMessage } from '$lib/utils/formatters';
   import { flattenCategories } from '$lib/categories';
   import BackLink from '$lib/BackLink.svelte';
+  import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
@@ -49,7 +51,7 @@
       await updateCategory(category.id, { name: n, parent_id: parentId || null });
       await goto(resolve('/manage/categories'), { invalidateAll: true });
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     } finally {
       submitting = false;
     }
@@ -62,7 +64,7 @@
       await deleteCategory(category.id);
       await goto(resolve('/manage/categories'), { invalidateAll: true });
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     }
   }
 </script>
@@ -77,14 +79,11 @@
   <BackLink href={resolve('/manage/categories')} label="Categories" />
 
   {#if notFound}
-    <p class="pr-text-muted">Category not found.</p>
-    <p class="mt-2">
-      <a
-        href={resolve('/manage/categories')}
-        class="pr-link-inline"
-        >Back to categories</a
-      >
-    </p>
+    <NotFoundMessage
+      message="Category not found."
+      backHref={resolve('/manage/categories')}
+      backLabel="Back to categories"
+    />
   {:else if error}
     <FormError message={error} />
   {:else if category}
@@ -107,16 +106,10 @@
         <Button variant="secondary" href={resolve('/manage/categories')}>
           Cancel
         </Button>
-        <button
-          type="button"
-          onclick={handleDelete}
-          class="rounded-lg border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50 dark:border-red-500 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950"
-        >
+        <button type="button" onclick={handleDelete} class="pr-btn-danger">
           Delete
         </button>
       </div>
     </form>
-  {:else}
-    <p class="pr-text-muted">Category not found.</p>
   {/if}
 </main>

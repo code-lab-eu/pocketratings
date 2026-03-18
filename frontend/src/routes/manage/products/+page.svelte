@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { deleteProduct } from '$lib/api';
+  import { errorMessage, formatProductDisplayName } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
@@ -15,10 +16,6 @@
   let error = $derived(data.error);
   let deletingId = $state<string | null>(null);
 
-  function productLabel(p: Product): string {
-    return p.brand ? `${p.name} — ${p.brand}` : p.name;
-  }
-
   async function handleDelete(p: Product) {
     if (deletingId) return;
     if (!confirm(`Delete product "${p.name}"?`)) return;
@@ -27,7 +24,7 @@
       await deleteProduct(p.id);
       await goto(resolve('/manage/products'), { invalidateAll: true });
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+      alert(errorMessage(e));
     } finally {
       deletingId = null;
     }
@@ -60,7 +57,7 @@
     <ul class="space-y-2">
       {#each products as product (product.id)}
         <ManageListRow
-          label={productLabel(product)}
+          label={formatProductDisplayName(product)}
           viewHref={resolve('/products/[id]', { id: product.id })}
           editHref={resolve('/manage/products/[id]', { id: product.id })}
           deleteLabel={product.name}

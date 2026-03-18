@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatRating } from '$lib/utils/formatters';
+  import { formatRating, STAR_SVG_PATH } from '$lib/utils/formatters';
 
   /** Score 1-5 (display only). Renders nothing when null, undefined, or out of range. */
   let { score = null }: { score?: number | null } = $props();
@@ -35,9 +35,7 @@
               fill="currentColor"
               aria-hidden="true"
             >
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              />
+              <path d={STAR_SVG_PATH} />
             </svg>
           {:else if fill > 0}
             <svg
@@ -53,10 +51,7 @@
                   <stop offset="1" stop-color="var(--pr-text-subtle)" />
                 </linearGradient>
               </defs>
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                fill="url(#star-fill-{uid}-{i})"
-              />
+              <path d={STAR_SVG_PATH} fill="url(#star-fill-{uid}-{i})" />
             </svg>
           {:else}
             <svg
@@ -65,9 +60,7 @@
               fill="currentColor"
               aria-hidden="true"
             >
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              />
+              <path d={STAR_SVG_PATH} />
             </svg>
           {/if}
         </span>

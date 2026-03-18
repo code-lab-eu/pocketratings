@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Order categories alphabetically [FE+BE]
+### 1. Order categories alphabetically [FE+BE] -- DONE
 
 **1 sp.** Show categories in alphabetical order by name wherever they are
 listed (home, category page, API tree). Today the API and CLI return
@@ -25,7 +25,7 @@ categories in undefined or insertion order.
 - Frontend: Rely on API order; no change if backend returns sorted. If
   frontend sorts locally elsewhere, align with same rule (name ascending).
 
-### 2. Frontend code quality review [FE]
+### 2. Frontend code quality review [FE] -- DONE
 
 **2 sp.** Systematic review of all frontend components and pages for code
 smells: duplication, unnecessary complexity, disproportionate code, and

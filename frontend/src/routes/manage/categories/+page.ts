@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { listCategories } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 
 export const load: PageLoad = async () => {
   try {
@@ -8,7 +9,7 @@ export const load: PageLoad = async () => {
   } catch (e) {
     return {
       categories: [],
-      error: e instanceof Error ? e.message : String(e)
+      error: errorMessage(e)
     };
   }
 };

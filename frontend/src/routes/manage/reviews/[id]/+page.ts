@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { getReview } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 
 export const load: PageLoad = async ({ params }) => {
   try {
@@ -8,7 +9,7 @@ export const load: PageLoad = async ({ params }) => {
   } catch (e) {
     return {
       review: null,
-      error: e instanceof Error ? e.message : String(e)
+      error: errorMessage(e)
     };
   }
 };

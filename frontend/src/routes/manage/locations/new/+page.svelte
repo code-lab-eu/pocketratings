@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { createLocation } from '$lib/api';
+  import { errorMessage } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
@@ -25,7 +26,7 @@
       await createLocation({ name: n });
       await goto(resolve('/manage/locations'), { invalidateAll: true });
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      error = errorMessage(e);
     } finally {
       submitting = false;
     }

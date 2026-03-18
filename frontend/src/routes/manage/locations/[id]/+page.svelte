@@ -2,7 +2,9 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { deleteLocation, updateLocation } from '$lib/api';
+  import { errorMessage } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
+  import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
@@ -37,7 +39,7 @@
       await updateLocation(location.id, { name: n });
       await goto(resolve('/manage/locations'), { invalidateAll: true });
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     } finally {
       submitting = false;
     }
@@ -50,7 +52,7 @@
       await deleteLocation(location.id);
       await goto(resolve('/manage/locations'), { invalidateAll: true });
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     }
   }
 </script>
@@ -67,14 +69,11 @@
   <BackLink href={resolve('/manage/locations')} label="Locations" />
 
   {#if notFound}
-    <p class="pr-text-muted">Location not found.</p>
-    <p class="mt-2">
-      <a
-        href={resolve('/manage/locations')}
-        class="pr-link-inline"
-        >Back to locations</a
-      >
-    </p>
+    <NotFoundMessage
+      message="Location not found."
+      backHref={resolve('/manage/locations')}
+      backLabel="Back to locations"
+    />
   {:else if error}
     <FormError message={error} />
   {:else if location}
@@ -90,16 +89,10 @@
         <Button variant="secondary" href={resolve('/manage/locations')}>
           Cancel
         </Button>
-        <button
-          type="button"
-          onclick={handleDelete}
-          class="rounded-lg border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50 dark:border-red-500 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950"
-        >
+        <button type="button" onclick={handleDelete} class="pr-btn-danger">
           Delete
         </button>
       </div>
     </form>
-  {:else}
-    <p class="pr-text-muted">Location not found.</p>
   {/if}
 </main>

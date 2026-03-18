@@ -5,7 +5,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
-  import { formatVariationDisplay } from '$lib/utils/formatters';
+  import { errorMessage, formatDate, formatProductDisplayName, formatVariationDisplay } from '$lib/utils/formatters';
   import ManageListRow from '$lib/ManageListRow.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import Button from '$lib/Button.svelte';
@@ -16,14 +16,6 @@
   let error = $derived(data.error);
   let deletingId = $state<string | null>(null);
 
-  function purchaseLabel(p: Purchase): string {
-    const { product } = p;
-    return product.brand ? `${product.name} — ${product.brand}` : product.name;
-  }
-
-  function formatDate(ts: number): string {
-    return new Date(ts * 1000).toLocaleDateString();
-  }
 
   async function handleDelete(p: Purchase) {
     if (deletingId) return;
@@ -33,7 +25,7 @@
       await deletePurchase(p.id);
       await goto(resolve('/manage/purchases'), { invalidateAll: true });
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+      alert(errorMessage(e));
     } finally {
       deletingId = null;
     }
@@ -66,7 +58,7 @@
     <ul class="space-y-2">
       {#each purchases as purchase (purchase.id)}
         <ManageListRow
-          label={purchaseLabel(purchase)}
+          label={formatProductDisplayName(purchase.product)}
           editHref={resolve('/manage/purchases/[id]', { id: purchase.id })}
           deleteLabel="purchase"
           onDelete={() => handleDelete(purchase)}

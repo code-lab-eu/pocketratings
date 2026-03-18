@@ -7,17 +7,18 @@
     getProduct,
     createVariation,
     updateVariation,
-    deleteVariation,
-    UNIT_OPTIONS
+    deleteVariation
   } from '$lib/api';
   import type { ProductVariation } from '$lib/types';
-  import { formatVariationDisplay } from '$lib/utils/formatters';
+  import { errorMessage, formatProductDisplayName, formatVariationDisplay } from '$lib/utils/formatters';
   import { flattenCategories } from '$lib/categories';
   import BackLink from '$lib/BackLink.svelte';
+  import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import CategorySelect from '$lib/CategorySelect.svelte';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
+  import VariationForm from '$lib/VariationForm.svelte';
   import Button from '$lib/Button.svelte';
 
   let { data } = $props();
@@ -86,10 +87,6 @@
     return 'Delete variation';
   }
 
-  function productDisplayName(p: { brand: string; name: string }): string {
-    return p.brand ? `${p.brand} - ${p.name}` : p.name;
-  }
-
   async function handleSubmit(e: Event) {
     e.preventDefault();
     if (!product) return;
@@ -108,7 +105,7 @@
       await updateProduct(product.id, { name: n, brand: brand.trim(), category_id: categoryId });
       await goto(resolve('/manage/products'), { invalidateAll: true });
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     } finally {
       submitting = false;
     }
@@ -121,7 +118,7 @@
       await deleteProduct(product.id);
       await goto(resolve('/manage/products'), { invalidateAll: true });
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     }
   }
 
@@ -155,7 +152,7 @@
       await refetchVariations();
       addVariationOpen = false;
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     } finally {
       addSubmitting = false;
     }
@@ -195,7 +192,7 @@
       await refetchVariations();
       editingId = null;
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     } finally {
       editSubmitting = false;
     }
@@ -209,7 +206,7 @@
       await deleteVariation(v.id);
       await refetchVariations();
     } catch (e) {
-      formError = e instanceof Error ? e.message : String(e);
+      formError = errorMessage(e);
     }
   }
 </script>
@@ -217,7 +214,7 @@
 <svelte:head>
   <title>
     {product
-      ? `Edit product: ${productDisplayName(product)} — Pocket Ratings`
+      ? `Edit product: ${formatProductDisplayName(product)} — Pocket Ratings`
       : 'Product — Pocket Ratings'}
   </title>
 </svelte:head>
@@ -226,14 +223,11 @@
   <BackLink href={resolve('/manage/products')} label="Products" />
 
   {#if notFound}
-    <p class="pr-text-muted">Product not found.</p>
-    <p class="mt-2">
-      <a
-        href={resolve('/manage/products')}
-        class="pr-link-inline"
-        >Back to products</a
-      >
-    </p>
+    <NotFoundMessage
+      message="Product not found."
+      backHref={resolve('/manage/products')}
+      backLabel="Back to products"
+    />
   {:else if error}
     <FormError message={error} />
   {:else if product}
@@ -263,7 +257,7 @@
           disabled={productHasPurchases}
           title={productHasPurchases ? 'Cannot delete: product has purchases.' : undefined}
           onclick={handleDelete}
-          class="rounded-lg border border-red-300 px-4 py-2 text-red-700 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-red-50 dark:border-red-500 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950"
+          class="pr-btn-danger"
         >
           Delete
         </button>
@@ -280,40 +274,17 @@
         {#each variations as v (v.id)}
           {#if editingId === v.id}
             <li class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-800/50">
-              <form onsubmit={submitEdit} class="space-y-2">
-                <InputField id="edit-label-{v.id}" label="Label" bind:value={editLabel} />
-                <label for="edit-unit-{v.id}" class="mb-1 block text-sm font-medium">Unit</label>
-                <select
-                  id="edit-unit-{v.id}"
-                  bind:value={editUnit}
-                  class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-                >
-                  {#each UNIT_OPTIONS as opt (opt.value)}
-                    <option value={opt.value}>{opt.label}</option>
-                  {/each}
-                </select>
-                {#if editUnit !== 'none'}
-                  <InputField
-                    id="edit-quantity-{v.id}"
-                    label="Quantity"
-                    type="number"
-                    min="0"
-                    bind:value={editQuantity}
-                  />
-                {/if}
-                <div class="flex gap-2 pt-1">
-                  <Button type="submit" disabled={editSubmitting} variant="primary">
-                    {editSubmitting ? 'Saving…' : 'Save'}
-                  </Button>
-                  <button
-                    type="button"
-                    class="pr-btn-secondary"
-                    onclick={cancelEdit}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+              <VariationForm
+                idPrefix="edit-{v.id}"
+                bind:labelValue={editLabel}
+                bind:unit={editUnit}
+                bind:quantity={editQuantity}
+                onSubmit={submitEdit}
+                onCancel={cancelEdit}
+                submitting={editSubmitting}
+                submitLabel="Save"
+                submittingLabel="Saving..."
+              />
             </li>
           {:else}
             <li
@@ -333,7 +304,7 @@
                   title={deleteVariationTooltip(v)}
                   disabled={!canDeleteVariation(v)}
                   onclick={() => handleDeleteVariation(v)}
-                  class="rounded border border-red-300 px-3 py-1.5 text-sm text-red-700 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-red-50 dark:border-red-500 dark:text-red-300 dark:hover:bg-red-950"
+                  class="pr-btn-danger px-3 py-1.5 text-sm"
                 >
                   Delete
                 </button>
@@ -344,40 +315,17 @@
       </ul>
       {#if addVariationOpen}
         <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-800/50">
-          <form onsubmit={submitAddVariation} class="space-y-2">
-            <InputField id="add-label" label="Label" bind:value={addLabel} />
-            <label for="add-unit" class="mb-1 block text-sm font-medium">Unit</label>
-            <select
-              id="add-unit"
-              bind:value={addUnit}
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-            >
-              {#each UNIT_OPTIONS as opt (opt.value)}
-                <option value={opt.value}>{opt.label}</option>
-              {/each}
-            </select>
-            {#if addUnit !== 'none'}
-              <InputField
-                id="add-quantity"
-                label="Quantity"
-                type="number"
-                min="0"
-                bind:value={addQuantity}
-              />
-            {/if}
-            <div class="flex gap-2 pt-1">
-              <Button type="submit" disabled={addSubmitting} variant="primary">
-                {addSubmitting ? 'Adding…' : 'Add variation'}
-              </Button>
-              <button
-                type="button"
-                class="rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-                onclick={() => (addVariationOpen = false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+          <VariationForm
+            idPrefix="add"
+            bind:labelValue={addLabel}
+            bind:unit={addUnit}
+            bind:quantity={addQuantity}
+            onSubmit={submitAddVariation}
+            onCancel={() => (addVariationOpen = false)}
+            submitting={addSubmitting}
+            submitLabel="Add variation"
+            submittingLabel="Adding..."
+          />
         </div>
       {:else}
         <button
@@ -389,7 +337,5 @@
         </button>
       {/if}
     </section>
-  {:else}
-    <p class="pr-text-muted">Product not found.</p>
   {/if}
 </main>

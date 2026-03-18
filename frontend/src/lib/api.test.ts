@@ -42,6 +42,80 @@ describe('api', () => {
     vi.restoreAllMocks();
   });
 
+  function mockAuth() {
+    vi.mocked(auth.getToken).mockReturnValue('t');
+  }
+
+  function mockJsonResponse<T>(data: T, status = 200) {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(data), {
+        status,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+  }
+
+  function mockEmptyResponse(status = 200) {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('', { status }));
+  }
+
+  function categoryFixture(overrides?: Record<string, unknown>) {
+    return {
+      id: 'c1',
+      ancestors: [],
+      name: 'Food',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      ...overrides
+    };
+  }
+
+  function productFixture(overrides?: Record<string, unknown>) {
+    return {
+      id: 'p1',
+      category: { id: 'c1', name: 'Category', ancestors: [] },
+      brand: 'Brand',
+      name: 'Product',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      ...overrides
+    };
+  }
+
+  function purchaseFixture(overrides?: Record<string, unknown>) {
+    return {
+      id: 'pur1',
+      user: { id: 'u1', name: 'Alice' },
+      product: { id: 'p1', brand: 'Brand', name: 'Product' },
+      location: { id: 'loc1', name: 'Store' },
+      quantity: 1,
+      price: '2.99',
+      purchased_at: 1708012800,
+      deleted_at: null,
+      ...overrides
+    };
+  }
+
+  function reviewFixture(overrides?: Record<string, unknown>) {
+    return {
+      id: 'r1',
+      product: { id: 'p1', brand: 'B', name: 'Product' },
+      user: { id: 'u1', name: 'User' },
+      rating: 4,
+      text: 'Good',
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+      ...overrides
+    };
+  }
+
+  function locationFixture(overrides?: Record<string, unknown>) {
+    return { id: 'loc1', name: 'Store A', deleted_at: null, ...overrides };
+  }
+
   it('login sends POST to /api/v1/auth/login with JSON body and returns token on 200', async () => {
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce(
@@ -95,16 +169,9 @@ describe('api', () => {
 
   it('listCategories fetches GET /api/v1/categories and returns array', async () => {
     vi.mocked(auth.getToken).mockReturnValue('token');
+    const categories = [categoryFixture()];
+    mockJsonResponse(categories);
     const mockFetch = vi.mocked(fetch);
-    const categories = [
-      { id: 'c1', ancestors: [], name: 'Food', created_at: 0, updated_at: 0, deleted_at: null }
-    ];
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(categories), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    );
 
     const result = await listCategories();
 
@@ -115,11 +182,9 @@ describe('api', () => {
   });
 
   it('listCategories with parentId adds query param', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse([]);
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     await listCategories('parent-uuid');
 
@@ -127,19 +192,10 @@ describe('api', () => {
   });
 
   it('getCategory fetches GET /api/v1/categories/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const cat = categoryFixture({ id: 'cid', name: 'Drinks' });
+    mockJsonResponse(cat);
     const mockFetch = vi.mocked(fetch);
-    const cat = {
-      id: 'cid',
-      ancestors: [],
-      name: 'Drinks',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(cat), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await getCategory('cid');
 
@@ -149,14 +205,9 @@ describe('api', () => {
   });
 
   it('getCategory with depth adds query param', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse(categoryFixture({ id: 'c', name: 'C' }));
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ id: 'c', ancestors: [], name: 'C', created_at: 0, updated_at: 0, deleted_at: null }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    );
 
     await getCategory('c', { depth: 2 });
 
@@ -164,11 +215,9 @@ describe('api', () => {
   });
 
   it('listProducts with category_id fetches with query param', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse([]);
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     await listProducts({ category_id: 'cat-1' });
 
@@ -176,11 +225,9 @@ describe('api', () => {
   });
 
   it('listProducts with q fetches with query param', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse([]);
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     await listProducts({ q: 'milk' });
 
@@ -188,11 +235,9 @@ describe('api', () => {
   });
 
   it('listReviews without productId fetches GET /api/v1/reviews', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse([]);
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     await listReviews();
 
@@ -201,11 +246,9 @@ describe('api', () => {
   });
 
   it('listReviews with productId adds query param', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse([]);
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     await listReviews('prod-1');
 
@@ -213,20 +256,10 @@ describe('api', () => {
   });
 
   it('getProduct fetches GET /api/v1/products/:id and returns product', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const product = productFixture({ id: 'pid', category: { id: 'cid', name: 'Category', ancestors: [] } });
+    mockJsonResponse(product);
     const mockFetch = vi.mocked(fetch);
-    const product = {
-      id: 'pid',
-      category: { id: 'cid', name: 'Category', ancestors: [] },
-      brand: 'Brand',
-      name: 'Product',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(product), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await getProduct('pid');
 
@@ -235,11 +268,9 @@ describe('api', () => {
   });
 
   it('listPurchases without options fetches GET /api/v1/purchases', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse([]);
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     await listPurchases();
 
@@ -248,23 +279,16 @@ describe('api', () => {
   });
 
   it('listPurchases with product_id adds query param', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
-    const mockFetch = vi.mocked(fetch);
+    mockAuth();
     const purchases = [
-      {
+      purchaseFixture({
         id: 'p1',
-        user: { id: 'u1', name: 'Alice' },
         product: { id: 'prod-1', brand: 'Brand', name: 'Product' },
-        location: { id: 'loc-1', name: 'Store' },
-        quantity: 1,
-        price: '2.99',
-        purchased_at: 1708012800,
-        deleted_at: null
-      }
+        location: { id: 'loc-1', name: 'Store' }
+      })
     ];
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(purchases), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
+    mockJsonResponse(purchases);
+    const mockFetch = vi.mocked(fetch);
 
     const result = await listPurchases({ product_id: 'prod-1' });
 
@@ -273,12 +297,10 @@ describe('api', () => {
   });
 
   it('listLocations fetches GET /api/v1/locations and returns array', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const locations = [locationFixture()];
+    mockJsonResponse(locations);
     const mockFetch = vi.mocked(fetch);
-    const locations = [{ id: 'loc1', name: 'Store A', deleted_at: null }];
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(locations), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await listLocations();
 
@@ -288,19 +310,10 @@ describe('api', () => {
   });
 
   it('createCategory sends POST to /api/v1/categories and returns category', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const created = categoryFixture();
+    mockJsonResponse(created, 201);
     const mockFetch = vi.mocked(fetch);
-    const created = {
-      id: 'c1',
-      ancestors: [],
-      name: 'Food',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await createCategory({ name: 'Food' });
 
@@ -311,19 +324,10 @@ describe('api', () => {
   });
 
   it('updateCategory sends PATCH to /api/v1/categories/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const updated = categoryFixture({ name: 'Food (renamed)' });
+    mockJsonResponse(updated);
     const mockFetch = vi.mocked(fetch);
-    const updated = {
-      id: 'c1',
-      ancestors: [],
-      name: 'Food (renamed)',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(updated), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await updateCategory('c1', { name: 'Food (renamed)' });
 
@@ -333,9 +337,9 @@ describe('api', () => {
   });
 
   it('deleteCategory sends DELETE to /api/v1/categories/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockEmptyResponse();
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
 
     await deleteCategory('c1');
 
@@ -344,12 +348,10 @@ describe('api', () => {
   });
 
   it('getLocation fetches GET /api/v1/locations/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const loc = locationFixture();
+    mockJsonResponse(loc);
     const mockFetch = vi.mocked(fetch);
-    const loc = { id: 'loc1', name: 'Store A', deleted_at: null };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(loc), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await getLocation('loc1');
 
@@ -358,12 +360,10 @@ describe('api', () => {
   });
 
   it('createLocation sends POST to /api/v1/locations', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const created = locationFixture();
+    mockJsonResponse(created, 201);
     const mockFetch = vi.mocked(fetch);
-    const created = { id: 'loc1', name: 'Store A', deleted_at: null };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await createLocation({ name: 'Store A' });
 
@@ -373,14 +373,9 @@ describe('api', () => {
   });
 
   it('updateLocation sends PATCH to /api/v1/locations/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse(locationFixture({ name: 'Store B' }));
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ id: 'loc1', name: 'Store B', deleted_at: null }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    );
 
     await updateLocation('loc1', { name: 'Store B' });
 
@@ -389,9 +384,9 @@ describe('api', () => {
   });
 
   it('deleteLocation sends DELETE to /api/v1/locations/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockEmptyResponse();
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
 
     await deleteLocation('loc1');
 
@@ -399,20 +394,14 @@ describe('api', () => {
   });
 
   it('createProduct sends POST to /api/v1/products', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
-    const mockFetch = vi.mocked(fetch);
-    const created = {
-      id: 'p1',
+    mockAuth();
+    const created = productFixture({
       category: { id: 'c1', name: 'Groceries', ancestors: [] },
       brand: 'B',
-      name: 'Milk',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
-    );
+      name: 'Milk'
+    });
+    mockJsonResponse(created, 201);
+    const mockFetch = vi.mocked(fetch);
 
     const result = await createProduct({ name: 'Milk', brand: 'B', category_id: 'c1' });
 
@@ -421,20 +410,15 @@ describe('api', () => {
   });
 
   it('createProduct with first_variation sends it in the body', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
-    const mockFetch = vi.mocked(fetch);
-    const created = {
+    mockAuth();
+    const created = productFixture({
       id: 'p2',
       category: { id: 'c1', name: 'Groceries', ancestors: [] },
       brand: 'Dairy',
-      name: 'Milk 1L',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
-    );
+      name: 'Milk 1L'
+    });
+    mockJsonResponse(created, 201);
+    const mockFetch = vi.mocked(fetch);
 
     await createProduct({
       name: 'Milk 1L',
@@ -458,22 +442,15 @@ describe('api', () => {
   });
 
   it('updateProduct sends PATCH to /api/v1/products/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
-    const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: 'p1',
-          category: { id: 'c1', name: 'Groceries', ancestors: [] },
-          brand: 'B',
-          name: 'Milk 1L',
-          created_at: 0,
-          updated_at: 0,
-          deleted_at: null
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
+    mockAuth();
+    mockJsonResponse(
+      productFixture({
+        category: { id: 'c1', name: 'Groceries', ancestors: [] },
+        brand: 'B',
+        name: 'Milk 1L'
+      })
     );
+    const mockFetch = vi.mocked(fetch);
 
     await updateProduct('p1', { name: 'Milk 1L' });
 
@@ -481,9 +458,9 @@ describe('api', () => {
   });
 
   it('deleteProduct sends DELETE to /api/v1/products/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockEmptyResponse();
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
 
     await deleteProduct('p1');
 
@@ -491,18 +468,13 @@ describe('api', () => {
   });
 
   it('getProductVariations fetches GET /api/v1/products/:id/variations and returns array', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
-    const mockFetch = vi.mocked(fetch);
+    mockAuth();
     const variations = [
       { id: 'v1', label: '500 g', unit: 'g' },
       { id: 'v2', label: '', unit: 'none' }
     ];
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(variations), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    );
+    mockJsonResponse(variations);
+    const mockFetch = vi.mocked(fetch);
 
     const result = await getProductVariations('prod-1');
 
@@ -514,21 +486,10 @@ describe('api', () => {
   });
 
   it('getPurchase fetches GET /api/v1/purchases/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const purchase = purchaseFixture();
+    mockJsonResponse(purchase);
     const mockFetch = vi.mocked(fetch);
-    const purchase = {
-      id: 'pur1',
-      user: { id: 'u1', name: 'Alice' },
-      product: { id: 'p1', brand: 'Brand', name: 'Product' },
-      location: { id: 'loc1', name: 'Store' },
-      quantity: 1,
-      price: '2.99',
-      purchased_at: 1708012800,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(purchase), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await getPurchase('pur1');
 
@@ -537,21 +498,10 @@ describe('api', () => {
   });
 
   it('createPurchase sends POST to /api/v1/purchases', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const created = purchaseFixture();
+    mockJsonResponse(created, 201);
     const mockFetch = vi.mocked(fetch);
-    const created = {
-      id: 'pur1',
-      user: { id: 'u1', name: 'Alice' },
-      product: { id: 'p1', brand: 'Brand', name: 'Product' },
-      location: { id: 'loc1', name: 'Store' },
-      quantity: 1,
-      price: '2.99',
-      purchased_at: 1708012800,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await createPurchase({ product_id: 'p1', location_id: 'loc1', price: '2.99' });
 
@@ -560,25 +510,12 @@ describe('api', () => {
   });
 
   it('createPurchase sends variation_id in body when provided', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const created = purchaseFixture({
+      variation: { id: 'v1', label: '500 g', unit: 'g' }
+    });
+    mockJsonResponse(created, 201);
     const mockFetch = vi.mocked(fetch);
-    const created = {
-      id: 'pur1',
-      user: { id: 'u1', name: 'Alice' },
-      product: { id: 'p1', brand: 'Brand', name: 'Product' },
-      location: { id: 'loc1', name: 'Store' },
-      variation: { id: 'v1', label: '500 g', unit: 'g' },
-      quantity: 1,
-      price: '2.99',
-      purchased_at: 1708012800,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(created), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    );
 
     await createPurchase({
       product_id: 'p1',
@@ -592,23 +529,9 @@ describe('api', () => {
   });
 
   it('updatePurchase sends PATCH to /api/v1/purchases/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse(purchaseFixture({ quantity: 2, price: '3.49' }));
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: 'pur1',
-          user: { id: 'u1', name: 'Alice' },
-          product: { id: 'p1', brand: 'Brand', name: 'Product' },
-          location: { id: 'loc1', name: 'Store' },
-          quantity: 2,
-          price: '3.49',
-          purchased_at: 1708012800,
-          deleted_at: null
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
 
     await updatePurchase('pur1', { quantity: 2, price: '3.49' });
 
@@ -616,23 +539,9 @@ describe('api', () => {
   });
 
   it('updatePurchase sends variation_id in body when provided', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse(purchaseFixture());
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: 'pur1',
-          user: { id: 'u1', name: 'Alice' },
-          product: { id: 'p1', brand: 'Brand', name: 'Product' },
-          location: { id: 'loc1', name: 'Store' },
-          quantity: 1,
-          price: '2.99',
-          purchased_at: 1708012800,
-          deleted_at: null
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
 
     await updatePurchase('pur1', { variation_id: 'v2' });
 
@@ -641,9 +550,9 @@ describe('api', () => {
   });
 
   it('deletePurchase sends DELETE to /api/v1/purchases/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockEmptyResponse();
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
 
     await deletePurchase('pur1');
 
@@ -651,21 +560,10 @@ describe('api', () => {
   });
 
   it('getReview fetches GET /api/v1/reviews/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const review = reviewFixture();
+    mockJsonResponse(review);
     const mockFetch = vi.mocked(fetch);
-    const review = {
-      id: 'r1',
-      product: { id: 'p1', brand: 'B', name: 'Product' },
-      user: { id: 'u1', name: 'User' },
-      rating: 4,
-      text: 'Good',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(review), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await getReview('r1');
 
@@ -674,21 +572,10 @@ describe('api', () => {
   });
 
   it('createReview sends POST to /api/v1/reviews', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    const created = reviewFixture();
+    mockJsonResponse(created, 201);
     const mockFetch = vi.mocked(fetch);
-    const created = {
-      id: 'r1',
-      product: { id: 'p1', brand: 'B', name: 'Product' },
-      user: { id: 'u1', name: 'User' },
-      rating: 4,
-      text: 'Good',
-      created_at: 0,
-      updated_at: 0,
-      deleted_at: null
-    };
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(created), { status: 201, headers: { 'Content-Type': 'application/json' } })
-    );
 
     const result = await createReview({ product_id: 'p1', rating: 4, text: 'Good' });
 
@@ -697,23 +584,9 @@ describe('api', () => {
   });
 
   it('updateReview sends PATCH to /api/v1/reviews/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockJsonResponse(reviewFixture({ rating: 5, text: 'Excellent' }));
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: 'r1',
-          product: { id: 'p1', brand: 'B', name: 'Product' },
-          user: { id: 'u1', name: 'User' },
-          rating: 5,
-          text: 'Excellent',
-          created_at: 0,
-          updated_at: 0,
-          deleted_at: null
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
 
     await updateReview('r1', { rating: 5, text: 'Excellent' });
 
@@ -721,9 +594,9 @@ describe('api', () => {
   });
 
   it('deleteReview sends DELETE to /api/v1/reviews/:id', async () => {
-    vi.mocked(auth.getToken).mockReturnValue('t');
+    mockAuth();
+    mockEmptyResponse();
     const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce(new Response('', { status: 200 }));
 
     await deleteReview('r1');
 

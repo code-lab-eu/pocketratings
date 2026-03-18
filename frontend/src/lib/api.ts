@@ -70,89 +70,51 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   return res;
 }
 
-/** POST JSON and parse JSON response. On error throws ApiClientError with status and error code. */
+/** Parse JSON response body; throw ApiClientError on parse failure or non-ok status. */
+async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
+  const text = await res.text();
+  let data: T | ApiError;
+  try {
+    data = (text ? JSON.parse(text) : {}) as T | ApiError;
+  } catch {
+    throw new ApiClientError(
+      res.ok ? `Invalid JSON from ${path}` : `HTTP ${res.status}`,
+      res.status,
+      'bad_request'
+    );
+  }
+  if (!res.ok) {
+    const err = data as ApiError;
+    throw new ApiClientError(
+      err.message ?? err.error ?? `HTTP ${res.status}`,
+      res.status,
+      err.error ?? 'unknown'
+    );
+  }
+  return data as T;
+}
+
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const res = await apiFetch(path, {
     method: 'POST',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' }
   });
-  const text = await res.text();
-  let data: T | ApiError;
-  try {
-    data = (text ? JSON.parse(text) : {}) as T | ApiError;
-  } catch {
-    throw new ApiClientError(
-      res.ok ? `Invalid JSON from ${path}` : `HTTP ${res.status}`,
-      res.status,
-      'bad_request'
-    );
-  }
-  if (!res.ok) {
-    const err = data as ApiError;
-    throw new ApiClientError(
-      err.message ?? err.error ?? `HTTP ${res.status}`,
-      res.status,
-      err.error ?? 'unknown'
-    );
-  }
-  return data as T;
+  return parseJsonResponse<T>(res, path);
 }
 
-/** GET and parse JSON response. On error throws ApiClientError with status and error code. */
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await apiFetch(path);
-  const text = await res.text();
-  let data: T | ApiError;
-  try {
-    data = (text ? JSON.parse(text) : {}) as T | ApiError;
-  } catch {
-    throw new ApiClientError(
-      res.ok
-        ? `Invalid JSON in response from ${path}`
-        : `HTTP ${res.status}: response was not JSON`,
-      res.status,
-      'bad_request'
-    );
-  }
-  if (!res.ok) {
-    const err = data as ApiError;
-    throw new ApiClientError(
-      err.message ?? err.error ?? `HTTP ${res.status}`,
-      res.status,
-      err.error ?? 'unknown'
-    );
-  }
-  return data as T;
+  return parseJsonResponse<T>(res, path);
 }
 
-/** PATCH JSON and parse JSON response. On error throws ApiClientError with status and error code. */
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const res = await apiFetch(path, {
     method: 'PATCH',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' }
   });
-  const text = await res.text();
-  let data: T | ApiError;
-  try {
-    data = (text ? JSON.parse(text) : {}) as T | ApiError;
-  } catch {
-    throw new ApiClientError(
-      res.ok ? `Invalid JSON from ${path}` : `HTTP ${res.status}`,
-      res.status,
-      'bad_request'
-    );
-  }
-  if (!res.ok) {
-    const err = data as ApiError;
-    throw new ApiClientError(
-      err.message ?? err.error ?? `HTTP ${res.status}`,
-      res.status,
-      err.error ?? 'unknown'
-    );
-  }
-  return data as T;
+  return parseJsonResponse<T>(res, path);
 }
 
 /** DELETE; 204 returns void; 200 with body parses JSON. On error throws ApiClientError. */
@@ -332,11 +294,7 @@ export const UNIT_OPTIONS = [
   { value: 'other', label: 'Other' }
 ] as const;
 
-export interface FirstVariationBody {
-  label?: string;
-  unit: string;
-  quantity?: number | null;
-}
+export type FirstVariationBody = CreateVariationBody;
 
 export interface CreateProductBody {
   name: string;

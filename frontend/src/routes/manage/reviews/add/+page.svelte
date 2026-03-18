@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { createReview } from '$lib/api';
+  import { errorMessage, formatProductDisplayName } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
   import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
@@ -49,7 +50,7 @@
       });
       await goto(resolve(`/products/${productId}`), { invalidateAll: true });
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      error = errorMessage(e);
     } finally {
       submitting = false;
     }
@@ -74,7 +75,7 @@
         label="Product"
         options={products.map((p) => ({
           value: p.id,
-          label: p.brand ? `${p.name} — ${p.brand}` : p.name
+          label: formatProductDisplayName(p)
         }))}
         bind:value={productId}
         placeholder="Select product"

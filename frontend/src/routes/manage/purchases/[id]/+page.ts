@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { getPurchase, listLocations, listProducts } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 
 export const load: PageLoad = async ({ params }) => {
   try {
@@ -14,7 +15,7 @@ export const load: PageLoad = async ({ params }) => {
       purchase: null,
       products: [],
       locations: [],
-      error: e instanceof Error ? e.message : String(e)
+      error: errorMessage(e)
     };
   }
 };

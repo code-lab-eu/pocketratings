@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { listCategories, listProducts } from '$lib/api';
+import { errorMessage } from '$lib/utils/formatters';
 import { flattenCategories } from '$lib/categories';
 import type { Category, Product } from '$lib/types';
 
@@ -31,7 +32,7 @@ export const load: PageLoad = async ({ url }) => {
       categories: [],
       items: [],
       query: q,
-      error: e instanceof Error ? e.message : String(e),
+      error: errorMessage(e),
       fullCategories: []
     };
   }

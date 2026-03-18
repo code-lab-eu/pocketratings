@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { updateReview } from '$lib/api';
+  import { errorMessage, formatProductDisplayName } from '$lib/utils/formatters';
   import BackLink from '$lib/BackLink.svelte';
   import Button from '$lib/Button.svelte';
   import FormError from '$lib/FormError.svelte';
@@ -43,7 +44,7 @@
       });
       await goto(resolve(`/products/${review.product.id}`), { invalidateAll: true });
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      error = errorMessage(e);
     } finally {
       submitting = false;
     }
@@ -63,7 +64,7 @@
     <PageHeading>
       Edit review
       {#snippet description()}
-        Product: {review.product.name}{review.product.brand ? ` — ${review.product.brand}` : ''}
+        Product: {formatProductDisplayName(review.product)}
       {/snippet}
     </PageHeading>
     <form onsubmit={handleSubmit} class="mt-4 space-y-4">
