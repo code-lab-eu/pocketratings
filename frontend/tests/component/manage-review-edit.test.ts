@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewEditPage from '../../src/routes/manage/reviews/[id]/+page.svelte';
@@ -57,8 +57,8 @@ describe('Manage review edit page', () => {
         }
       }
     });
-    const ratingInput = screen.getByLabelText(/rating \(1–5\)/i) as HTMLInputElement;
-    expect(ratingInput.value).toBe('3.8');
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    expect(slider.value).toBe('3.8');
   });
 
   it('submits update with one-decimal rating 3.8', async () => {
@@ -70,9 +70,8 @@ describe('Manage review edit page', () => {
         }
       }
     });
-    const ratingInput = screen.getByLabelText(/rating \(1–5\)/i);
-    await userEvent.clear(ratingInput);
-    await userEvent.type(ratingInput, '3.8');
+    const slider = screen.getByRole('slider');
+    await fireEvent.input(slider, { target: { value: '3.8' } });
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
     expect(mocks.updateReview).toHaveBeenCalledTimes(1);
@@ -88,13 +87,13 @@ describe('Manage review edit page', () => {
     expect(mocks.goto).toHaveBeenCalledWith('/products/p1', { invalidateAll: true });
   });
 
-  it('rating input has step 0.1', () => {
+  it('rating slider has step 0.1', () => {
     render(ReviewEditPage, {
       props: {
         data: { review, error: null }
       }
     });
-    const ratingInput = screen.getByLabelText(/rating \(1–5\)/i);
-    expect(ratingInput).toHaveAttribute('step', '0.1');
+    const slider = screen.getByRole('slider');
+    expect(slider).toHaveAttribute('step', '0.1');
   });
 });

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AddReviewPage from '../../src/routes/manage/reviews/add/+page.svelte';
@@ -62,9 +62,8 @@ describe('Add review page', () => {
         data: { products: [product], productId: 'prod-123', error: null }
       }
     });
-    const ratingInput = screen.getByLabelText(/rating \(1–5\)/i);
-    await userEvent.clear(ratingInput);
-    await userEvent.type(ratingInput, '3.8');
+    const slider = screen.getByRole('slider');
+    await fireEvent.input(slider, { target: { value: '3.8' } });
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
     expect(mocks.createReview).toHaveBeenCalledTimes(1);
@@ -74,13 +73,13 @@ describe('Add review page', () => {
     expect(mocks.goto).toHaveBeenCalledWith('/products/prod-123', { invalidateAll: true });
   });
 
-  it('rating input has step 0.1', () => {
+  it('rating slider has step 0.1', () => {
     render(AddReviewPage, {
       props: {
         data: { products: [product], productId: undefined, error: null }
       }
     });
-    const ratingInput = screen.getByLabelText(/rating \(1–5\)/i);
-    expect(ratingInput).toHaveAttribute('step', '0.1');
+    const slider = screen.getByRole('slider');
+    expect(slider).toHaveAttribute('step', '0.1');
   });
 });

@@ -130,7 +130,7 @@ prefill product (and default variation for purchase) from the current page.
   full manage flows for edit/delete. Update [spec.md](spec.md) if product
   page behaviour is specified there.
 
-### 9. Draggable star slider rating input [FE]
+### 9. Draggable star slider rating input [FE] -- DONE
 
 **2 sp.** Replace the plain number input for review rating with a
 draggable star slider. A transparent native range input is layered

@@ -307,6 +307,23 @@ body {
     border-bottom: 1px solid var(--pr-border);
     background-color: var(--pr-card-bg);
   }
+
+  /* Star rating input pulse on release */
+  .pr-star-pulse {
+    animation: pr-star-pulse 200ms ease;
+  }
+}
+
+@keyframes pr-star-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -323,5 +340,8 @@ body {
   .pr-btn-secondary:hover,
   .pr-btn-secondary:focus-visible {
     transform: none;
+  }
+  .pr-star-pulse {
+    animation: none;
   }
 }

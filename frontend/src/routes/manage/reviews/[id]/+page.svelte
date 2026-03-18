@@ -5,8 +5,8 @@
   import BackLink from '$lib/BackLink.svelte';
   import Button from '$lib/Button.svelte';
   import FormError from '$lib/FormError.svelte';
-  import InputField from '$lib/InputField.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
+  import StarRatingInput from '$lib/StarRatingInput.svelte';
   import TextareaField from '$lib/TextareaField.svelte';
 
   let { data } = $props();
@@ -68,15 +68,7 @@
     </PageHeading>
     <form onsubmit={handleSubmit} class="mt-4 space-y-4">
       <FormError message={error} />
-      <InputField
-        id="rating"
-        label="Rating (1–5)"
-        type="number"
-        bind:value={rating}
-        min={1}
-        max={5}
-        step={0.1}
-      />
+      <StarRatingInput id="rating" bind:value={rating} />
       <TextareaField
         id="text"
         label="Review (optional)"
