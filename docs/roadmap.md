@@ -198,6 +198,7 @@ categories"), and a "Clear search" action that resets the field.
   `SearchForm.svelte`.
 - Respect `prefers-reduced-motion` for any entrance animation.
 
+### 13 After adding a new category, redirect to it
 ---
 
 ## Distant future
