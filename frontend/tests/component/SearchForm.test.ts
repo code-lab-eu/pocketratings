@@ -5,11 +5,11 @@ import SearchForm from '../../src/lib/SearchForm.svelte';
 const noopQueryChange = (): void => {};
 
 describe('SearchForm', () => {
-  it('renders label and input with placeholder', () => {
+  it('renders visible label and input with placeholder', () => {
     render(SearchForm, {
       props: { actionUrl: '/', query: '', onQueryChange: noopQueryChange }
     });
-    expect(screen.getByLabelText(/search categories and products/i)).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/search categories and products/i)).toBeInTheDocument();
   });
 
@@ -67,7 +67,7 @@ describe('SearchForm', () => {
       }
     });
     expect(screen.getByPlaceholderText('Search in category "Beverages"')).toBeInTheDocument();
-    expect(screen.getByLabelText('Search in category "Beverages"')).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument();
   });
 
   it('calls onQueryChange with trimmed value after debounce when length >= 2', async () => {

@@ -82,6 +82,14 @@
 </svelte:head>
 
 <main class="mx-auto max-w-2xl px-4 py-8">
+  {#if category && !notFound && !displayedError}
+    <SearchForm
+      actionUrl={resolve(`/categories/${category.id}`)}
+      query={searchQuery}
+      onQueryChange={onQueryChange}
+      placeholder={'Search in category "' + category.name + '"'}
+    />
+  {/if}
   {#if category}
     {@const breadcrumbSegments = [
       { label: 'Home', href: resolve('/') },
@@ -105,12 +113,6 @@
   {:else if displayedError}
     <FormError message={displayedError} />
   {:else if category}
-    <SearchForm
-      actionUrl={resolve(`/categories/${category.id}`)}
-      query={searchQuery}
-      onQueryChange={onQueryChange}
-      placeholder={'Search in category "' + category.name + '"'}
-    />
     <h1 class="pr-heading-page">{category.name}</h1>
     <p class="mb-4">
       <!-- eslint-disable svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->

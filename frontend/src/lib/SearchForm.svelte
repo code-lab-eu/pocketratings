@@ -1,4 +1,5 @@
 <script lang="ts">
+  const FIELD_LABEL = 'Search';
   const DEFAULT_PLACEHOLDER = 'Search categories and products…';
   const MIN_SEARCH_CHARS = 2;
   const SEARCH_DEBOUNCE_MS = 150;
@@ -65,10 +66,10 @@
 <form
   action={safeAction}
   method="get"
-  class="mb-6"
+  class="mb-8"
   role="search"
 >
-  <label for="search-q" class="sr-only">{placeholder}</label>
+  <label for="search-q" class="pr-text-label mb-2 block">{FIELD_LABEL}</label>
   <input
     id="search-q"
     type="search"
@@ -76,7 +77,7 @@
     value={inputValue}
     oninput={handleInput}
     placeholder={placeholder}
-    class="pr-input"
+    class="pr-input pr-input--search"
     autocomplete="off"
   />
 </form>

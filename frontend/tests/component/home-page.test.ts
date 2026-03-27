@@ -45,11 +45,11 @@ const defaultData: PageData = {
 };
 
 describe('Home page', () => {
-  it('renders search bar with placeholder', () => {
+  it('renders search bar with label and placeholder', () => {
     render(HomePage, {
       props: { data: { ...defaultData } }
     });
-    expect(screen.getByLabelText(/search categories and products/i)).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/search categories and products/i)).toBeInTheDocument();
   });
 

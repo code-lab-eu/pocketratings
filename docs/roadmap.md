@@ -21,7 +21,7 @@ icon.
   with SvelteKit 2 / project static asset paths.
 - Verify in dev and build output.
 
-### 2. Make the search field more prominent [FE]
+### 2. Make the search field more prominent [FE] — DONE
 
 **1 sp.** Home and category pages already expose search per [spec.md](spec.md);
 improve visual hierarchy so the search input reads as a primary control
