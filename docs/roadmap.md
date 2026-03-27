@@ -28,7 +28,7 @@ pre-resolved href string). Prefer doing this before adding new
 - Remove `import { resolve } from '$app/paths'` from both
   components after the change.
 
-### 2. Replace emoji with Lucide icons in header menu and BackLink [FE]
+### 2. Replace emoji with Lucide icons in header menu and BackLink [FE] — DONE
 
 **1 sp.** Use lucide-svelte for the header **menu** (hamburger) and for
 BackLink (arrow) only. The header **theme toggle** is out of scope: it uses

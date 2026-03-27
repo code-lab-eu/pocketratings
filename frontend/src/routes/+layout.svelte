@@ -7,6 +7,7 @@
   import { clearToken, getToken, token } from '$lib/auth';
   import ThemeToggleIcon from '$lib/ThemeToggleIcon.svelte';
   import { initTheme, dark, toggleDark } from '$lib/theme';
+  import { Menu } from 'lucide-svelte';
 
   let { children } = $props();
 
@@ -37,8 +38,9 @@
           href={resolve('/manage')}
           class="flex min-h-[44px] min-w-[44px] items-center justify-center pr-link-muted"
           aria-label="Menu"
-          >☰</a
         >
+          <Menu size={22} aria-hidden="true" />
+        </a>
         <a
           href={resolve('/')}
           class="min-h-[44px] flex items-center break-words text-lg font-semibold pr-text-body"
