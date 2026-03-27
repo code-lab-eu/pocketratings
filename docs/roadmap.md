@@ -186,6 +186,8 @@ remove the footer/actions block entirely if it becomes empty.
   from `GET /api/v1/products/:id` where practical.
 - Update [spec.md](spec.md) if not already done in task 10.
 
+### 12. Show ratings in both review cards as stars
+
 ---
 
 ## Distant future
