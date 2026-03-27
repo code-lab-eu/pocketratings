@@ -26,6 +26,6 @@ describe('EmptyState', () => {
     });
     const link = screen.getByRole('link', { name: /go/i });
     expect(link).toBeInTheDocument();
-    expect(link.getAttribute('href')).toContain('/manage');
+    expect(link.getAttribute('href')).toBe('/manage');
   });
 });

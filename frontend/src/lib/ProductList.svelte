@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
   import PriceDisplay from '$lib/PriceDisplay.svelte';
   import StarRating from '$lib/StarRating.svelte';
   import type { Product } from '$lib/types';
@@ -9,14 +8,22 @@
     product: Product;
   }
 
-  let { items = [] }: { items: ProductListItem[] } = $props();
+  let {
+    items = [],
+    hrefFor
+  }: {
+    items: ProductListItem[];
+    /** Caller resolves routes (e.g. resolve('/products/[id]', { id })). */
+    hrefFor: (id: string) => string;
+  } = $props();
 </script>
 
+<!-- eslint-disable svelte/no-navigation-without-resolve -- hrefs from caller via hrefFor -->
 <ul class="space-y-2">
   {#each items as { product } (product.id)}
     <li class="min-w-0">
       <a
-        href={resolve(`/products/${product.id}`)}
+        href={hrefFor(product.id)}
         class="pr-card block min-h-[44px] break-words"
       >
         <span class="font-medium">{product.name}</span>

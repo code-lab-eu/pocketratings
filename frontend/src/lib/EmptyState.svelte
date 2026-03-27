@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
   import {
     Folder,
     MapPin,
@@ -20,7 +19,7 @@
   interface Props {
     /** Short message when the list or section is empty. */
     message: string;
-    /** Optional link text and path. Pass the route path (e.g. '/manage/categories/new'); resolve() is applied. */
+    /** Optional link text and final URL (caller runs resolve() when needed). */
     action?: { label: string; href: string };
     /** Lucide icon above the message (decorative; message carries meaning for assistive tech). */
     icon?: EmptyStateIcon;
@@ -92,14 +91,8 @@
   <p class="pr-text-muted">{message}</p>
   {#if action}
     <p class="mt-2">
-      <a
-        href={resolve(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- resolve() expects typed Route; generated type is not assignable from string so cast is required
-          action.href as any
-        )}
-        class="pr-link-inline"
-        >{action.label}</a
-      >
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href pre-resolved by caller -->
+      <a href={action.href} class="pr-link-inline">{action.label}</a>
     </p>
   {/if}
 </div>

@@ -52,7 +52,10 @@
     <EmptyState
       icon="package"
       message="This list is empty. Add something!"
-      action={{ label: 'Add your first product', href: '/manage/products/new' }}
+      action={{
+        label: 'Add your first product',
+        href: resolve('/manage/products/new')
+      }}
     />
   {:else}
     <ul class="space-y-2">

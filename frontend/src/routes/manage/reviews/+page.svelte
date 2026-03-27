@@ -52,7 +52,10 @@
     <EmptyState
       icon="star"
       message="The only stars I can see are in the sky. Why don't you add the first review?"
-      action={{ label: 'Add your first review', href: '/manage/reviews/add' }}
+      action={{
+        label: 'Add your first review',
+        href: resolve('/manage/reviews/add')
+      }}
     />
   {:else}
     <ul class="space-y-2">

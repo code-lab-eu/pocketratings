@@ -122,7 +122,10 @@
           message="Nothing yet. Wander categories instead."
         />
       {:else}
-        <ProductList items={displayedItems} />
+        <ProductList
+          items={displayedItems}
+          hrefFor={(id) => resolve('/products/[id]', { id })}
+        />
       {/if}
     </section>
   {/if}

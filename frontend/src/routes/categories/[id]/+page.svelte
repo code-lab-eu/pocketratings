@@ -154,7 +154,10 @@
         message="Empty corner. Fill it when ready."
       />
     {:else}
-      <ProductList items={displayedItems} />
+      <ProductList
+        items={displayedItems}
+        hrefFor={(id) => resolve('/products/[id]', { id })}
+      />
     {/if}
   {:else}
     <p class="pr-text-muted">Category not found.</p>

@@ -52,7 +52,10 @@
     <EmptyState
       icon="pin"
       message="Places to pin? Start with one."
-      action={{ label: 'Add your first location', href: '/manage/locations/new' }}
+      action={{
+        label: 'Add your first location',
+        href: resolve('/manage/locations/new')
+      }}
     />
   {:else}
     <ul class="space-y-2">

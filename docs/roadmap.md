@@ -9,7 +9,7 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Make reusable components route-agnostic [FE]
+### 1. Make reusable components route-agnostic [FE] — DONE
 
 **1 sp.** `ProductList` hardcodes `/products/[id]` in its href;
 `EmptyState` calls `resolve()` internally instead of receiving a

@@ -54,7 +54,10 @@
     <EmptyState
       icon="folder"
       message="Fresh start! Add the first category."
-      action={{ label: 'Add your first category', href: '/manage/categories/new' }}
+      action={{
+        label: 'Add your first category',
+        href: resolve('/manage/categories/new')
+      }}
     />
   {:else}
     <ul class="space-y-2">

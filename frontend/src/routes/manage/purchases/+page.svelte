@@ -53,7 +53,10 @@
     <EmptyState
       icon="cart"
       message="Do you have a receipt? Type it in!"
-      action={{ label: 'Record your first purchase', href: '/manage/purchases/add' }}
+      action={{
+        label: 'Record your first purchase',
+        href: resolve('/manage/purchases/add')
+      }}
     />
   {:else}
     <ul class="space-y-2">
