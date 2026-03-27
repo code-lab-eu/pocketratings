@@ -40,15 +40,16 @@ adherence to the code-quality-review rule. **Important.**
   duplicates.
 - Fix all issues found; run full frontend QC after each file.
 
-### 3. Replace emoji with Lucide icons in header and BackLink [FE]
+### 3. Replace emoji with Lucide icons in header menu and BackLink [FE]
 
-**1 sp.** Use the existing lucide-svelte library for header (menu, sun, moon)
-and BackLink (arrow) so the app has a consistent, accessible icon language
-instead of emoji that render differently across platforms.
+**1 sp.** Use lucide-svelte for the header **menu** (hamburger) and for
+BackLink (arrow) only. The header **theme toggle** is out of scope: it uses
+custom layered SVG and CSS motion (task 11). Do **not** replace or revert
+that control when doing this task.
 
 **Tasks:**
-- In +layout.svelte: replace ☰ with Menu, ☀ with Sun, ☾ with Moon; keep
-  aria-label/title for theme toggle.
+- In +layout.svelte: replace ☰ with Menu; leave the theme toggle as
+  implemented for task 11.
 - In BackLink.svelte: replace "←" with ArrowLeft (or ChevronLeft), size
   appropriately, aria-hidden="true" on the icon so the link label is the
   screen-reader focus.
@@ -164,7 +165,7 @@ fade-in + slide-up entrance animation plays on mount.
   and friendlier copy.
 - Respect `prefers-reduced-motion`.
 
-### 11. Animated sun/moon theme toggle [FE]
+### 11. Animated sun/moon theme toggle [FE] — DONE
 
 **1 sp.** Replace the static Unicode sun/moon characters in the
 header theme toggle with SVG icons that morph and rotate into
@@ -172,10 +173,10 @@ each other on toggle (~400 ms, CSS-only). Sun rays retract while
 a crescent slides in; reverse for moon-to-sun.
 
 **Tasks:**
-- In `+layout.svelte`, replace Unicode chars with two layered
-  SVGs (sun and moon); toggle visibility and rotation via CSS
-  transition on a wrapper element.
-- Add rotation keyframes and reduced-motion override to
+- In `+layout.svelte`, use layered SVGs (sun and moon) via
+  `ThemeToggleIcon`; toggle visibility, ray scale, slide, and
+  wrapper tilt via CSS transitions (~400 ms).
+- Add reduced-motion overrides for the theme toggle in
   `layout.css`.
 
 ### 12. Search no-results state with personality [FE]
@@ -195,6 +196,9 @@ categories"), and a "Clear search" action that resets the field.
 - Respect `prefers-reduced-motion` for any entrance animation.
 
 ### 13 After adding a new category, redirect to it
+
+### 14 Add a favicon
+
 ---
 
 ## Distant future

@@ -5,6 +5,7 @@
   import { page } from '$app/stores';
   import favicon from '$lib/assets/favicon.svg';
   import { clearToken, getToken, token } from '$lib/auth';
+  import ThemeToggleIcon from '$lib/ThemeToggleIcon.svelte';
   import { initTheme, dark, toggleDark } from '$lib/theme';
 
   let { children } = $props();
@@ -52,7 +53,7 @@
           aria-label={$dark ? 'Switch to light mode' : 'Switch to dark mode'}
           title={$dark ? 'Light mode' : 'Dark mode'}
         >
-          {$dark ? '☀' : '☾'}
+          <ThemeToggleIcon dark={$dark} />
         </button>
         <button
           type="button"

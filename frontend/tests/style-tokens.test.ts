@@ -99,4 +99,28 @@ describe('layout.css design tokens and focus states', () => {
       /\.pr-btn-icon:focus-visible\s*\{[\s\S]*?--pr-focus-ring-width[\s\S]*?--pr-focus-ring-color[\s\S]*?--pr-focus-ring-offset/
     );
   });
+
+  it('defines theme toggle animation with ~400ms transitions', () => {
+    const css = loadLayoutCss();
+    expect(css).toContain('.pr-theme-toggle');
+    expect(css).toMatch(/\.pr-theme-toggle[\s\S]*?400ms/);
+  });
+
+  it('disables theme toggle motion under prefers-reduced-motion', () => {
+    const css = loadLayoutCss();
+    const idx = css.indexOf('@media (prefers-reduced-motion: reduce)');
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const fromReduce = css.slice(idx);
+    expect(fromReduce).toContain('.pr-theme-toggle');
+  });
+
+  it('rotates sun rays around the center when sun shows or hides', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-theme-toggle\[data-active='sun'\] \.pr-theme-toggle__rays\s*\{[\s\S]*?rotate\(0deg\)/
+    );
+    expect(css).toMatch(
+      /\.pr-theme-toggle\[data-active='moon'\] \.pr-theme-toggle__rays\s*\{[\s\S]*?rotate\(90deg\)/
+    );
+  });
 });
