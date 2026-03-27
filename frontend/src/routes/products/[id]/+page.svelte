@@ -84,7 +84,7 @@
   {:else}
     <article class="min-w-0">
       <header class="mb-6">
-        <h1 class="break-words pr-text-body text-xl font-semibold">
+        <h1 class="pr-heading-page break-words">
           {product.name}
         </h1>
         {#if product.brand}

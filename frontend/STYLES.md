@@ -13,7 +13,8 @@ Defined in `src/routes/layout.css`:
   - `.pr-text-label`: form labels (`text-sm font-medium text-gray-700 dark:text-gray-200`).
 
 - **Headings**
-  - `.pr-heading-page`: page titles (was `mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50`).
+  - `.pr-heading-page`: page titles (`1.75rem` / semibold; evolved from Tailwind
+    `text-2xl` and earlier `mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50`).
   - `.pr-heading-section`: section headings (was `mb-3 text-lg font-medium text-gray-900 dark:text-gray-50`).
 
 - **Links**

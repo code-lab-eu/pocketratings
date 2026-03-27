@@ -100,6 +100,13 @@ describe('layout.css design tokens and focus states', () => {
     );
   });
 
+  it('uses an enlarged font size for page title headings', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-heading-page\s*\{[\s\S]*?font-size:\s*1\.75rem/
+    );
+  });
+
   it('defines theme toggle animation with ~400ms transitions', () => {
     const css = loadLayoutCss();
     expect(css).toContain('.pr-theme-toggle');

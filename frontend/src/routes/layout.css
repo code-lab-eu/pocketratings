@@ -164,7 +164,7 @@ body {
   /* Headings */
   .pr-heading-page {
     margin-bottom: 1rem;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 600;
     color: var(--pr-text-primary);
   }
