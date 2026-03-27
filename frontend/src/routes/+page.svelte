@@ -4,6 +4,7 @@
   import { toggleExpanded } from '$lib/categories';
   import { errorMessage } from '$lib/utils/formatters';
   import CategoryLinkList from '$lib/CategoryLinkList.svelte';
+  import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import ProductList from '$lib/ProductList.svelte';
   import SearchForm from '$lib/SearchForm.svelte';
@@ -91,7 +92,14 @@
         Categories
       </h2>
       {#if categoriesEmpty}
-        <p class="pr-text-muted">No categories match.</p>
+        {#if isSearching}
+          <EmptyState
+            icon="search"
+            message="It's quiet in here. Try some different words."
+          />
+        {:else}
+          <EmptyState icon="folder" message="No categories yet." />
+        {/if}
       {:else if isSearching}
         <CategoryLinkList items={searchCategories} hrefFor={(id) => resolve('/categories/[id]', { id })} />
       {:else}
@@ -109,7 +117,10 @@
         Products
       </h2>
       {#if displayedItems.length === 0}
-        <p class="pr-text-muted">No products match.</p>
+        <EmptyState
+          icon="package"
+          message="Nothing yet. Wander categories instead."
+        />
       {:else}
         <ProductList items={displayedItems} />
       {/if}

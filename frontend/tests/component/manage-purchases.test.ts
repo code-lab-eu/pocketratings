@@ -38,7 +38,7 @@ describe('Manage purchases list', () => {
         }
       }
     });
-    expect(screen.getByText(/no purchases yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/do you have a receipt/i)).toBeInTheDocument();
   });
 
   it('shows purchase list with edit icon and delete icon', () => {

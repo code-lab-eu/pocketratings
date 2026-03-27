@@ -51,7 +51,8 @@
     <FormError message={error} />
   {:else if purchases.length === 0}
     <EmptyState
-      message="No purchases yet."
+      icon="cart"
+      message="Do you have a receipt? Type it in!"
       action={{ label: 'Record your first purchase', href: '/manage/purchases/add' }}
     />
   {:else}

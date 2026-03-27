@@ -154,7 +154,7 @@ describe('Category page', () => {
     });
 
     expect(screen.getByRole('heading', { name: /empty/i })).toBeInTheDocument();
-    expect(screen.getByText(/no products in this category/i)).toBeInTheDocument();
+    expect(screen.getByText(/empty corner/i)).toBeInTheDocument();
   });
 
   it('shows child categories above product list when present', () => {

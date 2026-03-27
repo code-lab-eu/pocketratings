@@ -339,6 +339,11 @@ body {
     background-color: var(--pr-card-bg);
   }
 
+  /* Empty state block (icon + message) */
+  .pr-empty-state-enter {
+    animation: pr-empty-state-enter 260ms ease forwards;
+  }
+
   /* Star rating input pulse on release */
   .pr-star-pulse {
     animation: pr-star-pulse 200ms ease;
@@ -354,6 +359,17 @@ body {
   }
   100% {
     transform: scale(1);
+  }
+}
+
+@keyframes pr-empty-state-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -374,5 +390,10 @@ body {
   }
   .pr-star-pulse {
     animation: none;
+  }
+  .pr-empty-state-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

@@ -50,7 +50,8 @@
     <FormError message={error} />
   {:else if products.length === 0}
     <EmptyState
-      message="No products yet."
+      icon="package"
+      message="This list is empty. Add something!"
       action={{ label: 'Add your first product', href: '/manage/products/new' }}
     />
   {:else}

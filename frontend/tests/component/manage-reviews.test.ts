@@ -37,7 +37,7 @@ describe('Manage reviews list', () => {
         }
       }
     });
-    expect(screen.getByText(/no reviews yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/stars I can see are in the sky/i)).toBeInTheDocument();
   });
 
   it('shows review list with product link, edit icon and delete icon', () => {

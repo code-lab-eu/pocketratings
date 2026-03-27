@@ -25,7 +25,7 @@ describe('Manage categories list', () => {
     render(CategoriesPage, {
       props: { data: { categories: [], error: null } }
     });
-    expect(screen.getByText(/no categories yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/fresh start! add the first category/i)).toBeInTheDocument();
   });
 
   it('shows category list with edit link and delete button', () => {

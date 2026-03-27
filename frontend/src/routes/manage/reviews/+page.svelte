@@ -50,7 +50,8 @@
     <FormError message={error} />
   {:else if reviews.length === 0}
     <EmptyState
-      message="No reviews yet."
+      icon="star"
+      message="The only stars I can see are in the sky. Why don't you add the first review?"
       action={{ label: 'Add your first review', href: '/manage/reviews/add' }}
     />
   {:else}

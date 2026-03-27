@@ -52,7 +52,8 @@
     <FormError message={error} />
   {:else if flat.length === 0}
     <EmptyState
-      message="No categories yet."
+      icon="folder"
+      message="Fresh start! Add the first category."
       action={{ label: 'Add your first category', href: '/manage/categories/new' }}
     />
   {:else}

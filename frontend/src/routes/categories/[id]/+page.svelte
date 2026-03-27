@@ -6,6 +6,7 @@
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import CategoryLinkList from '$lib/CategoryLinkList.svelte';
   import { flattenCategories, toggleExpanded } from '$lib/categories';
+  import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
   import ProductList from '$lib/ProductList.svelte';
@@ -130,7 +131,11 @@
           />
         </div>
       {:else}
-        <p class="pr-text-muted mb-6">No categories match.</p>
+        <EmptyState
+          class="mb-6"
+          icon="search"
+          message="Nothing to see here. Try some other text?"
+        />
       {/if}
     {:else if childCategoriesTree.length > 0}
       <div class="mb-6">
@@ -144,7 +149,10 @@
       </div>
     {/if}
     {#if displayedItems.length === 0}
-      <p class="pr-text-muted">No products in this category.</p>
+      <EmptyState
+        icon="package"
+        message="Empty corner. Fill it when ready."
+      />
     {:else}
       <ProductList items={displayedItems} />
     {/if}

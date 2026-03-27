@@ -150,20 +150,16 @@ A subtle pulse animation on release provides tactile feedback.
 - Respect `prefers-reduced-motion` (skip pulse, keep instant
   fill).
 
-### 10. Playful empty states with contextual icons [FE]
+### 10. Playful empty states with contextual icons [FE] — DONE
 
-**2 sp.** Enhance `EmptyState.svelte` with a small inline SVG
-icon above the message (magnifying glass for no search results,
-shopping cart for no purchases, star for no reviews, folder for
-no categories) and friendlier copy that encourages action.
-Icons use `currentColor` for theme compatibility. A subtle
+**2 sp.** Enhance `EmptyState.svelte` with contextual icons above the
+message (Lucide) and friendlier copy that encourages action.
+Icons use `currentColor` with per-icon accent colors. A subtle
 fade-in + slide-up entrance animation plays on mount.
 
 **Tasks:**
 - Add optional `icon` prop to `EmptyState.svelte`; add entrance
   animation (fade + translateY).
-- Create small inline SVG icon set (4-5 icons, ~200-400 bytes
-  each) in `$lib/icons/` or directly in the component.
 - Update all `EmptyState` callsites with contextual icon choice
   and friendlier copy.
 - Respect `prefers-reduced-motion`.

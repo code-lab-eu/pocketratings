@@ -22,7 +22,7 @@ describe('Manage locations list', () => {
     render(LocationsPage, {
       props: { data: { locations: [], error: null } }
     });
-    expect(screen.getByText(/no locations yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/places to pin/i)).toBeInTheDocument();
   });
 
   it('shows location list with name, edit icon and delete icon', () => {

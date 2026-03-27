@@ -26,7 +26,7 @@ describe('Manage products list', () => {
     render(ProductsPage, {
       props: { data: { products: [], error: null } }
     });
-    expect(screen.getByText(/no products yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/this list is empty/i)).toBeInTheDocument();
   });
 
   it('shows product list with view link, edit icon and delete icon', () => {

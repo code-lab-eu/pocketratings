@@ -74,14 +74,28 @@ describe('Home page', () => {
     render(HomePage, {
       props: { data: { ...defaultData } }
     });
-    expect(screen.getByText(/no categories match/i)).toBeInTheDocument();
+    expect(screen.getByText(/no categories yet/i)).toBeInTheDocument();
+  });
+
+  it('shows search empty categories message when query set and no matches', () => {
+    render(HomePage, {
+      props: {
+        data: {
+          ...defaultData,
+          query: 'zzz',
+          categories: [],
+          fullCategories: []
+        } as PageData
+      }
+    });
+    expect(screen.getByText(/quiet in here/i)).toBeInTheDocument();
   });
 
   it('shows empty products message when no items', () => {
     render(HomePage, {
       props: { data: { ...defaultData } }
     });
-    expect(screen.getByText(/no products match/i)).toBeInTheDocument();
+    expect(screen.getByText(/wander categories instead/i)).toBeInTheDocument();
   });
 
   it('shows only root categories initially (not children)', () => {

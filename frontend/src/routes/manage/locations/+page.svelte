@@ -50,7 +50,8 @@
     <FormError message={error} />
   {:else if locations.length === 0}
     <EmptyState
-      message="No locations yet."
+      icon="pin"
+      message="Places to pin? Start with one."
       action={{ label: 'Add your first location', href: '/manage/locations/new' }}
     />
   {:else}

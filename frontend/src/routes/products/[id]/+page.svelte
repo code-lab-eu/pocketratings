@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
+  import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import { formatDate, formatProductDisplayName, formatRating, formatVariationDisplay } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
@@ -102,7 +103,10 @@
           Reviews
         </h2>
         {#if reviews.length === 0}
-          <p class="pr-text-muted">No reviews yet.</p>
+          <EmptyState
+            icon="star"
+            message="No reviews yet. Add one when you are ready."
+          />
         {:else}
           <ul class="space-y-3">
             {#each reviews as review (review.id)}
@@ -127,7 +131,10 @@
           Purchase history
         </h2>
         {#if (purchases ?? []).length === 0}
-          <p class="pr-text-muted">No purchases recorded.</p>
+          <EmptyState
+            icon="cart"
+            message="This pocket is empty, why don't you go and buy one?"
+          />
         {:else}
           {#each purchasesByVariation as group (group.variationId)}
             {#if purchasesByVariation.length > 1}

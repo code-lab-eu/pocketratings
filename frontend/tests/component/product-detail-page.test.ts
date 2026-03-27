@@ -293,6 +293,6 @@ describe('Product detail page', () => {
     render(ProductDetailPage, {
       props: { data: { ...defaultData, purchases: [] } as PageData }
     });
-    expect(screen.getByText(/no purchases recorded/i)).toBeInTheDocument();
+    expect(screen.getByText(/this pocket is empty/i)).toBeInTheDocument();
   });
 });
