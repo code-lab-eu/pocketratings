@@ -9,51 +9,19 @@ This document tracks planned features and improvements for Pocket Ratings.
 Order: (1) blocking tasks, (2) important, (3) low-hanging fruit (1–2 SP), (4)
 rest. Every item has a story point estimate in the first line of its body.
 
-### 1. Make reusable components route-agnostic [FE] — DONE
+### 1. Add a favicon [FE]
 
-**1 sp.** `ProductList` hardcodes `/products/[id]` in its href;
-`EmptyState` calls `resolve()` internally instead of receiving a
-pre-resolved href. Reusable components should have no route
-knowledge — the caller owns route resolution. Follow the pattern
-established in `CategoryLinkList` (`hrefFor` callback or
-pre-resolved href string). Prefer doing this before adding new
-`ProductList` callsites so href wiring stays in one place per page.
+**1 sp.** Ship a tab icon: `frontend/src/lib/assets/favicon.svg` exists but
+is not wired in the document head. Link it via SvelteKit convention (`<link
+rel="icon" ...>` in root layout or static favicon) so browsers show the app
+icon.
 
 **Tasks:**
-- `ProductList`: replace hardcoded
-  `resolve('/products/${product.id}')` with a caller-provided
-  `hrefFor: (id: string) => string` prop.
-- `EmptyState`: accept a pre-resolved `href` string instead of
-  calling `resolve()` internally; move `resolve()` to callsites.
-- Remove `import { resolve } from '$app/paths'` from both
-  components after the change.
+- Add favicon link (and optional `apple-touch-icon` if desired) consistent
+  with SvelteKit 2 / project static asset paths.
+- Verify in dev and build output.
 
-### 2. Replace emoji with Lucide icons in header menu and BackLink [FE] — DONE
-
-**1 sp.** Use lucide-svelte for the header **menu** (hamburger) and for
-BackLink (arrow) only. The header **theme toggle** is out of scope: it uses
-custom layered SVG (`ThemeToggleIcon`) and CSS motion. Do **not** replace or
-revert that control when doing this task.
-
-**Tasks:**
-- In +layout.svelte: replace ☰ with Menu; leave the theme toggle unchanged.
-- In BackLink.svelte: replace "←" with ArrowLeft (or ChevronLeft), size
-  appropriately, aria-hidden="true" on the icon so the link label is the
-  screen-reader focus.
-
-### 3. Unify card and list styling on product detail page [FE]
-
-**1 sp.** Use the design system (pr-card and related utilities) for review
-cards and purchase history on the product detail page instead of ad-hoc
-Tailwind so all card-like surfaces share one visual language.
-
-**Tasks:**
-- In products/[id]/+page.svelte: style review cards with pr-card (or
-  variant) instead of inline rounded-lg border...; style purchase list
-  items with pr-card or the same list pattern used elsewhere so borders,
-  background, and hover align with the rest of the app.
-
-### 4. Make the search field more prominent [FE]
+### 2. Make the search field more prominent [FE]
 
 **1 sp.** Home and category pages already expose search per [spec.md](spec.md);
 improve visual hierarchy so the search input reads as a primary control
@@ -66,7 +34,7 @@ separate search route.
 - Adjust styles (and minimal markup if needed) so search is easy to find;
   keep debounced behaviour and API usage unchanged.
 
-### 5. Search no-results state with personality [FE]
+### 3. Search no-results state with personality [FE]
 
 **1 sp.** When search returns zero categories and zero products,
 show a consolidated no-results state: a shrug character or small
@@ -82,36 +50,51 @@ categories"), and a "Clear search" action that resets the field.
   `SearchForm.svelte`.
 - Respect `prefers-reduced-motion` for any entrance animation.
 
-### 6. After creating a category, redirect to its public page [FE] — DONE
+### 4. Unify card and list styling on product detail page [FE]
 
-**1 sp.** Today `manage/categories/new` returns to the category list after
-success. Navigate to `/categories/:id` (using the `id` from
-`createCategory`'s response) so the user lands on the new category in
-context; optionally still invalidate data so manage lists stay fresh.
-
-**Tasks:**
-- In `manage/categories/new/+page.svelte`: after successful
-  `createCategory`, `goto` the public category URL with
-  `resolve('/categories/[id]', { id })` (or equivalent).
-- Product parity: same redirect pattern on `manage/products/new` to
-  `/products/:id` (no public location page; locations unchanged).
-- Add or extend a test if behaviour is covered by component or e2e tests.
-- Note in [spec.md](spec.md) if management flows doc should mention the
-  redirect.
-
-### 7. Add a favicon [FE]
-
-**1 sp.** Ship a tab icon: `frontend/src/lib/assets/favicon.svg` exists but
-is not wired in the document head. Link it via SvelteKit convention (`<link
-rel="icon" ...>` in root layout or static favicon) so browsers show the app
-icon.
+**1 sp.** Use the design system (pr-card and related utilities) for review
+cards and purchase history on the product detail page instead of ad-hoc
+Tailwind so all card-like surfaces share one visual language.
 
 **Tasks:**
-- Add favicon link (and optional `apple-touch-icon` if desired) consistent
-  with SvelteKit 2 / project static asset paths.
-- Verify in dev and build output.
+- In products/[id]/+page.svelte: style review cards with pr-card (or
+  variant) instead of inline rounded-lg border...; style purchase list
+  items with pr-card or the same list pattern used elsewhere so borders,
+  background, and hover align with the rest of the app.
 
-### 8. API error and request logging [BE]
+### 5. Show ratings as stars in review list cards [FE]
+
+**1 sp.** Product detail (`products/[id]/+page.svelte`) and the manage
+reviews list (`manage/reviews/+page.svelte`) show numeric ratings (e.g.
+`formatRating(...)/5`). Reuse `StarRating.svelte` for a consistent
+at-a-glance display aligned with [spec.md](spec.md) and existing
+`pr-rating` styling.
+
+**Tasks:**
+- Pass each `review.rating` into `StarRating`; keep an accessible label
+  (sr-only or `aria-*`) so the value is not icon-only.
+- Tune size and spacing so both surfaces match the rest of the app.
+
+### 6. Product detail page: inline add review [FE]
+
+**1 sp.** In the Reviews section on the product detail page, keep **Add
+review** as a link (full `manage/reviews/add` page remains available). Place
+the link under the last review or under the empty
+state. On click, show the inline form **in that spot**, replacing the link;
+cancel or successful submit restores the link. Reuse `POST /api/v1/reviews`;
+product is fixed from the current page. Remove **Add review** from the
+separate footer/actions block; **Add purchase** may stay there until inline
+add purchase is implemented.
+
+**Tasks:**
+- Swap link and inline form (rating, optional text); validation and messages
+  aligned with manage add review; on success `invalidateAll` (or append) and
+  restore the link.
+- Optional: share small validation/helpers with `manage/reviews/add` to avoid
+  drift.
+- Update [spec.md](spec.md) if product page behaviour is specified there.
+
+### 7. API error and request logging [BE]
 
 **2 sp.** Log API errors and optionally request/response status so that
 failures (e.g. 4xx/5xx) are visible in the backend process output. Currently
@@ -125,7 +108,43 @@ handler errors are not logged.
 - Prefer one consistent approach (middleware vs. per-handler); document in
   README or dev docs how to enable debug logs if needed.
 
-### 9. Typography and modern font stack [FE]
+### 8. Product detail page: inline add purchase [FE]
+
+**2 sp.** In the Purchase history section, keep **Add purchase** as a link
+(full manage add page remains available). Place the link at the bottom of
+the section. Same swap-to-inline pattern as inline add review. Reuse `POST
+/api/v1/purchases`; prefill product and default variation from the current
+page (e.g. extend `PurchaseForm` or equivalent). Load locations in
+`products/[id]` data when needed. Remove **Add purchase** from the footer;
+remove the footer/actions block entirely if it becomes empty.
+
+**Tasks:**
+- `listLocations()` (or equivalent) in `products/[id]/+page.ts` alongside
+  existing loads; handle errors consistently with the rest of the page.
+- Inline form: variation, location, quantity, price, date; validation aligned
+  with manage add purchase; on success refresh (or append) and restore the
+  link.
+- Reuse or extend `PurchaseForm` with props for fixed product and variations
+  from `GET /api/v1/products/:id` where practical.
+- Update [spec.md](spec.md) if not already covered when documenting inline
+  review.
+
+### 9. Deprioritize variation label when unit is set on new product [FE]
+
+**2 sp.** On `manage/products/new`, the optional first-variation **Label**
+field is shown with equal weight to unit and quantity, but label is often
+redundant when unit and quantity imply the size. Reduce visual emphasis
+(order, typography, or progressive disclosure) so **Label** is prominent
+mainly when unit is **No unit** (`variationUnit === 'none'` in code), where
+a free-text descriptor matters.
+
+**Tasks:**
+- Adjust layout so unit and quantity lead; surface label clearly only for the
+  `none` unit case.
+- Keep `first_variation` submit rules unchanged; extend tests if behaviour is
+  covered.
+
+### 10. Typography and modern font stack [FE]
 
 **3 sp.** Shortlist a few contemporary, readable typefaces (UI body and
 headings can differ) — e.g. explore options from Google Fonts, Fontsource,
@@ -148,47 +167,6 @@ form labels vs. body) without a full rebrand.
   stack.
 - Document any new token or pattern in a short comment or spec note if
   behaviour changes visibly.
-
-### 10. Product detail page: inline add review [FE]
-
-**1 sp.** In the Reviews section on the product detail page, keep **Add
-review** as a link (full `manage/reviews/add` page remains available). Place
-the link under the last review or under the empty
-state. On click, show the inline form **in that spot**, replacing the link;
-cancel or successful submit restores the link. Reuse `POST /api/v1/reviews`;
-product is fixed from the current page. Remove **Add review** from the
-separate footer/actions block; **Add purchase** may stay there until task
-11.
-
-**Tasks:**
-- Swap link and inline form (rating, optional text); validation and messages
-  aligned with manage add review; on success `invalidateAll` (or append) and
-  restore the link.
-- Optional: share small validation/helpers with `manage/reviews/add` to avoid
-  drift.
-- Update [spec.md](spec.md) if product page behaviour is specified there.
-
-### 11. Product detail page: inline add purchase [FE]
-
-**2 sp.** In the Purchase history section, keep **Add purchase** as a link
-(full manage add page remains available). Place the link at the bottom of
-the section. Same swap-to-inline pattern as task 10. Reuse `POST
-/api/v1/purchases`; prefill product and default variation from the current
-page (e.g. extend `PurchaseForm` or equivalent). Load locations in
-`products/[id]` data when needed. Remove **Add purchase** from the footer;
-remove the footer/actions block entirely if it becomes empty.
-
-**Tasks:**
-- `listLocations()` (or equivalent) in `products/[id]/+page.ts` alongside
-  existing loads; handle errors consistently with the rest of the page.
-- Inline form: variation, location, quantity, price, date; validation aligned
-  with manage add purchase; on success refresh (or append) and restore the
-  link.
-- Reuse or extend `PurchaseForm` with props for fixed product and variations
-  from `GET /api/v1/products/:id` where practical.
-- Update [spec.md](spec.md) if not already done in task 10.
-
-### 12. Show ratings in both review cards as stars
 
 ---
 
