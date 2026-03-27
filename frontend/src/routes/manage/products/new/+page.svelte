@@ -71,8 +71,8 @@
     }
     submitting = true;
     try {
-      await createProduct(body);
-      await goto(resolve('/manage/products'), { invalidateAll: true });
+      const created = await createProduct(body);
+      await goto(resolve('/products/[id]', { id: created.id }), { invalidateAll: true });
     } catch (e) {
       error = errorMessage(e);
     } finally {

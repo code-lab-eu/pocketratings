@@ -147,7 +147,11 @@ The home screen is **categories + products + search** (one page): categories and
   product page includes a **Variations** section: list (label/unit display),
   add variation (label, unit, quantity), edit variation (inline), delete
   variation (disabled when variation has purchases or is the last variation).
-  After submitting an add-review form, redirect to the product page.
+  After submitting an add-review form, redirect to the product page. After
+  creating a category, redirect to that category's public page
+  (`/categories/:id`); after creating a product, redirect to that product's
+  public page (`/products/:id`). Creating a location still returns to the
+  manage locations list (no public location detail page).
 - **Management list rows:** On each management list (categories, products,
   locations, reviews, purchases), rows use a consistent pattern: the **entity
   name** (or primary label) links to the **public view page** when it exists

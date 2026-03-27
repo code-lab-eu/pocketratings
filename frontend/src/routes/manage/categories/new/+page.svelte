@@ -31,8 +31,8 @@
     }
     submitting = true;
     try {
-      await createCategory({ name: n, parent_id: parentId || null });
-      await goto(resolve('/manage/categories'), { invalidateAll: true });
+      const created = await createCategory({ name: n, parent_id: parentId || null });
+      await goto(resolve('/categories/[id]', { id: created.id }), { invalidateAll: true });
     } catch (e) {
       error = errorMessage(e);
     } finally {

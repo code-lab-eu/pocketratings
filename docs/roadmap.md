@@ -82,7 +82,7 @@ categories"), and a "Clear search" action that resets the field.
   `SearchForm.svelte`.
 - Respect `prefers-reduced-motion` for any entrance animation.
 
-### 6. After creating a category, redirect to its public page [FE]
+### 6. After creating a category, redirect to its public page [FE] — DONE
 
 **1 sp.** Today `manage/categories/new` returns to the category list after
 success. Navigate to `/categories/:id` (using the `id` from
@@ -93,6 +93,8 @@ context; optionally still invalidate data so manage lists stay fresh.
 - In `manage/categories/new/+page.svelte`: after successful
   `createCategory`, `goto` the public category URL with
   `resolve('/categories/[id]', { id })` (or equivalent).
+- Product parity: same redirect pattern on `manage/products/new` to
+  `/products/:id` (no public location page; locations unchanged).
 - Add or extend a test if behaviour is covered by component or e2e tests.
 - Note in [spec.md](spec.md) if management flows doc should mention the
   redirect.
