@@ -147,24 +147,44 @@ form labels vs. body) without a full rebrand.
 - Document any new token or pattern in a short comment or spec note if
   behaviour changes visibly.
 
-### 10. Product detail page: inline add review and add purchase [FE]
+### 10. Product detail page: inline add review [FE]
 
-**3 sp.** On the product detail page, allow the user to add a review or a
-purchase using an inline form (e.g. collapsible section or form below the
-existing reviews/purchases) instead of navigating to manage/reviews/add or
-manage/purchases/add. Reuse existing API (POST review, POST purchase);
-prefill product (and default variation for purchase) from the current page.
+**1 sp.** In the Reviews section on the product detail page, keep **Add
+review** as a link (full `manage/reviews/add` page remains available). Place
+the link under the last review or under the empty
+state. On click, show the inline form **in that spot**, replacing the link;
+cancel or successful submit restores the link. Reuse `POST /api/v1/reviews`;
+product is fixed from the current page. Remove **Add review** from the
+separate footer/actions block; **Add purchase** may stay there until task
+11.
 
 **Tasks:**
-- Add an "Add review" section on the product page: form with rating and
-  optional text; product is fixed; on success, refresh data or append
-  optimistically and clear form.
-- Add an "Add purchase" section: form with variation, location, quantity,
-  price, date; product and default variation prefilled; on success, refresh
-  or append and clear form.
-- Ensure validation and error messages match existing manage pages; link to
-  full manage flows for edit/delete. Update [spec.md](spec.md) if product
-  page behaviour is specified there.
+- Swap link and inline form (rating, optional text); validation and messages
+  aligned with manage add review; on success `invalidateAll` (or append) and
+  restore the link.
+- Optional: share small validation/helpers with `manage/reviews/add` to avoid
+  drift.
+- Update [spec.md](spec.md) if product page behaviour is specified there.
+
+### 11. Product detail page: inline add purchase [FE]
+
+**2 sp.** In the Purchase history section, keep **Add purchase** as a link
+(full manage add page remains available). Place the link at the bottom of
+the section. Same swap-to-inline pattern as task 10. Reuse `POST
+/api/v1/purchases`; prefill product and default variation from the current
+page (e.g. extend `PurchaseForm` or equivalent). Load locations in
+`products/[id]` data when needed. Remove **Add purchase** from the footer;
+remove the footer/actions block entirely if it becomes empty.
+
+**Tasks:**
+- `listLocations()` (or equivalent) in `products/[id]/+page.ts` alongside
+  existing loads; handle errors consistently with the rest of the page.
+- Inline form: variation, location, quantity, price, date; validation aligned
+  with manage add purchase; on success refresh (or append) and restore the
+  link.
+- Reuse or extend `PurchaseForm` with props for fixed product and variations
+  from `GET /api/v1/products/:id` where practical.
+- Update [spec.md](spec.md) if not already done in task 10.
 
 ---
 
