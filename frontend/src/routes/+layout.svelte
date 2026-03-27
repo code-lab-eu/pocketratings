@@ -1,7 +1,7 @@
 <script lang="ts">
   import './layout.css';
   import { goto } from '$app/navigation';
-  import { resolve } from '$app/paths';
+  import { base, resolve } from '$app/paths';
   import { page } from '$app/stores';
   import favicon from '$lib/assets/favicon.svg';
   import { clearToken, getToken, token } from '$lib/auth';
@@ -10,6 +10,9 @@
   import { Menu } from 'lucide-svelte';
 
   let { children } = $props();
+
+  const appleTouchIconHref = `${base}/apple-touch-icon.png`.replace(/\/+/g, '/');
+  const faviconIcoHref = `${base}/favicon.ico`.replace(/\/+/g, '/');
 
   // Client-only: init theme from localStorage and sync token
   $effect(() => {
@@ -28,7 +31,11 @@
   }
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+  <link rel="icon" href={favicon} type="image/svg+xml" />
+  <link rel="icon" href={faviconIcoHref} sizes="any" />
+  <link rel="apple-touch-icon" href={appleTouchIconHref} />
+</svelte:head>
 
 {#if typeof window !== 'undefined' && $token && $page.url.pathname !== '/login'}
   <header class="pr-header px-4 py-3">
