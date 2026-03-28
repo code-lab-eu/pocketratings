@@ -88,14 +88,8 @@
           {product.name}
         </h1>
         {#if product.brand}
-          <p class="pr-text-muted">{product.brand}</p>
+          <p class="pr-product-brand">{product.brand}</p>
         {/if}
-        <p class="mt-1 pr-text-muted">
-          Category:
-          <a href={resolve('/categories/[id]', { id: product.category.id })} class="pr-link-inline">
-            {product.category.name}
-          </a>
-        </p>
       </header>
 
       <section class="mb-6" aria-labelledby="reviews-heading">

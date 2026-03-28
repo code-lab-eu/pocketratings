@@ -17,6 +17,10 @@ Defined in `src/routes/layout.css`:
     `text-2xl` and earlier `mb-4 text-2xl font-semibold text-gray-900 dark:text-gray-50`).
   - `.pr-heading-section`: section headings (was `mb-3 text-lg font-medium text-gray-900 dark:text-gray-50`).
 
+- **Product detail**
+  - `.pr-product-brand`: brand line under the product name (prominent sans, semibold;
+    category navigation is via breadcrumb only).
+
 - **Links**
   - `.pr-link-inline`: inline link with underline, used in text paragraphs and "Back to …" links.
     Has `cursor: pointer` and `:focus-visible` using the focus ring tokens.

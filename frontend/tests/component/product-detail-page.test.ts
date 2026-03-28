@@ -47,17 +47,17 @@ const defaultData: PageData = {
 };
 
 describe('Product detail page', () => {
-  it('shows product name, brand, and category', () => {
+  it('shows product name and brand; category link only in breadcrumb', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }
     });
     expect(screen.getByRole('heading', { name: /milk/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/acme/i).length).toBeGreaterThanOrEqual(1);
+    const brand = document.querySelector('.pr-product-brand');
+    expect(brand).toBeInTheDocument();
+    expect(brand).toHaveTextContent(/^acme$/i);
     const dairyLinks = screen.getAllByRole('link', { name: /dairy/i });
-    expect(dairyLinks).toHaveLength(2);
-    dairyLinks.forEach((link) =>
-      expect(link.getAttribute('href')).toContain('/categories/cat-1')
-    );
+    expect(dairyLinks).toHaveLength(1);
+    expect(dairyLinks[0].getAttribute('href')).toContain('/categories/cat-1');
   });
 
   it('shows breadcrumb with Home, category, and product name when product is loaded', () => {

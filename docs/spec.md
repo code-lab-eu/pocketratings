@@ -118,7 +118,7 @@ as the user types (min 2 characters; short debounce); URL is updated with
 replaceState; no full page reload so the input keeps focus. On home it
 filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category's **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the review score (median) and price when available. |
 | **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with review score (median of all reviews) and lowest price. These come from `GET /api/v1/products` (response includes optional `review_score` and `price`); no client-side merge with `GET /api/v1/reviews` for list display. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response's `ancestors` array) above the product list. |
-| **Primary** | Product detail          | Tap product -> product with **category name**; full review(s); **purchase history** grouped by variation (only variations with at least one purchase; sub-heading per variation, or single list when one variation; each row: date, location, quantity, price); links: Add review, Add purchase. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations`. When there are no purchases or reviews, list endpoints return `200 OK` with `[]`, not `404`. |
+| **Primary** | Product detail          | Tap product -> product **name** and **brand** (when set); category in **breadcrumb** only; full review(s); **purchase history** grouped by variation (only variations with at least one purchase; sub-heading per variation, or single list when one variation; each row: date, location, quantity, price); links: Add review, Add purchase. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations`. When there are no purchases or reviews, list endpoints return `200 OK` with `[]`, not `404`. |
 | **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
 
@@ -139,12 +139,12 @@ The home screen is **categories + products + search** (one page): categories and
   prefilled). Below that, products in the current category and all its
   descendant categories (with a depth limit) with inline rating and price
   from the products API.
-- **Product detail:** Product with **category name**; full review(s); **purchase
+- **Product detail:** Product **name** and **brand** (when set); **category**
+  appears only in the **breadcrumb** (full path: Home -> ... -> category ->
+  product name), matching the category page pattern. Full review(s); **purchase
   history** grouped by variation (only variations with at least one purchase;
   sub-heading per variation, or single list when one variation; each row: date,
-  location, quantity, price); links: Add review, Add purchase. A **breadcrumb** shows the
-  full category path (Home -> ... -> category -> product name), matching the
-  category page pattern.
+  location, quantity, price); links: Add review, Add purchase.
 - **Login:** Email + password; store token; redirect to Home.
 - **Menu:** Single place for all entity management (categories, locations,
   products, purchases, reviews). Implemented: hub at `/manage` with links; full
