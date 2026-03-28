@@ -364,6 +364,19 @@ body {
     color: var(--pr-text-primary);
   }
 
+  /* Shell for expand-in-place forms (inline review, variation add/edit, etc.) */
+  .pr-inline-form {
+    border-radius: 0.5rem;
+    border: 1px solid var(--pr-border);
+    background-color: var(--pr-surface-hover);
+    padding: 0.75rem;
+    color: var(--pr-text-primary);
+  }
+
+  html.dark .pr-inline-form {
+    background-color: color-mix(in srgb, var(--pr-card-bg) 72%, var(--pr-surface));
+  }
+
   /* Page header bar */
   .pr-header {
     border-bottom: 1px solid var(--pr-border);

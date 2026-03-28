@@ -17,6 +17,8 @@
     formatVariationDisplay
   } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
+  import { inlineFormSlideParams } from '$lib/inlineFormMotion';
+  import { slide } from 'svelte/transition';
 
   let { data } = $props();
 
@@ -65,11 +67,15 @@
     inlineError = null;
   }
 
-  function resetInlineReviewForm() {
+  function closeInlineReview() {
+    inlineReviewOpen = false;
+  }
+
+  function handleInlineReviewOutroEnd() {
     inlineError = null;
     inlineRating = 3;
     inlineText = '';
-    inlineReviewOpen = false;
+    inlineSubmitting = false;
   }
 
   async function handleInlineReviewSubmit(e: Event) {
@@ -90,7 +96,8 @@
         text: inlineText.trim() || undefined
       });
       await invalidateAll();
-      resetInlineReviewForm();
+      inlineSubmitting = false;
+      inlineReviewOpen = false;
     } catch (err) {
       inlineError = errorMessage(err);
     } finally {
@@ -179,29 +186,44 @@
             </button>
           </p>
         {:else}
-          <form class="mt-4 space-y-4" onsubmit={handleInlineReviewSubmit}>
-            <FormError message={inlineError} />
-            <StarRatingInput id="inline-review-rating" bind:value={inlineRating} />
-            <TextareaField
-              id="inline-review-text"
-              label="Review (optional)"
-              bind:value={inlineText}
-              rows={3}
-              placeholder="Your review…"
-            />
-            <div class="flex gap-2">
-              <Button type="submit" disabled={inlineSubmitting} variant="primary">
-                {inlineSubmitting ? 'Saving…' : 'Save'}
-              </Button>
-              <button
-                type="button"
-                class="pr-btn-secondary"
-                onclick={resetInlineReviewForm}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+          <div
+            class="mt-4 pr-inline-form"
+            in:slide={inlineFormSlideParams()}
+            out:slide={inlineFormSlideParams()}
+            onoutroend={handleInlineReviewOutroEnd}
+          >
+            <h3 id="inline-review-form-heading" class="mb-3 text-base font-semibold pr-text-body">
+              Add review
+            </h3>
+            <form
+              class="space-y-4"
+              aria-labelledby="inline-review-form-heading"
+              aria-busy={inlineSubmitting}
+              onsubmit={handleInlineReviewSubmit}
+            >
+              <FormError message={inlineError} />
+              <StarRatingInput id="inline-review-rating" bind:value={inlineRating} />
+              <TextareaField
+                id="inline-review-text"
+                label="Review (optional)"
+                bind:value={inlineText}
+                rows={3}
+                placeholder="Your review…"
+              />
+              <div class="flex gap-2">
+                <Button type="submit" disabled={inlineSubmitting} variant="primary">
+                  {inlineSubmitting ? 'Saving…' : 'Save'}
+                </Button>
+                <button
+                  type="button"
+                  class="pr-btn-secondary"
+                  onclick={closeInlineReview}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         {/if}
       </section>
 

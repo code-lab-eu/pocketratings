@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductDetailPage from '../../src/routes/products/[id]/+page.svelte';
@@ -283,7 +283,9 @@ describe('Product detail page', () => {
     );
     expect(mocks.invalidateAll).toHaveBeenCalledTimes(1);
 
-    expect(within(reviewsRegion).getByRole('button', { name: /add review/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(reviewsRegion).getByRole('button', { name: /add review/i })).toBeInTheDocument();
+    });
     expect(screen.queryByRole('button', { name: /^save$/i })).not.toBeInTheDocument();
   });
 

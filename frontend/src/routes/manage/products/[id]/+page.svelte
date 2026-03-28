@@ -20,6 +20,8 @@
   import PageHeading from '$lib/PageHeading.svelte';
   import VariationForm from '$lib/VariationForm.svelte';
   import Button from '$lib/Button.svelte';
+  import { inlineFormSlideParams } from '$lib/inlineFormMotion';
+  import { slide } from 'svelte/transition';
 
   let { data } = $props();
   let product = $derived(data.product);
@@ -273,7 +275,11 @@
       <ul class="space-y-2">
         {#each variations as v (v.id)}
           {#if editingId === v.id}
-            <li class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-800/50">
+            <li
+              class="pr-inline-form"
+              in:slide={inlineFormSlideParams()}
+              out:slide={inlineFormSlideParams()}
+            >
               <VariationForm
                 idPrefix="edit-{v.id}"
                 bind:labelValue={editLabel}
@@ -314,7 +320,11 @@
         {/each}
       </ul>
       {#if addVariationOpen}
-        <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-800/50">
+        <div
+          class="mt-4 pr-inline-form"
+          in:slide={inlineFormSlideParams()}
+          out:slide={inlineFormSlideParams()}
+        >
           <VariationForm
             idPrefix="add"
             bind:labelValue={addLabel}
