@@ -1,6 +1,21 @@
-import { render, screen } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { render, screen, within } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductDetailPage from '../../src/routes/products/[id]/+page.svelte';
+
+const mocks = vi.hoisted(() => ({
+  createReview: vi.fn().mockResolvedValue({ id: 'new-rev' }),
+  invalidateAll: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('$lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('$lib/api')>();
+  return { ...actual, createReview: mocks.createReview };
+});
+
+vi.mock('$app/navigation', () => ({
+  invalidateAll: mocks.invalidateAll
+}));
 import type { PageData } from '../../src/routes/products/[id]/$types';
 import type { ProductDetail, Purchase, Review } from '../../src/lib/types';
 
@@ -47,6 +62,12 @@ const defaultData: PageData = {
 };
 
 describe('Product detail page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.createReview.mockResolvedValue({ id: 'new-rev' });
+    mocks.invalidateAll.mockResolvedValue(undefined);
+  });
+
   it('shows product name and brand; category link only in breadcrumb', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }
@@ -213,18 +234,57 @@ describe('Product detail page', () => {
     expect(screen.getByRole('heading', { name: /500 g/i, level: 3 })).toBeInTheDocument();
   });
 
-  it('shows Add review and Add purchase placeholder links', () => {
+  it('shows Add review in reviews section and Add purchase only in actions', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }
     });
-    const addReview = screen.getByRole('link', { name: /add review/i });
-    const addPurchase = screen.getByRole('link', { name: /add purchase/i });
+    const reviewsRegion = screen.getByRole('region', { name: /^reviews$/i });
+    const addReview = within(reviewsRegion).getByRole('button', { name: /add review/i });
     expect(addReview).toBeInTheDocument();
-    expect(addReview.getAttribute('href')).toContain('/manage/reviews/add');
-    expect(addReview.getAttribute('href')).toContain('product_id=prod-1');
-    expect(addPurchase).toBeInTheDocument();
+
+    const actionsRegion = screen.getByRole('region', { name: /^actions$/i });
+    expect(within(actionsRegion).getByRole('link', { name: /add purchase/i })).toBeInTheDocument();
+    expect(within(actionsRegion).queryByRole('button', { name: /add review/i })).not.toBeInTheDocument();
+    expect(within(actionsRegion).queryByRole('link', { name: /add review/i })).not.toBeInTheDocument();
+
+    const addPurchase = within(actionsRegion).getByRole('link', { name: /add purchase/i });
     expect(addPurchase.getAttribute('href')).toContain('/manage/purchases/add');
     expect(addPurchase.getAttribute('href')).toContain('product_id=prod-1');
+  });
+
+  it('opens inline add-review form and closes on Cancel', async () => {
+    render(ProductDetailPage, {
+      props: { data: defaultData }
+    });
+    const reviewsRegion = screen.getByRole('region', { name: /^reviews$/i });
+    await userEvent.click(within(reviewsRegion).getByRole('button', { name: /add review/i }));
+
+    expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(screen.queryByRole('button', { name: /^save$/i })).not.toBeInTheDocument();
+    expect(within(reviewsRegion).getByRole('button', { name: /add review/i })).toBeInTheDocument();
+    expect(mocks.createReview).not.toHaveBeenCalled();
+  });
+
+  it('submits inline review then invalidates all so data can refresh', async () => {
+    render(ProductDetailPage, {
+      props: { data: defaultData }
+    });
+    const reviewsRegion = screen.getByRole('region', { name: /^reviews$/i });
+    await userEvent.click(within(reviewsRegion).getByRole('button', { name: /add review/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(mocks.createReview).toHaveBeenCalledBefore(mocks.invalidateAll);
+    expect(mocks.createReview).toHaveBeenCalledWith(
+      expect.objectContaining({ product_id: 'prod-1', rating: 3 })
+    );
+    expect(mocks.invalidateAll).toHaveBeenCalledTimes(1);
+
+    expect(within(reviewsRegion).getByRole('button', { name: /add review/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^save$/i })).not.toBeInTheDocument();
   });
 
   it('shows Not found and back link when notFound is true', () => {

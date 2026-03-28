@@ -75,7 +75,7 @@ at-a-glance display aligned with [spec.md](spec.md) and existing
   (sr-only or `aria-*`) so the value is not icon-only.
 - Tune size and spacing so both surfaces match the rest of the app.
 
-### 6. Product detail page: inline add review [FE]
+### 6. Product detail page: inline add review [FE] — DONE
 
 **1 sp.** In the Reviews section on the product detail page, keep **Add
 review** as a link (full `manage/reviews/add` page remains available). Place

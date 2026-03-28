@@ -43,7 +43,7 @@ describe('Manage review edit page', () => {
     });
 
     expect(screen.getByRole('heading', { name: /edit review/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/rating/i)).toBeInTheDocument();
+    expect(screen.getByRole('slider')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
 

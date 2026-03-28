@@ -4,10 +4,9 @@
   interface Props {
     value: number;
     id: string;
-    label?: string;
   }
 
-  let { value = $bindable(3), id, label = 'Rating (1-5)' }: Props = $props();
+  let { value = $bindable(3), id }: Props = $props();
 
   const uid = `sri-${Math.random().toString(36).slice(2, 11)}`;
 
@@ -32,7 +31,6 @@
 </script>
 
 <div>
-  <label for={id} class="mb-1 block pr-text-label">{label}</label>
   <div class="relative inline-flex flex-col items-start pt-6">
     <span
       class="pr-text-label pointer-events-none absolute top-0 text-sm font-semibold"
@@ -96,7 +94,6 @@
         step="0.1"
         bind:value
         class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        aria-label={label}
         onpointerup={triggerPulse}
         onkeyup={triggerPulse}
       />

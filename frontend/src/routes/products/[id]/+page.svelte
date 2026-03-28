@@ -1,14 +1,30 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
+  import { createReview } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
+  import Button from '$lib/Button.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import StarRating from '$lib/StarRating.svelte';
-  import { formatDate, formatProductDisplayName, formatVariationDisplay } from '$lib/utils/formatters';
+  import StarRatingInput from '$lib/StarRatingInput.svelte';
+  import TextareaField from '$lib/TextareaField.svelte';
+  import {
+    errorMessage,
+    formatDate,
+    formatProductDisplayName,
+    formatVariationDisplay
+  } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
   let { data } = $props();
+
+  let inlineReviewOpen = $state(false);
+  let inlineRating = $state(3);
+  let inlineText = $state('');
+  let inlineSubmitting = $state(false);
+  let inlineError = $state<string | null>(null);
 
   let product = $derived(data.product);
   let reviews = $derived(data.reviews);
@@ -43,6 +59,44 @@
     }
     return groups;
   });
+
+  function openInlineReview() {
+    inlineReviewOpen = true;
+    inlineError = null;
+  }
+
+  function resetInlineReviewForm() {
+    inlineError = null;
+    inlineRating = 3;
+    inlineText = '';
+    inlineReviewOpen = false;
+  }
+
+  async function handleInlineReviewSubmit(e: Event) {
+    e.preventDefault();
+    if (!product) return;
+    inlineError = null;
+    const r = Number(inlineRating);
+    if (r < 1 || r > 5) {
+      inlineError = 'Rating must be between 1 and 5.';
+      return;
+    }
+    const ratingRounded = Math.round(r * 10) / 10;
+    inlineSubmitting = true;
+    try {
+      await createReview({
+        product_id: product.id,
+        rating: ratingRounded,
+        text: inlineText.trim() || undefined
+      });
+      await invalidateAll();
+      resetInlineReviewForm();
+    } catch (err) {
+      inlineError = errorMessage(err);
+    } finally {
+      inlineSubmitting = false;
+    }
+  }
 
 </script>
 
@@ -117,6 +171,38 @@
             {/each}
           </ul>
         {/if}
+
+        {#if !inlineReviewOpen}
+          <p class="mt-4">
+            <button type="button" class="pr-link-inline" onclick={openInlineReview}>
+              Add review
+            </button>
+          </p>
+        {:else}
+          <form class="mt-4 space-y-4" onsubmit={handleInlineReviewSubmit}>
+            <FormError message={inlineError} />
+            <StarRatingInput id="inline-review-rating" bind:value={inlineRating} />
+            <TextareaField
+              id="inline-review-text"
+              label="Review (optional)"
+              bind:value={inlineText}
+              rows={3}
+              placeholder="Your review…"
+            />
+            <div class="flex gap-2">
+              <Button type="submit" disabled={inlineSubmitting} variant="primary">
+                {inlineSubmitting ? 'Saving…' : 'Save'}
+              </Button>
+              <button
+                type="button"
+                class="pr-btn-secondary"
+                onclick={resetInlineReviewForm}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        {/if}
       </section>
 
       <section class="mb-6" aria-labelledby="purchase-history-heading">
@@ -151,11 +237,6 @@
 
       <section class="pr-divider pt-4" aria-label="Actions">
         <p class="pr-text-muted">
-          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
-          <a href={`${resolve('/manage/reviews/add')}?product_id=${product.id}`} class="pr-link-inline">
-            Add review
-          </a>
-          <span class="mx-2">·</span>
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
           <a href={`${resolve('/manage/purchases/add')}?product_id=${product.id}`} class="pr-link-inline">
             Add purchase
