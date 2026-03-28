@@ -13,6 +13,11 @@ Apply this workflow whenever writing or changing code in `frontend/` (Pocket Rat
 - **Tests describe the expected outcome.** Write tests so they specify the behaviour the code should meet (e.g. given these inputs, expect this response or this UI state). The tests are the specification; the implementation should make them pass.
 - **Prefer writing tests first.** Ideally write the test(s) that define the desired behaviour before writing the production code; otherwise add them in the same change as the implementation. New behaviour without a test is incomplete work.
 - **Phased plans:** When work is split into phases, each phase must include its own test coverage. Do not defer tests to a later phase. Ideally write tests for that phase first, then implement.
+- **Styling-only work does not need new tests.** Do **not** add or extend tests
+  whose sole purpose is to assert CSS, design tokens in `layout.css`, font
+  sizes, class names for appearance, or other purely visual details. Manual or
+  visual review is enough. The existing test suite must still pass after your
+  edits.
 - **What to test:**
   - **API client and pure logic:** Unit tests (Vitest) for new helpers in `lib/api.ts` and any shared logic. Use mocked `fetch` or stub responses. Follow the style of existing [lib/api.test.ts](frontend/src/lib/api.test.ts) and [lib/auth.test.ts](frontend/src/lib/auth.test.ts).
   - **Components and pages:** Add component or page-level tests where they add value: key elements render, loading/error/empty states, and critical user flows. Use Vitest with the project's existing setup (e.g. Svelte Testing Library if present).
