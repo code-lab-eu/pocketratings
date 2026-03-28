@@ -137,7 +137,7 @@ describe('Product detail page', () => {
       props: { data: defaultData }
     });
     expect(screen.getByRole('heading', { name: /reviews/i })).toBeInTheDocument();
-    expect(screen.getByText(/rating: 4\.0\/5/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/rating: 4\.0 out of 5/i)).toBeInTheDocument();
     expect(screen.getByText(/good product/i)).toBeInTheDocument();
     expect(screen.getByText(/by alice/i)).toBeInTheDocument();
   });

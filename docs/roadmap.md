@@ -62,7 +62,7 @@ Tailwind so all card-like surfaces share one visual language.
   items with pr-card or the same list pattern used elsewhere so borders,
   background, and hover align with the rest of the app.
 
-### 5. Show ratings as stars in review list cards [FE]
+### 5. Show ratings as stars in review list cards [FE] — DONE
 
 **1 sp.** Product detail (`products/[id]/+page.svelte`) and the manage
 reviews list (`manage/reviews/+page.svelte`) show numeric ratings (e.g.

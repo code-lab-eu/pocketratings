@@ -4,7 +4,8 @@
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
-  import { formatDate, formatProductDisplayName, formatRating, formatVariationDisplay } from '$lib/utils/formatters';
+  import StarRating from '$lib/StarRating.svelte';
+  import { formatDate, formatProductDisplayName, formatVariationDisplay } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
 
   let { data } = $props();
@@ -105,9 +106,7 @@
           <ul class="space-y-3">
             {#each reviews as review (review.id)}
               <li class="pr-panel">
-                <p class="font-medium pr-text-body pr-rating">
-                  Rating: {formatRating(review.rating)}/5
-                </p>
+                <StarRating score={review.rating} />
                 {#if review.text}
                   <p class="mt-1 pr-text-body">{review.text}</p>
                 {/if}
