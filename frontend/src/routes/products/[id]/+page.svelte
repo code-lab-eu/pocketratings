@@ -136,9 +136,9 @@
                 {group.displayName}
               </h3>
             {/if}
-            <ul class="space-y-2" class:mt-0={purchasesByVariation.length === 1}>
+            <ul class="space-y-3" class:mt-0={purchasesByVariation.length === 1}>
               {#each group.purchases as purchase (purchase.id)}
-                <li class="flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
+                <li class="pr-panel flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
                   <span>{formatDate(purchase.purchased_at)}</span>
                   <span>{purchase.location.name}</span>
                   <span class="pr-text-muted" title="Quantity">×{purchase.quantity}</span>

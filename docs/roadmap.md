@@ -50,7 +50,7 @@ categories"), and a "Clear search" action that resets the field.
   `SearchForm.svelte`.
 - Respect `prefers-reduced-motion` for any entrance animation.
 
-### 4. Unify card and list styling on product detail page [FE]
+### 4. Unify card and list styling on product detail page [FE] — DONE
 
 **1 sp.** Use the design system (pr-card and related utilities) for review
 cards and purchase history on the product detail page instead of ad-hoc
