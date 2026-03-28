@@ -91,6 +91,12 @@ components (e.g. `.pr-btn-primary`, `.pr-card`, `.pr-link-inline`,
 in light mode and **7:1** (WCAG AAA) in dark mode; focus indicators use the
 primary color and are never removed.
 
+**Typography.** Body text uses **Inter** (`--pr-font-sans`) and page/section
+headings use **Fraunces** (`--pr-font-display`). Fonts are self-hosted (latin
+subset, weights 400/500/600 for Inter; 500/600 for Fraunces) via Fontsource in
+`frontend/src/routes/+layout.svelte`, with fallbacks in
+`frontend/src/routes/layout.css`.
+
 **Implications:**
 
 - **Lookup-first, not data-entry-first** — Browsing categories and searching

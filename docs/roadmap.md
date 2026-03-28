@@ -34,7 +34,7 @@ separate search route.
 - Adjust styles (and minimal markup if needed) so search is easy to find;
   keep debounced behaviour and API usage unchanged.
 
-### 3. Search no-results state with personality [FE]
+### 3. Search no-results state with personality [FE] - DONE
 
 **1 sp.** When search returns zero categories and zero products,
 show a consolidated no-results state: a shrug character or small
@@ -144,7 +144,7 @@ a free-text descriptor matters.
 - Keep `first_variation` submit rules unchanged; extend tests if behaviour is
   covered.
 
-### 10. Typography and modern font stack [FE]
+### 10. Typography and modern font stack [FE] — DONE
 
 **3 sp.** Shortlist a few contemporary, readable typefaces (UI body and
 headings can differ) — e.g. explore options from Google Fonts, Fontsource,

@@ -43,6 +43,8 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@fontsource/fraunces": "^5.2.9",
+    "@fontsource/inter": "^5.2.8",
     "lucide-svelte": "^0.577.0"
   }
 }

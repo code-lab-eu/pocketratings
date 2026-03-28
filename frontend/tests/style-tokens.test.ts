@@ -107,6 +107,20 @@ describe('layout.css design tokens and focus states', () => {
     );
   });
 
+  it('defines Inter and Fraunces stacks in :root', () => {
+    const css = loadLayoutCss();
+    const rootBlock = css.slice(css.indexOf(':root'), css.indexOf('html.dark'));
+    expect(rootBlock).toContain("--pr-font-sans: 'Inter'");
+    expect(rootBlock).toContain("--pr-font-display: 'Fraunces'");
+  });
+
+  it('applies display font token to section headings', () => {
+    const css = loadLayoutCss();
+    expect(css).toMatch(
+      /\.pr-heading-section\s*\{[\s\S]*?font-family:\s*var\(--pr-font-display\)/
+    );
+  });
+
   it('defines theme toggle animation with ~400ms transitions', () => {
     const css = loadLayoutCss();
     expect(css).toContain('.pr-theme-toggle');

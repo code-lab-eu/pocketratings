@@ -45,6 +45,9 @@
   --pr-transition-fast: 150ms ease;
   --pr-shadow-hover: 0 4px 6px -1px rgb(0 0 0 / 0.1),
     0 2px 4px -2px rgb(0 0 0 / 0.1);
+  /* Typography: Inter (body) + Fraunces (headings); self-hosted via Fontsource. */
+  --pr-font-sans: 'Inter', ui-sans-serif, sans-serif;
+  --pr-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
 }
 
 html.dark {
@@ -75,6 +78,8 @@ html,
 body {
   background-color: var(--pr-surface);
   color: var(--pr-text-primary);
+  font-family: var(--pr-font-sans);
+  line-height: 1.5;
 }
 
 /* Semantic project-wide utilities and components */
@@ -176,15 +181,19 @@ body {
   /* Headings */
   .pr-heading-page {
     margin-bottom: 1rem;
+    font-family: var(--pr-font-display);
     font-size: 1.75rem;
     font-weight: 600;
+    line-height: 1.25;
     color: var(--pr-text-primary);
   }
 
   .pr-heading-section {
     margin-bottom: 0.75rem;
-    font-size: 1.125rem;
+    font-family: var(--pr-font-display);
+    font-size: 1.375rem;
     font-weight: 500;
+    line-height: 1.3;
     color: var(--pr-text-primary);
   }
 
