@@ -12,21 +12,19 @@ async fn run_list(
     output_json: bool,
     include_deleted: bool,
 ) -> (Result<(), cli::CliError>, String, String) {
-    let mut args: Vec<std::ffi::OsString> = ["pocketratings", "user", "list"]
+    let output_flag = output_json
+        .then_some(["--output", "json"])
         .into_iter()
-        .map(std::ffi::OsString::from)
-        .collect();
-    if output_json {
-        args.push(std::ffi::OsString::from("--output"));
-        args.push(std::ffi::OsString::from("json"));
-    }
-    if include_deleted {
-        args.push(std::ffi::OsString::from("--include-deleted"));
-    }
+        .flatten();
+    let args = ["pocketratings", "user", "list"]
+        .into_iter()
+        .chain(output_flag)
+        .chain(include_deleted.then_some("--include-deleted"))
+        .map(std::ffi::OsString::from);
 
     let mut stdout = Cursor::new(Vec::new());
     let mut stderr = Cursor::new(Vec::new());
-    let result = cli::run(args.into_iter(), Some(pool), None, &mut stdout, &mut stderr).await;
+    let result = cli::run(args, Some(pool), None, &mut stdout, &mut stderr).await;
     let stdout_str = String::from_utf8(stdout.into_inner()).expect("stdout UTF-8");
     let stderr_str = String::from_utf8(stderr.into_inner()).expect("stderr UTF-8");
     (result, stdout_str, stderr_str)

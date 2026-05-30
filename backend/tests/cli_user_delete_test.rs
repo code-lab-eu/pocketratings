@@ -10,17 +10,14 @@ async fn run_delete(
     id: &str,
     force: bool,
 ) -> (Result<(), cli::CliError>, String, String) {
-    let mut args: Vec<std::ffi::OsString> = ["pocketratings", "user", "delete", id]
+    let args = ["pocketratings", "user", "delete", id]
         .into_iter()
-        .map(std::ffi::OsString::from)
-        .collect();
-    if force {
-        args.push(std::ffi::OsString::from("--force"));
-    }
+        .chain(force.then_some("--force"))
+        .map(std::ffi::OsString::from);
 
     let mut stdout = Cursor::new(Vec::new());
     let mut stderr = Cursor::new(Vec::new());
-    let result = cli::run(args.into_iter(), Some(pool), None, &mut stdout, &mut stderr).await;
+    let result = cli::run(args, Some(pool), None, &mut stdout, &mut stderr).await;
     let stdout_str = String::from_utf8(stdout.into_inner()).expect("stdout UTF-8");
     let stderr_str = String::from_utf8(stderr.into_inner()).expect("stderr UTF-8");
     (result, stdout_str, stderr_str)
