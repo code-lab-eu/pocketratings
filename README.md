@@ -128,7 +128,7 @@ frontend) with Docker or Podman Compose. The proxy routes `/api/v1/` to
 the backend and everything else to the frontend; one entry point, no CORS.
 
 **Prerequisites:** Docker with Compose, or Podman with Compose (e.g.
-`podman compose` in Podman 4.1+).
+`podman-compose`).
 
 1. Copy the root env example and set `JWT_SECRET`:
    ```bash
@@ -139,7 +139,7 @@ the backend and everything else to the frontend; one entry point, no CORS.
 2. From the repo root, start the stack:
    ```bash
    docker compose up -d
-   # or: podman compose up -d
+   # or: podman-compose -f compose.yaml up -d
    ```
 
 3. Open the app at **http://localhost** (or https://yourdomain.com if you
@@ -156,7 +156,7 @@ Run CLI commands in that container so they use the same database:
 
 ```bash
 docker compose exec backend /app/pocketratings <command> [options]
-# or: podman compose exec backend /app/pocketratings <command> [options]
+# or: podman-compose -f compose.yaml exec -T backend /app/pocketratings <command> [options]
 ```
 
 Examples (registration is CLI-only in v1):
@@ -165,6 +165,8 @@ Examples (registration is CLI-only in v1):
 docker compose exec backend /app/pocketratings user register \
   --name "Jane" --email jane@example.com --password secret
 docker compose exec backend /app/pocketratings user list
+docker compose exec backend /app/pocketratings user set-password \
+  --email jane@example.com --password newsecret
 docker compose exec backend /app/pocketratings category list
 ```
 
@@ -186,7 +188,7 @@ From the repo root, with the stack running:
 
 ```bash
 docker compose exec backend /app/pocketratings database backup
-# or: podman compose exec backend /app/pocketratings database backup
+# or: podman-compose -f compose.yaml exec -T backend /app/pocketratings database backup
 ```
 
 This writes a snapshot to `/data/pocketratings.db.backup` inside the
@@ -204,7 +206,7 @@ snapshot if the server is writing):
 ```bash
 docker compose exec backend cat /data/pocketratings.db \
   > backup-$(date +%Y%m%d-%H%M%S).db
-# or: podman compose exec backend cat /data/pocketratings.db \
+# or: podman-compose -f compose.yaml exec -T backend cat /data/pocketratings.db \
 #     > backup-$(date +%Y%m%d-%H%M%S).db
 ```
 
@@ -213,7 +215,7 @@ docker compose exec backend cat /data/pocketratings.db \
 1. Stop the backend:
    ```bash
    docker compose stop backend
-   # or: podman compose stop backend
+   # or: podman-compose -f compose.yaml stop backend
    ```
 
 2. Replace the database in the volume (use the backup file path you have):
@@ -229,7 +231,7 @@ your backup filename. The volume name is `pocketratings_pocketratings_db`.
 3. Start the backend again:
    ```bash
    docker compose start backend
-   # or: podman compose start backend
+   # or: podman-compose -f compose.yaml start backend
    ```
 
 ## License

@@ -31,6 +31,27 @@ pub async fn delete(
     Ok(())
 }
 
+/// Change a user's password: look up by email, hash the new password, update the stored hash.
+/// Writes a success message to stdout.
+pub async fn set_password(
+    pool: &SqlitePool,
+    email: &str,
+    plain_password: &str,
+    stdout: &mut impl Write,
+    _stderr: &mut impl Write,
+) -> Result<(), CliError> {
+    let user = db::user::get_by_email(pool, email)
+        .await?
+        .ok_or_else(|| CliError::Validation(format!("user not found: {email}")))?;
+
+    let hash =
+        password::hash_password(plain_password).map_err(|e| CliError::Validation(e.to_string()))?;
+    db::user::update_password(pool, user.id(), &hash).await?;
+
+    writeln!(stdout, "Password updated for: {email}").map_err(|e| CliError::Other(e.into()))?;
+    Ok(())
+}
+
 /// List users: fetch from DB, write to stdout (human or JSON).
 pub async fn list(
     pool: &SqlitePool,

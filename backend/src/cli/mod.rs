@@ -31,7 +31,7 @@ use crate::cli::user as user_cli;
 pub fn subcommand_needs_db(first: Option<&str>, second: Option<&str>) -> bool {
     matches!(
         (first, second),
-        (Some("user"), Some("register" | "list" | "delete"))
+        (Some("user"), Some("register" | "list" | "delete" | "set-password"))
             | (
                 Some("category" | "location" | "product" | "purchase" | "review"),
                 Some("create" | "list" | "show" | "update" | "delete")
@@ -88,7 +88,7 @@ pub struct ServerStartOpts {
 #[derive(clap::Args)]
 pub struct ServerStopOpts {}
 
-/// Manage user accounts: register, list, and delete users.
+/// Manage user accounts: register, list, delete, and change passwords.
 #[derive(clap::Args)]
 pub struct UserArgs {
     #[command(subcommand)]
@@ -100,6 +100,8 @@ pub enum UserCmd {
     Register(RegisterOpts),
     List(ListOpts),
     Delete(DeleteOpts),
+    /// Change a user's password (identified by email).
+    SetPassword(SetPasswordOpts),
 }
 
 /// Manage product categories: create, list, show, update, and delete.
@@ -442,6 +444,16 @@ pub struct RegisterOpts {
 }
 
 #[derive(clap::Args)]
+pub struct SetPasswordOpts {
+    /// Email of the user whose password should be changed.
+    #[arg(long)]
+    pub email: String,
+    /// New password.
+    #[arg(long)]
+    pub password: String,
+}
+
+#[derive(clap::Args)]
 pub struct ListOpts {
     #[arg(long, default_value = "human", value_parser = ["human", "json"])]
     pub output: String,
@@ -595,6 +607,14 @@ pub async fn run(
                     CliError::Other(anyhow::anyhow!("database pool required for user delete"))
                 })?;
                 user_cli::delete(pool, &opts.id, opts.force, stdout, stderr).await
+            }
+            UserCmd::SetPassword(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for user set-password"
+                    ))
+                })?;
+                user_cli::set_password(pool, &opts.email, &opts.password, stdout, stderr).await
             }
         },
         Some(Commands::Category(cat_args)) => match cat_args.command {
@@ -965,6 +985,7 @@ mod tests {
     fn subcommand_needs_db_returns_true_for_commands_that_use_pool() {
         assert!(subcommand_needs_db(Some("user"), Some("register")));
         assert!(subcommand_needs_db(Some("user"), Some("list")));
+        assert!(subcommand_needs_db(Some("user"), Some("set-password")));
         assert!(subcommand_needs_db(Some("category"), Some("create")));
         assert!(subcommand_needs_db(Some("product"), Some("list")));
         assert!(subcommand_needs_db(Some("product"), Some("variation-add")));

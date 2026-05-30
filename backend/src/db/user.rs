@@ -1,6 +1,6 @@
 //! User persistence.
 //!
-//! Provides [`get_by_id`], [`get_by_email`], [`list_all`], [`insert`], [`soft_delete`], and [`hard_delete`] for loading, creating, and deleting users.
+//! Provides [`get_by_id`], [`get_by_email`], [`list_all`], [`insert`], [`update_password`], [`soft_delete`], and [`hard_delete`] for loading, creating, updating, and deleting users.
 
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
@@ -173,6 +173,35 @@ pub async fn insert(pool: &SqlitePool, user: &User) -> Result<(), crate::db::DbE
     .bind(user.deleted_at())
     .execute(pool)
     .await?;
+    Ok(())
+}
+
+/// Update a user's stored password hash by id. Sets `updated_at` to the current time.
+/// Only affects active rows (`deleted_at` IS NULL).
+///
+/// # Errors
+///
+/// Returns [`crate::db::DbError`] on query failure, or [`crate::db::DbError::InvalidData`] if no active user exists with the given id.
+pub async fn update_password(
+    pool: &SqlitePool,
+    id: Uuid,
+    password_hash: &str,
+) -> Result<(), crate::db::DbError> {
+    let now = chrono::Utc::now().timestamp();
+    let id_str = id.to_string();
+    let result = sqlx::query(
+        "UPDATE users SET password = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(password_hash)
+    .bind(now)
+    .bind(&id_str)
+    .execute(pool)
+    .await?;
+    if result.rows_affected() == 0 {
+        return Err(crate::db::DbError::InvalidData(format!(
+            "user not found or deleted: {id_str}"
+        )));
+    }
     Ok(())
 }
 

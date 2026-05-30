@@ -85,6 +85,22 @@ omit the dropdown and bind rating/text to submit. Other call-site behaviour
 - Extend or add component tests where behaviour is non-trivial; run frontend
   QC.
 
+### 5. CLI command to change a user's password [BE] — DONE
+
+**2 sp.** Add a CLI command to change a user's password so an administrator
+can reset credentials without direct database access. Reuse the existing
+password hashing used by the auth flow; identify the target user (e.g. by
+username/email) and update the stored hash.
+
+**Tasks:**
+- Add a subcommand to the CLI that takes the target user and a new password
+  (prompt for the password rather than passing it as a plain argument where
+  practical); validate the user exists.
+- Hash with the same mechanism as registration/login and persist via the `db`
+  user module; report success or a clear error if the user is not found.
+- Add a test covering the update path; document the command in README or dev
+  docs.
+
 ---
 
 ## Distant future
