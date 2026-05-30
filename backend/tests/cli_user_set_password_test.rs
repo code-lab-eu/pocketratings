@@ -68,8 +68,7 @@ async fn set_password_updates_hash_and_verifies_new_password() {
         .await
         .expect("register");
 
-    let (result, stdout, stderr) =
-        run_set_password(&pool, "alice@example.com", "newpass").await;
+    let (result, stdout, stderr) = run_set_password(&pool, "alice@example.com", "newpass").await;
 
     assert!(result.is_ok(), "expected Ok, stderr: {stderr}");
     assert!(stdout.contains("alice@example.com"));

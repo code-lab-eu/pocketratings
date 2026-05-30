@@ -31,12 +31,13 @@ use crate::cli::user as user_cli;
 pub fn subcommand_needs_db(first: Option<&str>, second: Option<&str>) -> bool {
     matches!(
         (first, second),
-        (Some("user"), Some("register" | "list" | "delete" | "set-password"))
-            | (
-                Some("category" | "location" | "product" | "purchase" | "review"),
-                Some("create" | "list" | "show" | "update" | "delete")
-            )
-            | (Some("product"), Some("variation-add"))
+        (
+            Some("user"),
+            Some("register" | "list" | "delete" | "set-password")
+        ) | (
+            Some("category" | "location" | "product" | "purchase" | "review"),
+            Some("create" | "list" | "show" | "update" | "delete")
+        ) | (Some("product"), Some("variation-add"))
             | (Some("server"), Some("start"))
             | (Some("database"), Some("backup"))
     )
