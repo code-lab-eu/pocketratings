@@ -7,7 +7,7 @@
 #   ./scripts/ascii-punctuation.sh fix   # replace in tracked text files
 #   ./scripts/ascii-punctuation.sh check  # exit 1 if any found (for CI/hooks)
 #
-# See .cursor/rules/ascii-punctuation-no-broken-edits.mdc
+# See the "Markdown and punctuation" section of AGENTS.md
 
 set -e
 ROOT="$(git rev-parse --show-toplevel)"

@@ -1,12 +1,32 @@
 ---
 name: roadmap-maintenance
-description: Maintains docs/roadmap.md. Covers cleanup (remove finished work, reorder, label, estimate), and auditing (validate pending tasks against spec and architecture, fix the roadmap). Use when the user asks for roadmap maintenance, prioritization, or alignment audit.
+description: Conventions and workflows for docs/roadmap.md. Use when editing docs/roadmap.md - adding a task, updating a task, marking a task DONE after finishing planned work - and when the user asks for roadmap maintenance, cleanup, prioritization, or an alignment audit.
 ---
 
 # Roadmap maintenance
 
-Apply this workflow when the user asks to update, maintain, or audit the
-roadmap.
+Apply this workflow when adding to, updating, maintaining, or auditing
+`docs/roadmap.md`.
+
+## Quick edits
+
+For adding or updating single tasks. Do not run the full cleanup workflow
+below for these.
+
+- **New task:** Add at the **end** of the Planned list. Use the **next
+  sequential number** (e.g. if the last task is 14, the new task is
+  `### 15.`). The title must end with `[FE]`, `[BE]`, or `[FE+BE]`. The
+  first line of the task body must be `**N sp.**` (rough estimate, 1-5)
+  followed by the goal or first sentence. Do not reorder.
+- **Mark task complete:** Append ` — DONE` to that task's title (em dash,
+  matching the existing entries). Do not
+  remove it; removal happens during cleanup. Do this without the user
+  having to ask whenever you finish implementing a planned roadmap task.
+- **Update an existing task:** Change goal, tasks, or SP as needed; keep
+  the title label and SP format. If the scope changes, update
+  `[FE]`/`[BE]`/`[FE+BE]`.
+- **Leave alone:** the list order, DONE items, and the "Distant future"
+  section.
 
 ## Cleanup
 
@@ -66,5 +86,4 @@ audit report file.
 
 ## Doc rule
 
-Follow [readme-docs-line-width](.cursor/rules/readme-docs-line-width.mdc)
-(80-char wrap in docs).
+Follow the **markdown-conventions** skill (80-char wrap, ASCII punctuation).

@@ -414,7 +414,7 @@ Dependencies for the backend (API + CLI, SQLite). All under the same binary.
 - Test-driven development: every feature has a test. In addition to unit tests, require tests for all CLI commands and all REST endpoints.
 - Safe code: no `unwrap()` or unsafe patterns in production code; use `Result` and `?`.
 - Proper error handling: thiserror for library errors, anyhow where appropriate; API and CLI map errors to status codes and messages.
-- Full workflow and checklist are in the project skill [.cursor/skills/rust-backend-workflow/SKILL.md](.cursor/skills/rust-backend-workflow/SKILL.md); the agent applies it when working on the backend.
+- Full workflow and checklist are in the project skill [.agents/skills/rust-backend-workflow/SKILL.md](../.agents/skills/rust-backend-workflow/SKILL.md); the agent applies it when working on the backend.
 
 ---
 

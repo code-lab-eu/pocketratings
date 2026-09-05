@@ -32,7 +32,7 @@ Apply this workflow whenever writing or changing code in `frontend/` (Pocket Rat
 - `bun run lint` must pass (svelte-check and ESLint)
 - `bun run test` must pass (all Vitest tests)
 
-Do not submit frontend changes with failing lint or tests. See the **task-completion-qa** rule.
+Do not submit frontend changes with failing lint or tests. See the completion gate in AGENTS.md.
 
 ## Checklist before submitting frontend changes
 

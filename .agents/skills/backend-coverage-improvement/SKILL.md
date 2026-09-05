@@ -72,7 +72,7 @@ Do **not** only run the coverage script. Run **full** backend quality control (u
 3. Test: `cargo test --release -- --skip server_start_and_stop_via_cli`
 4. Coverage: `./scripts/backend-coverage.sh` (from repo root)
 
-Consider the coverage-improvement task **incomplete** until all four pass. See the **task-completion-qa** rule.
+Consider the coverage-improvement task **incomplete** until all four pass. See the completion gate in AGENTS.md.
 
 To ensure the coverage threshold is still met:
 
@@ -85,7 +85,8 @@ confirm the chosen files' coverage improved.
 
 ## References
 
-- **task-completion-qa** — Rule: run full QC before marking any task complete.
+- **AGENTS.md** — Completion gate: run full QC before marking any task
+  complete.
 - **backend-quality-control** — How to run format, lint, and test; same
   test filter (`--skip server_start_and_stop_via_cli`).
 - **rust-backend-workflow** — Test style, TDD, no unwrap/unsafe, error

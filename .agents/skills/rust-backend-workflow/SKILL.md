@@ -9,7 +9,7 @@ Apply this workflow whenever writing or changing code in `backend/` (Pocket Rati
 
 ## Task completion: run full QC
 
-**Do not mark any backend task complete until full backend quality control has been run and passed.** Use the **backend-quality-control** skill. This means, in order: (1) format, (2) Clippy (strict pedantic), (3) tests, (4) coverage script. Running only tests or only coverage is not sufficient. See also the **task-completion-qa** rule.
+**Do not mark any backend task complete until full backend quality control has been run and passed.** Use the **backend-quality-control** skill. This means, in order: (1) format, (2) Clippy (strict pedantic), (3) tests, (4) coverage script. Running only tests or only coverage is not sufficient. See also the completion gate in AGENTS.md.
 
 ## Test-driven development
 

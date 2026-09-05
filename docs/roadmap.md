@@ -76,7 +76,7 @@ omit the dropdown and bind rating/text to submit. Other call-site behaviour
 - Introduce a reusable review form component (or pair of presentational +
   submit helpers) used by all three flows; align error strings and rating
   handling with [spec.md](spec.md) and
-  [error-message-formatting](.cursor/rules/error-message-formatting.mdc).
+  the [error-messages](../.agents/skills/error-messages/SKILL.md) skill.
 - Encode "show product `Select` iff no product id" as a clear prop (or
   equivalent); keep edit and inline add flows on fixed product id without a
   dropdown.
@@ -100,6 +100,43 @@ username/email) and update the stored hash.
   user module; report success or a clear error if the user is not found.
 - Add a test covering the update path; document the command in README or dev
   docs.
+
+### 6. CLI command to generate a password reset link [FE+BE]
+
+**4 sp.** Add a CLI command that generates a password reset link for a user.
+The operator sends the link to the user over a secure channel (e.g. email);
+the user opens it and sets a new password without the operator ever learning
+it. The link carries a one-time token that is valid for 12 hours and is
+invalidated the moment it is used.
+
+**Tasks:**
+- **DB:** migration for a password reset token table (user id, token hash,
+  expiry, used/consumed marker). Store only a hash of the token, never the
+  raw value. Add a `db` module with create, look-up-by-token, and consume
+  operations; expired or already used tokens must not resolve.
+- **CLI:** subcommand under the existing user commands that takes the target
+  user (email, as `set_password` does), creates a token, and prints the full
+  reset URL to stdout. Base URL comes from configuration (see the
+  **env-configuration** skill) so the printed link matches the deployment.
+  Fail with a clear error if the user does not exist.
+- **API:** unauthenticated endpoints to validate a token and to set a new
+  password with it. Reuse `auth::password::hash_password` and
+  `db::user::update_password`; consume the token in the same transaction as
+  the password update so it cannot be replayed. Return a generic error for
+  invalid, expired, or used tokens (do not distinguish them). Document in
+  [api.md](api.md) and [api.http](api.http) per the **api-documentation**
+  skill.
+- **FE:** a reset route that takes the token from the URL, validates it on
+  load, and shows a form with **New password** and **Confirm password**. Both
+  fields get a show/hide toggle button (accessible name reflecting state,
+  `aria-pressed` or equivalent). Client-side validation: both filled and
+  matching. On success, redirect to `login` with a confirmation; on an
+  invalid or expired token, show a message telling the user to request a new
+  link. No navigation entry - the route is only reachable via the link.
+- Tests first at every layer: db token lifecycle (create, expire, consume),
+  CLI command, API endpoints (valid, expired, reused token), and the reset
+  page (validation, mismatch, toggle). Update [spec.md](spec.md) with the new
+  screen and flow.
 
 ---
 
