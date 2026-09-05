@@ -12,6 +12,8 @@ use serial_test::serial;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::{Mutex, Notify};
 
+mod common;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -133,12 +135,8 @@ async fn server_stop_no_pid_file_returns_error() {
     let dir = tempfile::tempdir().expect("temp dir");
     let pid_path = dir.path().join("nonexistent.pid");
     let config = Config {
-        database_path: "./pocketratings.db".to_string(),
-        jwt_secret: "test".to_string(),
-        jwt_expiration_seconds: 3600,
-        jwt_refresh_threshold_seconds: 600,
-        bind: "127.0.0.1:3099".to_string(),
         pid_file: pid_path.to_string_lossy().into_owned(),
+        ..common::test_config("./pocketratings.db")
     };
 
     let (result, _stdout, _stderr) = run_server_stop(Some(&config)).await;

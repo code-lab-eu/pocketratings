@@ -206,34 +206,11 @@ mod tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::config::Config;
-
-    async fn test_pool() -> (AppState, tempfile::TempDir) {
-        let dir = tempfile::tempdir().expect("temp dir");
-        let db_path = dir.path().join("location_test.db");
-        let path_str = db_path.to_str().expect("path utf-8").to_string();
-        let pool = db::create_pool(&path_str).await.expect("pool");
-        db::run_migrations(&pool).await.expect("migrate");
-        let state = AppState {
-            config: Config {
-                database_path: path_str,
-                jwt_secret: "test".to_string(),
-                jwt_expiration_seconds: 3600,
-                jwt_refresh_threshold_seconds: 600,
-                bind: "127.0.0.1:0".to_string(),
-                pid_file: std::env::temp_dir()
-                    .join("pocketratings-location-test.pid")
-                    .to_string_lossy()
-                    .into_owned(),
-            },
-            pool,
-        };
-        (state, dir)
-    }
+    use crate::test_helpers::api_test_state;
 
     #[tokio::test]
     async fn list_locations_returns_empty_array_when_none() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let response = app
             .oneshot(
@@ -258,7 +235,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_location_returns_201_and_body() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "Supermarket" });
         let response = app
@@ -302,7 +279,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_location_returns_400_when_name_empty() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "" });
         let response = app
@@ -321,7 +298,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_location_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let response = app
@@ -338,7 +315,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_location_returns_200_when_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "Corner store" });
         let create_resp = app
@@ -391,7 +368,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_location_returns_200_when_no_change_does_not_persist() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "Same" });
         let create_resp = app
@@ -439,7 +416,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_location_persists_new_values() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "Original" });
         let create_resp = app
@@ -496,7 +473,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_location_returns_404_when_missing() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let patch_body = serde_json::json!({ "name": "New" });
@@ -516,7 +493,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_location_returns_400_when_name_empty() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "Valid" });
         let create_resp = app
@@ -556,7 +533,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_location_returns_204_soft_delete() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "ToDelete" });
         let create_resp = app
@@ -611,7 +588,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_location_hard_remove_row() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "ToHardDelete" });
         let create_resp = app
@@ -659,7 +636,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_location_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let response = app
@@ -677,7 +654,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_locations_returns_populated_list() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "A" });
         let _ = app

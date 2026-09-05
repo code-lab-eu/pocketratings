@@ -77,6 +77,27 @@ impl Config {
             pid_file,
         })
     }
+
+    /// Build a configuration for tests, with fixed values for everything but the database path.
+    ///
+    /// Keeps the hand-built `Config { .. }` literals out of individual test modules so adding a
+    /// field only touches this constructor. Override a single field with struct update syntax,
+    /// e.g. `Config { pid_file, ..Config::for_tests(path) }`.
+    #[cfg(test)]
+    #[must_use]
+    pub fn for_tests(database_path: &str) -> Self {
+        Self {
+            database_path: database_path.to_string(),
+            jwt_secret: "test-secret".to_string(),
+            jwt_expiration_seconds: 3600,
+            jwt_refresh_threshold_seconds: 600,
+            bind: "127.0.0.1:0".to_string(),
+            pid_file: env::temp_dir()
+                .join("pocketratings-test.pid")
+                .to_string_lossy()
+                .into_owned(),
+        }
+    }
 }
 
 /// Errors that can occur when loading configuration.

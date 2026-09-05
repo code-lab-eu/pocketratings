@@ -69,20 +69,6 @@ mod tests {
     use sqlx::SqlitePool;
     use uuid::Uuid;
 
-    fn test_config(db_path: &str) -> Config {
-        Config {
-            database_path: db_path.to_string(),
-            jwt_secret: "test-secret".to_string(),
-            jwt_expiration_seconds: 3600,
-            jwt_refresh_threshold_seconds: 600,
-            bind: "127.0.0.1:3099".to_string(),
-            pid_file: std::env::temp_dir()
-                .join("pocketratings-login-test.pid")
-                .to_string_lossy()
-                .into_owned(),
-        }
-    }
-
     /// Create a pool backed by a temp file (so migrations and connections share the same DB).
     /// Returns (pool, `db_path_string`); keep _dir alive for the test so the file is not removed.
     async fn test_pool() -> (SqlitePool, String, tempfile::TempDir) {
@@ -119,7 +105,7 @@ mod tests {
         let (pool, path_str, _dir) = test_pool().await;
         let _ = setup_db_with_user(&pool, "u@example.com", "secret123").await;
         let state = AppState {
-            config: test_config(&path_str),
+            config: Config::for_tests(&path_str),
             pool,
         };
         let app = route().with_state(state);
@@ -153,7 +139,7 @@ mod tests {
         let (pool, path_str, _dir) = test_pool().await;
         let _ = setup_db_with_user(&pool, "u@example.com", "correct").await;
         let state = AppState {
-            config: test_config(&path_str),
+            config: Config::for_tests(&path_str),
             pool,
         };
         let app = route().with_state(state);
@@ -178,7 +164,7 @@ mod tests {
     async fn login_returns_401_when_user_missing() {
         let (pool, path_str, _dir) = test_pool().await;
         let state = AppState {
-            config: test_config(&path_str),
+            config: Config::for_tests(&path_str),
             pool,
         };
         let app = route().with_state(state);

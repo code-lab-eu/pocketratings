@@ -6,6 +6,10 @@ use pocketratings::cli;
 use pocketratings::config::Config;
 use pocketratings::db;
 
+mod common;
+
+use common::test_config;
+
 /// Run `pocketratings database backup` with optional extra args (e.g. `--output path`).
 async fn run_db_backup(
     pool: &sqlx::SqlitePool,
@@ -31,20 +35,6 @@ async fn run_db_backup(
     let stdout_str = String::from_utf8(stdout.into_inner()).expect("stdout UTF-8");
     let stderr_str = String::from_utf8(stderr.into_inner()).expect("stderr UTF-8");
     (result, stdout_str, stderr_str)
-}
-
-fn test_config(database_path: &str) -> Config {
-    Config {
-        database_path: database_path.to_string(),
-        jwt_secret: "test-secret".to_string(),
-        jwt_expiration_seconds: 3600,
-        jwt_refresh_threshold_seconds: 600,
-        bind: "127.0.0.1:3099".to_string(),
-        pid_file: std::env::temp_dir()
-            .join("pocketratings-db-backup-test.pid")
-            .to_string_lossy()
-            .into_owned(),
-    }
 }
 
 /// Backup with default path creates `{DB_PATH}.backup` and prints path.

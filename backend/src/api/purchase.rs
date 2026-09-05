@@ -462,10 +462,10 @@ mod tests {
 
     use super::*;
     use crate::api::auth::CurrentUserId;
-    use crate::config::Config;
     use crate::db;
     use crate::test_helpers::{
-        ensure_product_variation, insert_category, insert_location, insert_product, insert_user,
+        api_test_state, ensure_product_variation, insert_category, insert_location, insert_product,
+        insert_user,
     };
 
     /// Build the purchase route with a fixed current user (no auth header needed).
@@ -475,32 +475,9 @@ mod tests {
             .with_state(state)
     }
 
-    async fn test_pool() -> (AppState, tempfile::TempDir) {
-        let dir = tempfile::tempdir().expect("temp dir");
-        let db_path = dir.path().join("purchase_api_test.db");
-        let path_str = db_path.to_str().expect("path utf-8").to_string();
-        let pool = db::create_pool(&path_str).await.expect("pool");
-        db::run_migrations(&pool).await.expect("migrate");
-        let state = AppState {
-            config: Config {
-                database_path: path_str,
-                jwt_secret: "test".to_string(),
-                jwt_expiration_seconds: 3600,
-                jwt_refresh_threshold_seconds: 600,
-                bind: "127.0.0.1:0".to_string(),
-                pid_file: std::env::temp_dir()
-                    .join("pocketratings-purchase-api-test.pid")
-                    .to_string_lossy()
-                    .into_owned(),
-            },
-            pool,
-        };
-        (state, dir)
-    }
-
     #[tokio::test]
     async fn list_purchases_returns_empty_array_when_none() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Alice", "a@example.com").await;
         let app = app_with_user(state, user_id);
 
@@ -528,7 +505,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_and_get_purchase_roundtrip() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -614,7 +591,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_purchase_rejects_invalid_price() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -647,7 +624,7 @@ mod tests {
     #[tokio::test]
     async fn create_purchase_with_explicit_variation_id_returns_201_and_response_includes_variation()
      {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -694,7 +671,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_purchase_returns_400_when_variation_id_belongs_to_different_product() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id_a = insert_product(&state.pool, category_id, "B1", "P1").await;
@@ -728,7 +705,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_purchase_returns_404_when_variation_id_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -762,7 +739,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_purchase_returns_400_when_product_has_no_variation() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -793,7 +770,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_nonexistent_purchase_returns_404() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let app = app_with_user(state, user_id);
         let missing_id = Uuid::new_v4();
@@ -813,7 +790,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_purchase_forbidden_for_other_user() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let owner = insert_user(&state.pool, "Owner", "o@example.com").await;
         let other = insert_user(&state.pool, "Other", "x@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
@@ -857,7 +834,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_purchase_forbidden_for_other_user() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let owner = insert_user(&state.pool, "Owner", "o@example.com").await;
         let other = insert_user(&state.pool, "Other", "x@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
@@ -899,7 +876,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_purchase_returns_404_when_product_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -932,7 +909,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_purchase_returns_404_when_location_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -965,7 +942,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_purchase_returns_200_and_updated_body() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -1032,7 +1009,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_purchase_returns_404_when_purchase_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let app = app_with_user(state, user_id);
         let missing_id = Uuid::new_v4();
@@ -1055,7 +1032,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_purchase_returns_204_and_soft_deletes() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -1108,7 +1085,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_purchase_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let app = app_with_user(state, user_id);
         let missing_id = Uuid::new_v4();
@@ -1129,7 +1106,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_purchases_with_product_id_filter_returns_only_that_products_purchases() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Alice", "a@example.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id_1 = insert_product(&state.pool, cat_id, "B1", "P1").await;
@@ -1202,7 +1179,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_purchases_without_user_id_returns_all_users() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_a = insert_user(&state.pool, "Alice", "a@example.com").await;
         let user_b = insert_user(&state.pool, "Bob", "b@example.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
@@ -1268,7 +1245,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_purchases_with_user_id_filters_by_that_user() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_a = insert_user(&state.pool, "Alice", "a@example.com").await;
         let user_b = insert_user(&state.pool, "Bob", "b@example.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
@@ -1322,7 +1299,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_purchase_returns_404_when_product_id_invalid() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -1365,7 +1342,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_purchase_returns_404_when_location_id_invalid() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
@@ -1408,7 +1385,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_purchase_returns_400_when_variation_id_belongs_to_different_product() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id_a = insert_product(&state.pool, category_id, "B1", "P1").await;
@@ -1455,7 +1432,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_purchase_with_force_true_hard_deletes() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Bob", "b@example.com").await;
         let category_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, category_id, "Brand", "Name").await;
