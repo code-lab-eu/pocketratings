@@ -72,11 +72,10 @@ describe('formatProductDisplayName', () => {
 });
 
 describe('formatDate', () => {
-  it('formats a unix timestamp to a locale date string', () => {
-    const ts = 1700000000;
-    const result = formatDate(ts);
-    expect(typeof result).toBe('string');
-    expect(result.length).toBeGreaterThan(0);
+  it('formats day first, so the output does not follow the host locale', () => {
+    // 2023-11-14 12:00 UTC. Day-first with an abbreviated month is the en-GB shape;
+    // a host-default locale would render e.g. "Nov 14, 2023" instead.
+    expect(formatDate(1699963200)).toMatch(/^\d{1,2} Nov 2023$/);
   });
 
   it('uses provided locale options', () => {

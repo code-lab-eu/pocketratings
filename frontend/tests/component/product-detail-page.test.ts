@@ -171,7 +171,7 @@ describe('Product detail page', () => {
     expect(screen.getByText(/store a/i)).toBeInTheDocument();
     expect(screen.getByText(/×1/)).toBeInTheDocument();
     expect(screen.getByText(/2\.99 €/)).toBeInTheDocument();
-    expect(screen.getByText(/feb 15, 2024/i)).toBeInTheDocument();
+    expect(screen.getByText(/15 feb 2024/i)).toBeInTheDocument();
   });
 
   it('shows quantity in purchase history when greater than one', () => {
@@ -208,9 +208,9 @@ describe('Product detail page', () => {
     const listItems = section!.querySelectorAll('ul li');
     expect(listItems).toHaveLength(2);
     expect(listItems[0]).toHaveTextContent(/store b/i);
-    expect(listItems[0]).toHaveTextContent(/mar 1, 2024/i);
+    expect(listItems[0]).toHaveTextContent(/1 mar 2024/i);
     expect(listItems[1]).toHaveTextContent(/store a/i);
-    expect(listItems[1]).toHaveTextContent(/jan 1, 2024/i);
+    expect(listItems[1]).toHaveTextContent(/1 jan 2024/i);
   });
 
   it('shows variation sub-headings when multiple variations have purchases', () => {
