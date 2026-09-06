@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as auth from './auth';
 import {
+  ApiClientError,
   createCategory,
   createLocation,
   createProduct,
@@ -23,11 +24,13 @@ import {
   listPurchases,
   listReviews,
   login,
+  resetPassword,
   updateCategory,
   updateLocation,
   updateProduct,
   updatePurchase,
-  updateReview
+  updateReview,
+  validateResetToken
 } from './api';
 
 describe('api', () => {
@@ -56,7 +59,10 @@ describe('api', () => {
   }
 
   function mockEmptyResponse(status = 200) {
-    vi.mocked(fetch).mockResolvedValueOnce(new Response('', { status }));
+    // 204 must be constructed with a null body; other statuses accept an empty string.
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(status === 204 ? null : '', { status })
+    );
   }
 
   function categoryFixture(overrides?: Record<string, unknown>) {
@@ -148,6 +154,58 @@ describe('api', () => {
     );
 
     await expect(login('u@example.com', 'wrong')).rejects.toThrow('Invalid email or password');
+  });
+
+  it('validateResetToken sends POST to /api/v1/auth/password-reset/validate with the token', async () => {
+    mockEmptyResponse(204);
+    const mockFetch = vi.mocked(fetch);
+
+    await validateResetToken('abc123');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/api/v1/auth/password-reset/validate');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual({ token: 'abc123' });
+  });
+
+  it('validateResetToken rejects with ApiClientError on 401', async () => {
+    mockJsonResponse(
+      { error: 'unauthorized', message: 'Invalid or expired reset link.' },
+      401
+    );
+
+    const rejection = validateResetToken('abc123');
+
+    await expect(rejection).rejects.toBeInstanceOf(ApiClientError);
+    await expect(rejection).rejects.toThrow('Invalid or expired reset link.');
+  });
+
+  it('resetPassword sends POST to /api/v1/auth/password-reset with token and password', async () => {
+    mockEmptyResponse(204);
+    const mockFetch = vi.mocked(fetch);
+
+    await resetPassword('abc123', 'newsecret');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/api/v1/auth/password-reset');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual({
+      token: 'abc123',
+      password: 'newsecret'
+    });
+  });
+
+  it('resetPassword rejects with the API message on 401', async () => {
+    mockJsonResponse(
+      { error: 'unauthorized', message: 'Invalid or expired reset link.' },
+      401
+    );
+
+    await expect(resetPassword('abc123', 'newsecret')).rejects.toThrow(
+      'Invalid or expired reset link.'
+    );
   });
 
   it('when response has X-New-Token, setToken is called with that value', async () => {

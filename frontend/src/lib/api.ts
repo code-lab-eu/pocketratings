@@ -152,6 +152,16 @@ export function login(email: string, password: string): Promise<LoginResponse> {
   return apiPost<LoginResponse>('/api/v1/auth/login', { email, password });
 }
 
+/** Check whether a password reset token is still usable. Rejects with ApiClientError (401) if not. */
+export function validateResetToken(token: string): Promise<void> {
+  return apiPost<void>('/api/v1/auth/password-reset/validate', { token });
+}
+
+/** Set a new password with a reset token; the token is consumed. Rejects with ApiClientError on failure. */
+export function resetPassword(token: string, password: string): Promise<void> {
+  return apiPost<void>('/api/v1/auth/password-reset', { token, password });
+}
+
 export interface MeResponse {
   user_id: string;
   name: string;

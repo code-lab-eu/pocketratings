@@ -13,7 +13,13 @@
   let error = $state('');
   let loading = $state(false);
 
-  const sessionExpired = $derived($page?.url?.searchParams?.get('expired') === '1');
+  /** Inline notice above the form: session timed out, or a password was just reset. */
+  const notice = $derived.by(() => {
+    const params = $page?.url?.searchParams;
+    if (params?.get('expired') === '1') return 'Session expired. Please sign in again.';
+    if (params?.get('reset') === '1') return 'Password updated. Please sign in.';
+    return null;
+  });
 
   // If already logged in, go home (client-only)
   $effect(() => {
@@ -44,10 +50,8 @@
 
 <main class="mx-auto max-w-sm px-4 py-12">
   <h1 class="pr-heading-page mb-6">Pocket Ratings</h1>
-  {#if sessionExpired}
-    <p class="mb-4 text-sm text-amber-700 dark:text-amber-300" role="alert">
-      Session expired. Please sign in again.
-    </p>
+  {#if notice}
+    <p class="mb-4 text-sm text-amber-700 dark:text-amber-300" role="alert">{notice}</p>
   {/if}
   <p class="mb-6 pr-text-muted">
     Sign in to view your categories and product ratings.

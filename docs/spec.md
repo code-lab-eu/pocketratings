@@ -15,6 +15,7 @@
 
 - **Register**: In v1, registration is **CLI-only** (not exposed in the REST API). User provides name, email, password → account created (password hashed with Argon2).
 - **Login**: User provides email and password → session/token for API and web app (only unauthenticated API endpoint; all others return 403 if not authenticated).
+- **Reset password**: An operator runs `user reset-link --email ...` (CLI only) and sends the printed link to the user over a secure channel. The link (`/reset-password?token=...`) carries a one-time token that is valid for 12 hours and dies the moment it is used; only its hash is stored. The page validates the token, then asks for a new password twice and redirects to Login with a confirmation. The operator never learns the password. The page works whether or not a session is stored, because the link is the credential.
 - **Delete**: User can be soft-deleted or removed (CLI only). Delete is only allowed if the user has no purchases or reviews.
 
 **Categories**
@@ -119,7 +120,7 @@ replaceState; no full page reload so the input keeps focus. On home it
 filters categories (client-side by name) and products (via `GET /api/v1/products?q=...`). On a category page it filters that category's **child categories** (client-side by name) and **products** (via `GET /api/v1/products?category_id=<id>&q=...`). No separate search page. Results show the review score (median) and price when available. |
 | **Primary** | Product list with ratings | For a chosen category (or from home when searching), show products with review score (median of all reviews) and lowest price. These come from `GET /api/v1/products` (response includes optional `review_score` and `price`); no client-side merge with `GET /api/v1/reviews` for list display. On the **category page**, show **child categories** (from `GET /api/v1/categories/:id`, which returns the category with one level of children by default) and a **breadcrumb** (from the same response's `ancestors` array) above the product list. |
 | **Primary** | Product detail          | Tap product -> product **name** and **brand** (when set); category in **breadcrumb** only; full review(s); **purchase history** grouped by variation (only variations with at least one purchase; sub-heading per variation, or single list when one variation; each row: date, location, quantity, price). **Add review** is inline in the Reviews section (`POST /api/v1/reviews`); **Add purchase** is a link in the actions area. Full add-review with product picker remains at `/manage/reviews/add`. Uses `GET /api/v1/products/:id`, `GET /api/v1/reviews?product_id=:id`, `GET /api/v1/purchases?product_id=:id`, `GET /api/v1/locations`. When there are no purchases or reviews, list endpoints return `200 OK` with `[]`, not `404`. |
-| **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Registration remains CLI-only. |
+| **Secondary** | Auth                  | Login (`POST /api/v1/auth/login`); store JWT (e.g. localStorage); handle `X-New-Token` refresh. Password reset at `/reset-password?token=...` (`POST /api/v1/auth/password-reset/validate` on load, then `POST /api/v1/auth/password-reset`), reachable without a session and not linked from the nav. Registration and issuing reset links remain CLI-only. |
 | **Secondary** | Management            | Single entry point (e.g. hamburger or "More" menu) for: Categories CRUD, Locations CRUD, Products CRUD, Purchases, Reviews. All existing REST endpoints. |
 
 The home screen is **categories + products + search** (one page): categories and products are both shown; search filters both by keyword. No separate search page; no dashboard or "recent activity" on the main screen for v1.
@@ -148,7 +149,15 @@ The home screen is **categories + products + search** (one page): categories and
   (rating and optional text; same API as manage add review). **Add purchase** is
   a link in the actions area below. Full add-review with a product picker
   remains at `/manage/reviews/add`.
-- **Login:** Email + password; store token; redirect to Home.
+- **Login:** Email + password; store token; redirect to Home. Shows an inline
+  notice when arriving with `?expired=1` (session timed out) or `?reset=1`
+  (password just changed).
+- **Password reset:** Reached from a one-time link
+  (`/reset-password?token=...`). Invalid, expired, and used links all show
+  "This reset link is invalid or has expired. Please request a new link." with
+  no form. Otherwise: new password and confirmation, each with a show/hide
+  toggle; on success redirect to `/login?reset=1`. No header, no nav entry, and
+  no redirect for a visitor who is already signed in.
 - **Menu:** Single place for all entity management (categories, locations,
   products, purchases, reviews). Implemented: hub at `/manage` with links; full
   CRUD for categories, locations, products (list, new, edit, delete); purchases
