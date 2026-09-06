@@ -138,6 +138,22 @@ invalidated the moment it is used.
   page (validation, mismatch, toggle). Update [spec.md](spec.md) with the new
   screen and flow.
 
+### 7. Update to Node 26 [FE]
+
+**1 sp.** The frontend currently pins Node.js 24 LTS. Move to Node 26 so
+development, CI, and the documented prerequisites all target the same,
+current LTS release.
+
+**Tasks:**
+- Bump `requiredMajor` in `frontend/scripts/check-node-version.cjs` from 24
+  to 26 and update the message it prints.
+- Set `node-version: "26"` in the frontend job of
+  [ci.yml](../.github/workflows/ci.yml).
+- Update `@types/node` in `frontend/package.json` to the matching major and
+  refresh `bun.lock`.
+- Update the **Node.js** prerequisite in [README.md](../README.md).
+- Run frontend QC on Node 26 to confirm lint and tests pass.
+
 ---
 
 ## Distant future
