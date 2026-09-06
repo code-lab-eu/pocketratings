@@ -141,8 +141,10 @@ Check whether a password reset token is still usable, before showing the reset
 form. Unauthenticated: the token is the credential. It is sent in the body
 rather than the path so it stays out of request logs.
 
-Tokens are created with the `user reset-link` CLI command, are valid for 12
-hours, and are invalidated the moment they are used.
+Tokens are created with the `user reset-link` CLI command and are valid for 12
+hours. Changing the user's password invalidates every outstanding token of that
+user, whether the change came from a reset link or from `user set-password`, so
+a link handed out earlier can never undo a newer password.
 
 **Request body:**
 ```json
@@ -161,9 +163,10 @@ hours, and are invalidated the moment they are used.
 
 #### `POST /api/v1/auth/password-reset`
 
-Set a new password with a reset token. The token is consumed and the password
-updated in a single transaction, so a token can never be spent without the
-password changing. Unauthenticated.
+Set a new password with a reset token. The token is consumed, the password
+updated, and every other outstanding reset token of the user invalidated, all in
+a single transaction: a token can never be spent without the password changing,
+and no older link survives the reset. Unauthenticated.
 
 **Request body:**
 ```json

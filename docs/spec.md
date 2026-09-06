@@ -15,7 +15,7 @@
 
 - **Register**: In v1, registration is **CLI-only** (not exposed in the REST API). User provides name, email, password → account created (password hashed with Argon2).
 - **Login**: User provides email and password → session/token for API and web app (only unauthenticated API endpoint; all others return 403 if not authenticated).
-- **Reset password**: An operator runs `user reset-link --email ...` (CLI only) and sends the printed link to the user over a secure channel. The link (`/reset-password?token=...`) carries a one-time token that is valid for 12 hours and dies the moment it is used; only its hash is stored. The page validates the token, then asks for a new password twice and redirects to Login with a confirmation. The operator never learns the password. The page works whether or not a session is stored, because the link is the credential.
+- **Reset password**: An operator runs `user reset-link --email ...` (CLI only) and sends the printed link to the user over a secure channel. The link (`/reset-password?token=...`) carries a one-time token that is valid for 12 hours and dies the moment it is used; only its hash is stored. Several links can be outstanding at once, but any password change (a reset or `user set-password`) invalidates all of them, so an older link can never undo a newer password. The page validates the token, then asks for a new password twice, clears any session held in the browser, and redirects to Login with a confirmation. The operator never learns the password. The page works whether or not a session is stored, because the link is the credential.
 - **Delete**: User can be soft-deleted or removed (CLI only). Delete is only allowed if the user has no purchases or reviews.
 
 **Categories**
@@ -154,10 +154,13 @@ The home screen is **categories + products + search** (one page): categories and
   (password just changed).
 - **Password reset:** Reached from a one-time link
   (`/reset-password?token=...`). Invalid, expired, and used links all show
-  "This reset link is invalid or has expired. Please request a new link." with
-  no form. Otherwise: new password and confirmation, each with a show/hide
-  toggle; on success redirect to `/login?reset=1`. No header, no nav entry, and
-  no redirect for a visitor who is already signed in.
+  "This reset link is invalid or has expired. Ask the administrator who sent it
+  for a new link." with no form; there is no self-service request flow. If the
+  API cannot be reached the link is not blamed: the page says so and offers
+  **Try again**. Otherwise: new password and confirmation, each with a
+  show/hide toggle; on success the stored session (if any) is cleared and the
+  user is sent to `/login?reset=1`. No header, no nav entry, and no redirect
+  for a visitor who is already signed in.
 - **Menu:** Single place for all entity management (categories, locations,
   products, purchases, reviews). Implemented: hub at `/manage` with links; full
   CRUD for categories, locations, products (list, new, edit, delete); purchases

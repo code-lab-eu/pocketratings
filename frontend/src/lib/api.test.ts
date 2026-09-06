@@ -208,6 +208,21 @@ describe('api', () => {
     );
   });
 
+  it.each([
+    ['validateResetToken', () => validateResetToken('abc123')],
+    ['resetPassword', () => resetPassword('abc123', 'newsecret')]
+  ])('%s ignores a stored session and does not clear it on 401', async (_name, call) => {
+    mockAuth();
+    const clearToken = vi.spyOn(auth, 'clearToken').mockImplementation(() => {});
+    mockJsonResponse({ error: 'unauthorized', message: 'Invalid or expired reset link.' }, 401);
+
+    await expect(call()).rejects.toBeInstanceOf(ApiClientError);
+
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    expect(new Headers(init?.headers).has('Authorization')).toBe(false);
+    expect(clearToken).not.toHaveBeenCalled();
+  });
+
   it('when response has X-New-Token, setToken is called with that value', async () => {
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce(

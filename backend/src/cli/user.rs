@@ -42,6 +42,9 @@ async fn require_user_by_email(pool: &SqlitePool, email: &str) -> Result<User, C
 
 /// Change a user's password: look up by email, hash the new password, update the stored hash.
 /// Writes a success message to stdout.
+///
+/// Outstanding reset links for the user are invalidated in the same transaction, so a link handed
+/// out earlier cannot undo this password.
 pub async fn set_password(
     pool: &SqlitePool,
     email: &str,
@@ -53,7 +56,11 @@ pub async fn set_password(
 
     let hash =
         password::hash_password(plain_password).map_err(|e| CliError::Validation(e.to_string()))?;
-    db::user::update_password(pool, user.id(), &hash).await?;
+    let mut tx = pool.begin().await.map_err(db::DbError::from)?;
+    db::user::update_password(&mut *tx, user.id(), &hash).await?;
+    db::password_reset::invalidate_all_for_user(&mut *tx, user.id(), Utc::now().timestamp())
+        .await?;
+    tx.commit().await.map_err(db::DbError::from)?;
 
     writeln!(stdout, "Password updated for: {email}").map_err(|e| CliError::Other(e.into()))?;
     Ok(())

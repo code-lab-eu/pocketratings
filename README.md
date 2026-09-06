@@ -36,12 +36,9 @@ cd backend
 cp .env.example .env
 ```
 
-Edit `.env` to set at least `JWT_SECRET` and `APP_BASE_URL`, which are both
-required: the backend refuses to start without them. `APP_BASE_URL` is the
-public base URL the app is served from (e.g. `http://localhost:5173` in
-development), used to build links handed to users such as password reset
-links. Run the backend from `backend/` so it finds `.env`. In production, set
-the variables in the environment instead of using a file.
+Edit `.env` to suit your setup. Run the backend from `backend/` so it finds
+`.env`. In production, set the variables in the environment instead of using a
+file.
 
 ## Building for production
 
@@ -133,11 +130,9 @@ the backend and everything else to the frontend; one entry point, no CORS.
 **Prerequisites:** Docker with Compose, or Podman with Compose (e.g.
 `podman-compose`).
 
-1. Copy the root env example and set `JWT_SECRET` and `APP_BASE_URL`:
+1. Copy the root env example and edit the values:
    ```bash
    cp .env.example .env
-   # Edit .env: set JWT_SECRET to a long random string and APP_BASE_URL to the
-   # URL the app is served from (e.g. https://pocketratings.example.com).
    ```
 
 2. From the repo root, start the stack:

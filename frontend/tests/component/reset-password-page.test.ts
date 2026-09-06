@@ -5,13 +5,16 @@ import ResetPasswordPage from '../../src/routes/reset-password/+page.svelte';
 
 const mocks = vi.hoisted(() => ({
   goto: vi.fn(),
-  resetPassword: vi.fn()
+  invalidateAll: vi.fn(),
+  resetPassword: vi.fn(),
+  clearToken: vi.fn()
 }));
 
-vi.mock('$app/navigation', () => ({ goto: mocks.goto }));
+vi.mock('$app/navigation', () => ({ goto: mocks.goto, invalidateAll: mocks.invalidateAll }));
 vi.mock('$lib/api', () => ({ resetPassword: mocks.resetPassword }));
+vi.mock('$lib/auth', () => ({ clearToken: mocks.clearToken }));
 
-const validData = { token: 'abc123', invalid: false };
+const validData = { token: 'abc123', status: 'ok' as const };
 
 /** Fill both password fields and submit the form. */
 async function submit(newPassword: string, confirmPassword: string) {
@@ -37,12 +40,30 @@ describe('Reset password page', () => {
   });
 
   it('shows the invalid-link message and no form when the link is invalid', () => {
-    render(ResetPasswordPage, { props: { data: { token: '', invalid: true } } });
+    render(ResetPasswordPage, { props: { data: { token: '', status: 'invalid' as const } } });
     expect(
-      screen.getByText('This reset link is invalid or has expired. Please request a new link.')
+      screen.getByText(
+        'This reset link is invalid or has expired. Ask the administrator who sent it for a new link.'
+      )
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /set password/i })).not.toBeInTheDocument();
+  });
+
+  it('offers a retry and keeps the link alive when the API cannot be reached', async () => {
+    render(ResetPasswordPage, {
+      props: { data: { token: 'abc123', status: 'unavailable' as const } }
+    });
+    expect(
+      screen.getByText(
+        'The server could not be reached. Your link is still valid, so check your connection and try again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(mocks.invalidateAll).toHaveBeenCalled();
   });
 
   it('shows a validation error and does not call the API when the new password is empty', async () => {
@@ -72,13 +93,14 @@ describe('Reset password page', () => {
     expect(mocks.resetPassword).not.toHaveBeenCalled();
   });
 
-  it('submits the token and password, then navigates to the login page', async () => {
+  it('submits the token and password, clears any stored session, then navigates to login', async () => {
     mocks.resetPassword.mockResolvedValueOnce(undefined);
     render(ResetPasswordPage, { props: { data: validData } });
 
     await submit('newsecret', 'newsecret');
 
     expect(mocks.resetPassword).toHaveBeenCalledWith('abc123', 'newsecret');
+    expect(mocks.clearToken).toHaveBeenCalled();
     expect(mocks.goto).toHaveBeenCalledWith('/login?reset=1');
   });
 

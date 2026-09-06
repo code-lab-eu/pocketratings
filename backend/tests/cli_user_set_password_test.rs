@@ -100,3 +100,35 @@ async fn set_password_unknown_email_returns_error() {
         "error should mention not found: {err_msg}",
     );
 }
+
+#[tokio::test]
+async fn set_password_invalidates_outstanding_reset_links() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("cli_set_password_reset_links.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    run_register(&pool, "Alice", "alice@example.com", "oldpass")
+        .await
+        .expect("register");
+    let user = db::user::get_by_email(&pool, "alice@example.com")
+        .await
+        .expect("get_by_email")
+        .expect("user exists");
+    let now = chrono::Utc::now().timestamp();
+    db::password_reset::create(&pool, user.id(), "hash-1", now)
+        .await
+        .expect("create token");
+
+    let (result, _stdout, stderr) = run_set_password(&pool, "alice@example.com", "newpass").await;
+
+    assert!(result.is_ok(), "expected Ok, stderr: {stderr}");
+    assert!(
+        !db::password_reset::is_valid(&pool, "hash-1", now)
+            .await
+            .expect("is_valid"),
+        "changing the password must kill outstanding reset links"
+    );
+}

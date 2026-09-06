@@ -12,7 +12,7 @@ use crate::db::DbError;
 /// Store a new reset token for a user, valid for [`TOKEN_TTL_SECONDS`] from `now`.
 ///
 /// Existing tokens for the user are left untouched, so earlier links keep working until they
-/// expire or are used.
+/// expire, are used, or the user's password changes (see [`invalidate_all_for_user`]).
 ///
 /// # Errors
 ///
@@ -55,10 +55,34 @@ pub async fn is_valid(pool: &SqlitePool, token_hash: &str, now: i64) -> Result<b
     Ok(row.is_some())
 }
 
+/// Mark every outstanding (unused) reset token of a user as used at `now`.
+///
+/// Call this whenever the user's password changes, so an older link cannot undo the new
+/// password. Tokens of other users are untouched.
+///
+/// # Errors
+///
+/// Returns [`DbError`] on query failure.
+pub async fn invalidate_all_for_user(
+    executor: impl sqlx::SqliteExecutor<'_>,
+    user_id: Uuid,
+    now: i64,
+) -> Result<(), DbError> {
+    sqlx::query(
+        "UPDATE password_reset_tokens SET used_at = ? WHERE user_id = ? AND used_at IS NULL",
+    )
+    .bind(now)
+    .bind(user_id.to_string())
+    .execute(executor)
+    .await?;
+    Ok(())
+}
+
 /// Consume a reset token and set the user's password, in one transaction.
 ///
 /// Marking the token used and updating the password either both happen or neither does, so a
-/// token can never be spent without the password changing.
+/// token can never be spent without the password changing. Any other outstanding link for the
+/// same user is invalidated in the same transaction.
 ///
 /// Returns `false` when the token is unknown, already used, or expired; the password is then
 /// left unchanged.
@@ -97,6 +121,7 @@ pub async fn consume_and_set_password(
     let user_id = Uuid::parse_str(&user_id).map_err(|e| DbError::InvalidData(e.to_string()))?;
 
     crate::db::user::update_password(&mut *tx, user_id, password_hash).await?;
+    invalidate_all_for_user(&mut *tx, user_id, now).await?;
 
     tx.commit().await?;
     Ok(true)

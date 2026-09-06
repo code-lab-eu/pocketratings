@@ -208,6 +208,100 @@ async fn consume_of_an_unknown_token_returns_false() {
 }
 
 #[tokio::test]
+async fn consume_invalidates_the_users_other_outstanding_tokens() {
+    let (pool, _dir) = test_pool("reset_consume_invalidates").await;
+    let user_id = insert_user(&pool, "alice@example.com", "oldpass").await;
+    let other_id = insert_user(&pool, "bob@example.com", "bobpass").await;
+    db::password_reset::create(&pool, user_id, "hash-1", NOW)
+        .await
+        .expect("create first");
+    db::password_reset::create(&pool, user_id, "hash-2", NOW)
+        .await
+        .expect("create second");
+    db::password_reset::create(&pool, other_id, "hash-other", NOW)
+        .await
+        .expect("create other user");
+    let new_hash = password::hash_password("newpass").expect("hash");
+
+    db::password_reset::consume_and_set_password(&pool, "hash-1", &new_hash, NOW)
+        .await
+        .expect("consume");
+
+    assert!(
+        !db::password_reset::is_valid(&pool, "hash-2", NOW)
+            .await
+            .expect("is_valid second"),
+        "the other outstanding link must not survive the reset"
+    );
+    let second_hash = password::hash_password("attackerpass").expect("hash");
+    assert!(
+        !db::password_reset::consume_and_set_password(&pool, "hash-2", &second_hash, NOW + 1)
+            .await
+            .expect("consume second")
+    );
+    assert_eq!(stored_password(&pool, user_id).await, new_hash);
+    assert!(
+        db::password_reset::is_valid(&pool, "hash-other", NOW)
+            .await
+            .expect("is_valid other user"),
+        "another user's link must be untouched"
+    );
+}
+
+#[tokio::test]
+async fn invalidate_all_for_user_marks_outstanding_tokens_used() {
+    let (pool, _dir) = test_pool("reset_invalidate_all").await;
+    let user_id = insert_user(&pool, "alice@example.com", "oldpass").await;
+    let other_id = insert_user(&pool, "bob@example.com", "bobpass").await;
+    db::password_reset::create(&pool, user_id, "hash-1", NOW)
+        .await
+        .expect("create first");
+    db::password_reset::create(&pool, other_id, "hash-other", NOW)
+        .await
+        .expect("create other user");
+
+    db::password_reset::invalidate_all_for_user(&pool, user_id, NOW + 60)
+        .await
+        .expect("invalidate");
+
+    let used_at: Option<i64> =
+        sqlx::query("SELECT used_at FROM password_reset_tokens WHERE token_hash = ?")
+            .bind("hash-1")
+            .fetch_one(&pool)
+            .await
+            .expect("select used_at")
+            .get("used_at");
+    assert_eq!(used_at, Some(NOW + 60));
+    assert!(
+        db::password_reset::is_valid(&pool, "hash-other", NOW + 60)
+            .await
+            .expect("is_valid other user")
+    );
+}
+
+#[tokio::test]
+async fn hard_deleting_a_user_removes_their_reset_tokens() {
+    let (pool, _dir) = test_pool("reset_hard_delete").await;
+    let user_id = insert_user(&pool, "alice@example.com", "oldpass").await;
+    db::password_reset::create(&pool, user_id, "hash-1", NOW)
+        .await
+        .expect("create");
+
+    db::user::hard_delete(&pool, user_id)
+        .await
+        .expect("hard delete");
+
+    let remaining: i64 =
+        sqlx::query("SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?")
+            .bind(user_id.to_string())
+            .fetch_one(&pool)
+            .await
+            .expect("count tokens")
+            .get("n");
+    assert_eq!(remaining, 0);
+}
+
+#[tokio::test]
 async fn creating_a_new_token_leaves_an_earlier_one_valid() {
     let (pool, _dir) = test_pool("reset_two_tokens").await;
     let user_id = insert_user(&pool, "alice@example.com", "oldpass").await;

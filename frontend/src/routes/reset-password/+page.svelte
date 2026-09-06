@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { resetPassword } from '$lib/api';
+  import { clearToken } from '$lib/auth';
   import { errorMessage } from '$lib/utils/formatters';
   import Button from '$lib/Button.svelte';
   import FormError from '$lib/FormError.svelte';
@@ -34,6 +35,9 @@
     submitting = true;
     try {
       await resetPassword(data.token, password);
+      // The password just changed, so any session in this browser (possibly someone else's) is
+      // stale: drop it and make the user sign in with the new password.
+      clearToken();
       // eslint-disable-next-line svelte/no-navigation-without-resolve -- resolve() + query string; rule only accepts direct resolve()
       goto(`${resolve('/login')}?reset=1`);
     } catch (e) {
@@ -51,10 +55,18 @@
 <main class="mx-auto max-w-sm px-4 py-12">
   <PageHeading class="mb-6">Reset password</PageHeading>
 
-  {#if data.invalid}
+  {#if data.status === 'invalid'}
     <p class="pr-text-body">
-      This reset link is invalid or has expired. Please request a new link.
+      This reset link is invalid or has expired. Ask the administrator who sent it for a new link.
     </p>
+  {:else if data.status === 'unavailable'}
+    <p class="mb-6 pr-text-body">
+      The server could not be reached. Your link is still valid, so check your connection and try
+      again.
+    </p>
+    <button type="button" class="pr-btn-primary w-full" onclick={() => invalidateAll()}>
+      Try again
+    </button>
   {:else}
     <p class="mb-6 pr-text-muted">Choose a new password for your account.</p>
 

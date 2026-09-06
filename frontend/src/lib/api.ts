@@ -44,10 +44,23 @@ export function isValidUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
 
+/** Extra behaviour for a single request. */
+export interface RequestOptions {
+  /**
+   * Public endpoint: send no bearer token, so a 401 rejects the request's own credential and
+   * never clears the stored session.
+   */
+  publicRequest?: boolean;
+}
+
 /** Fetch with Bearer token and X-New-Token handling. On 401, clears token and redirects to login. */
-export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export async function apiFetch(
+  path: string,
+  init: RequestInit = {},
+  options: RequestOptions = {}
+): Promise<Response> {
   const url = ensureAbsolute(path);
-  const token = getToken();
+  const token = options.publicRequest ? null : getToken();
   const headers = new Headers(init.headers);
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -94,12 +107,20 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
   return data as T;
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await apiFetch(path, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' }
-  });
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  options: RequestOptions = {}
+): Promise<T> {
+  const res = await apiFetch(
+    path,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' }
+    },
+    options
+  );
   return parseJsonResponse<T>(res, path);
 }
 
@@ -152,14 +173,23 @@ export function login(email: string, password: string): Promise<LoginResponse> {
   return apiPost<LoginResponse>('/api/v1/auth/login', { email, password });
 }
 
-/** Check whether a password reset token is still usable. Rejects with ApiClientError (401) if not. */
+/**
+ * Check whether a password reset token is still usable. Rejects with ApiClientError (401) if not.
+ *
+ * The link is the credential, so this runs as a public request: a rejected token must not touch
+ * a session the browser happens to hold.
+ */
 export function validateResetToken(token: string): Promise<void> {
-  return apiPost<void>('/api/v1/auth/password-reset/validate', { token });
+  return apiPost<void>(
+    '/api/v1/auth/password-reset/validate',
+    { token },
+    { publicRequest: true }
+  );
 }
 
 /** Set a new password with a reset token; the token is consumed. Rejects with ApiClientError on failure. */
 export function resetPassword(token: string, password: string): Promise<void> {
-  return apiPost<void>('/api/v1/auth/password-reset', { token, password });
+  return apiPost<void>('/api/v1/auth/password-reset', { token, password }, { publicRequest: true });
 }
 
 export interface MeResponse {
