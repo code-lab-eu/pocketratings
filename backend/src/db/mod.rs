@@ -4,6 +4,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 
 pub mod category;
 pub mod location;
+pub mod password_reset;
 pub mod product;
 pub mod product_variation;
 pub mod purchase;

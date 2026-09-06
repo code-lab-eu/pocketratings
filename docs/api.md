@@ -11,7 +11,9 @@ free for the frontend.
 - **Login**: `POST /api/v1/auth/login` returns a JWT token
 - **Protected endpoints**: Include `Authorization: Bearer <token>` header in all requests
 - **Stateless**: No session store needed; token is signed with `JWT_SECRET` environment variable
-- **Unauthenticated access**: Only `POST /api/v1/auth/login` and `GET /api/v1/version` are unauthenticated. All other
+- **Unauthenticated access**: Only `POST /api/v1/auth/login`,
+  `POST /api/v1/auth/password-reset`, `POST /api/v1/auth/password-reset/validate` and
+  `GET /api/v1/version` are unauthenticated. All other
   endpoints return `403 Forbidden` if authentication is missing or invalid
 - **Registration**: In v1, user registration is **CLI-only** (no `POST /api/v1/auth/register` endpoint)
 
@@ -132,6 +134,51 @@ Authenticate and receive a JWT token.
 **Errors:**
 - `400 Bad Request`: Invalid request body
 - `401 Unauthorized`: Invalid email or password
+
+#### `POST /api/v1/auth/password-reset/validate`
+
+Check whether a password reset token is still usable, before showing the reset
+form. Unauthenticated: the token is the credential. It is sent in the body
+rather than the path so it stays out of request logs.
+
+Tokens are created with the `user reset-link` CLI command, are valid for 12
+hours, and are invalidated the moment they are used.
+
+**Request body:**
+```json
+{
+  "token": "64-character hex token from the reset link"
+}
+```
+
+**Response:** `204 No Content` (no body) when the token can be used.
+
+**Errors:**
+- `400 Bad Request`: Invalid request body
+- `401 Unauthorized`: `Invalid or expired reset link.` The same response is
+  returned for unknown, expired, and already used tokens, so the three cases
+  cannot be told apart.
+
+#### `POST /api/v1/auth/password-reset`
+
+Set a new password with a reset token. The token is consumed and the password
+updated in a single transaction, so a token can never be spent without the
+password changing. Unauthenticated.
+
+**Request body:**
+```json
+{
+  "token": "64-character hex token from the reset link",
+  "password": "new password"
+}
+```
+
+**Response:** `204 No Content` (no body)
+
+**Errors:**
+- `400 Bad Request`: `Password is required.` when the password is empty
+- `401 Unauthorized`: `Invalid or expired reset link.` for unknown, expired,
+  and already used tokens
 
 #### `GET /api/v1/me`
 

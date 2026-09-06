@@ -36,9 +36,12 @@ cd backend
 cp .env.example .env
 ```
 
-Edit `.env` to set at least `JWT_SECRET` (required). Run the backend from
-`backend/` so it finds `.env`. In production, set the variables in the
-environment instead of using a file.
+Edit `.env` to set at least `JWT_SECRET` and `APP_BASE_URL`, which are both
+required: the backend refuses to start without them. `APP_BASE_URL` is the
+public base URL the app is served from (e.g. `http://localhost:5173` in
+development), used to build links handed to users such as password reset
+links. Run the backend from `backend/` so it finds `.env`. In production, set
+the variables in the environment instead of using a file.
 
 ## Building for production
 
@@ -130,10 +133,11 @@ the backend and everything else to the frontend; one entry point, no CORS.
 **Prerequisites:** Docker with Compose, or Podman with Compose (e.g.
 `podman-compose`).
 
-1. Copy the root env example and set `JWT_SECRET`:
+1. Copy the root env example and set `JWT_SECRET` and `APP_BASE_URL`:
    ```bash
    cp .env.example .env
-   # Edit .env and set JWT_SECRET to a long random string.
+   # Edit .env: set JWT_SECRET to a long random string and APP_BASE_URL to the
+   # URL the app is served from (e.g. https://pocketratings.example.com).
    ```
 
 2. From the repo root, start the stack:
@@ -167,8 +171,15 @@ docker compose exec backend /app/pocketratings user register \
 docker compose exec backend /app/pocketratings user list
 docker compose exec backend /app/pocketratings user set-password \
   --email jane@example.com --password newsecret
+docker compose exec backend /app/pocketratings user reset-link \
+  --email jane@example.com
 docker compose exec backend /app/pocketratings category list
 ```
+
+`user reset-link` prints a one-time password reset link (valid for 12 hours,
+invalidated once used) built from `APP_BASE_URL`. Send it to the user over a
+secure channel; they set their own password without you learning it. Add
+`--output json` to get `{ "url", "expires_at" }` instead.
 
 To run the CLI against a local database instead (e.g. from the repo
 with `cargo run`), use the backend's own `.env` in `backend/` and run from

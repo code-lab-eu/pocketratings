@@ -29,6 +29,10 @@
 @purchaseId = 00000000-0000-0000-0000-000000000004
 @reviewId = 00000000-0000-0000-0000-000000000005
 
+# Paste the token query parameter (64 hex characters) from the URL printed by
+# "pocketratings user reset-link --email ..." on the line below.
+@resetToken =
+
 ### Version
 
 # GET /api/v1/version — Returns API version (no auth required)
@@ -45,6 +49,30 @@ Content-Type: application/json
 {
   "email": "alice@example.com",
   "password": "secret"
+}
+
+###
+
+# POST /api/v1/auth/password-reset/validate — Body: { token }. 204 when the token is usable,
+# 401 "Invalid or expired reset link." otherwise. No auth. Get a token from the CLI:
+# pocketratings user reset-link --email alice@example.com
+POST {{baseUrl}}/api/v1/auth/password-reset/validate
+Content-Type: application/json
+
+{
+  "token": "{{resetToken}}"
+}
+
+###
+
+# POST /api/v1/auth/password-reset — Body: { token, password }. Sets the password and consumes
+# the token; returns 204. No auth. Reusing the token returns 401.
+POST {{baseUrl}}/api/v1/auth/password-reset
+Content-Type: application/json
+
+{
+  "token": "{{resetToken}}",
+  "password": "newsecret"
 }
 
 ###

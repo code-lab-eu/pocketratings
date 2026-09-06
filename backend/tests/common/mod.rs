@@ -10,6 +10,7 @@ pub fn test_config(database_path: &str) -> Config {
     Config {
         database_path: database_path.to_string(),
         jwt_secret: "test-secret".to_string(),
+        app_base_url: "http://localhost:5173".to_string(),
         jwt_expiration_seconds: 3600,
         jwt_refresh_threshold_seconds: 600,
         bind: "127.0.0.1:0".to_string(),

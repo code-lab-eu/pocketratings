@@ -183,7 +183,7 @@ pub async fn insert(pool: &SqlitePool, user: &User) -> Result<(), crate::db::DbE
 ///
 /// Returns [`crate::db::DbError`] on query failure, or [`crate::db::DbError::InvalidData`] if no active user exists with the given id.
 pub async fn update_password(
-    pool: &SqlitePool,
+    executor: impl sqlx::SqliteExecutor<'_>,
     id: Uuid,
     password_hash: &str,
 ) -> Result<(), crate::db::DbError> {
@@ -195,7 +195,7 @@ pub async fn update_password(
     .bind(password_hash)
     .bind(now)
     .bind(&id_str)
-    .execute(pool)
+    .execute(executor)
     .await?;
     if result.rows_affected() == 0 {
         return Err(crate::db::DbError::InvalidData(format!(

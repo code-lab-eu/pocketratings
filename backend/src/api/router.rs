@@ -2,7 +2,7 @@
 
 use axum::{Router, middleware};
 
-use super::auth::{auth_middleware, login_route, me_route};
+use super::auth::{auth_middleware, login_route, me_route, password_reset_route};
 use super::category;
 use super::location;
 use super::product;
@@ -14,7 +14,8 @@ use super::state::AppState;
 pub fn router(state: AppState) -> Router {
     let public = Router::new()
         .merge(super::version::route())
-        .merge(login_route());
+        .merge(login_route())
+        .merge(password_reset_route());
 
     let protected = Router::new()
         .merge(me_route())
