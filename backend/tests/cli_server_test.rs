@@ -67,6 +67,7 @@ impl TestServer {
             .args(["run", "--", "server", "start"])
             .env("DB_PATH", db_path.to_str().expect("path"))
             .env("JWT_SECRET", "test-secret")
+            .env("APP_BASE_URL", "http://localhost:5173")
             .env("BIND", "127.0.0.1:0")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
