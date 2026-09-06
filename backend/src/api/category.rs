@@ -357,35 +357,12 @@ mod tests {
     use uuid::Uuid;
 
     use super::*;
-    use crate::config::Config;
     use crate::db;
-
-    async fn test_pool() -> (AppState, tempfile::TempDir) {
-        let dir = tempfile::tempdir().expect("temp dir");
-        let db_path = dir.path().join("category_test.db");
-        let path_str = db_path.to_str().expect("path utf-8").to_string();
-        let pool = db::create_pool(&path_str).await.expect("pool");
-        db::run_migrations(&pool).await.expect("migrate");
-        let state = AppState {
-            config: Config {
-                database_path: path_str,
-                jwt_secret: "test".to_string(),
-                jwt_expiration_seconds: 3600,
-                jwt_refresh_threshold_seconds: 600,
-                bind: "127.0.0.1:0".to_string(),
-                pid_file: std::env::temp_dir()
-                    .join("pocketratings-category-test.pid")
-                    .to_string_lossy()
-                    .into_owned(),
-            },
-            pool,
-        };
-        (state, dir)
-    }
+    use crate::test_helpers::api_test_state;
 
     #[tokio::test]
     async fn list_categories_returns_empty_array_when_none() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let response = app
             .oneshot(
@@ -410,7 +387,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_category_returns_201_and_body() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "Groceries" });
         let response = app
@@ -468,7 +445,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_category_returns_400_when_name_empty() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "" });
         let response = app
@@ -487,7 +464,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_category_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let response = app
@@ -504,7 +481,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_category_returns_200_when_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "Electronics" });
         let create_resp = app
@@ -572,7 +549,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_category_returns_200_when_no_change_does_not_persist() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "Same" });
         let create_resp = app
@@ -620,7 +597,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_category_persists_new_values() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "Original" });
         let create_resp = app
@@ -677,7 +654,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_category_returns_404_when_category_missing() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let patch_body = serde_json::json!({ "name": "New" });
@@ -697,7 +674,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_category_returns_204_soft_delete() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "ToDelete" });
         let create_resp = app
@@ -763,7 +740,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_category_hard_remove_row() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({ "name": "ToHardDelete" });
         let create_resp = app
@@ -811,7 +788,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_category_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let response = app
@@ -829,7 +806,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_categories_with_parent_id_returns_children() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let parent_body = serde_json::json!({ "name": "Parent" });
         let create_resp = app
@@ -905,7 +882,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_categories_with_depth_1_returns_only_roots() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let _ = app
             .clone()
@@ -973,7 +950,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_categories_returns_siblings_sorted_by_name() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         for name in ["Zebra", "Apple", "Mango"] {
             let body = serde_json::json!({ "name": name });
@@ -1017,7 +994,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_category_returns_404_when_parent_missing() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let fake_parent_id = Uuid::new_v4();
         let body = serde_json::json!({ "name": "Child", "parent_id": fake_parent_id.to_string() });
@@ -1037,7 +1014,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_category_returns_400_when_duplicate_name_under_same_parent() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let body = serde_json::json!({ "name": "Dupe" });
         let _ = app
@@ -1068,7 +1045,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_category_with_depth_0_returns_empty_children() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let create_body = serde_json::json!({ "name": "Root" });
         let create_resp = app
@@ -1120,7 +1097,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_category_without_depth_returns_full_subtree() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state.clone());
         let create_body = serde_json::json!({ "name": "Root" });
         let create_resp = app

@@ -75,6 +75,12 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
   - Renders a heading with `pr-heading-page`.
   - Optional `description` slot is rendered below using `pr-text-muted`.
 
+- `lib/PasswordField.svelte`
+  - Props: `id`, `label`, `value` (bindable), `required`, `autocomplete`.
+  - Password input (`.pr-input`) with a `.pr-btn-icon` show/hide toggle inside the field: lucide
+    `Eye`/`EyeOff`, 44px minimum tap target, `aria-pressed`, and an accessible name that flips
+    between "Show password" and "Hide password".
+
 - `lib/SectionHeading.svelte`
   - Props:
     - `tag`: `'h2' | 'h3' | 'h4'` (default: `'h2'`).

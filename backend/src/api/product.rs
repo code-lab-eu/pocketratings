@@ -400,38 +400,14 @@ mod tests {
     use rust_decimal::Decimal;
 
     use super::*;
-    use crate::config::Config;
     use crate::db;
     use crate::domain::category::Category;
     use crate::domain::product_variation::{ProductVariation, Unit};
     use crate::domain::purchase::Purchase;
     use crate::domain::review::Review;
     use crate::test_helpers::{
-        ensure_product_variation, insert_location, insert_product, insert_user,
+        api_test_state, ensure_product_variation, insert_location, insert_product, insert_user,
     };
-
-    async fn test_pool() -> (AppState, tempfile::TempDir) {
-        let dir = tempfile::tempdir().expect("temp dir");
-        let db_path = dir.path().join("product_test.db");
-        let path_str = db_path.to_str().expect("path utf-8").to_string();
-        let pool = db::create_pool(&path_str).await.expect("pool");
-        db::run_migrations(&pool).await.expect("migrate");
-        let state = AppState {
-            config: Config {
-                database_path: path_str,
-                jwt_secret: "test".to_string(),
-                jwt_expiration_seconds: 3600,
-                jwt_refresh_threshold_seconds: 600,
-                bind: "127.0.0.1:0".to_string(),
-                pid_file: std::env::temp_dir()
-                    .join("pocketratings-product-test.pid")
-                    .to_string_lossy()
-                    .into_owned(),
-            },
-            pool,
-        };
-        (state, dir)
-    }
 
     async fn insert_category(pool: &SqlitePool, name: &str) -> Uuid {
         insert_category_with_parent(pool, name, None).await
@@ -454,7 +430,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_products_returns_empty_array_when_none() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let response = app
             .oneshot(
@@ -479,7 +455,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_products_includes_review_score_and_price_when_present() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
         let user_id = insert_user(&state.pool, "User", "u@example.com").await;
@@ -549,7 +525,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_product_returns_201_and_body() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Groceries").await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({
@@ -615,7 +591,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_product_creates_one_default_variation() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Groceries").await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({
@@ -654,7 +630,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_product_with_first_variation_creates_custom_variation() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Groceries").await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({
@@ -699,7 +675,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_product_variations_returns_404_when_product_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let response = app
@@ -716,7 +692,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_product_variations_returns_200_and_array() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
         ensure_product_variation(&state.pool, product_id).await;
@@ -746,7 +722,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_product_variations_returns_200_empty_array_when_product_has_no_variations() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
         let app = route().with_state(state);
@@ -773,7 +749,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_variation_returns_201_and_body() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
         let app = route().with_state(state.clone());
@@ -817,7 +793,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_variation_returns_404_when_product_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let product_id = Uuid::new_v4();
         let body = serde_json::json!({ "unit": "grams" });
@@ -837,7 +813,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_variation_returns_200_and_updated_body() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
         let variation_id = ensure_product_variation(&state.pool, product_id).await;
@@ -871,7 +847,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_variation_returns_204_when_second_variation() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
         ensure_product_variation(&state.pool, product_id).await;
@@ -910,7 +886,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_variation_returns_409_when_last_variation() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "N").await;
         let variation_id = ensure_product_variation(&state.pool, product_id).await;
@@ -930,7 +906,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_product_returns_404_when_category_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let fake_cat_id = Uuid::new_v4();
         let body = serde_json::json!({
@@ -954,7 +930,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_product_returns_400_when_brand_empty() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -978,7 +954,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_product_returns_400_when_name_empty() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1002,7 +978,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_product_returns_400_when_first_variation_unit_invalid() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1027,7 +1003,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_product_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let response = app
@@ -1044,7 +1020,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_product_returns_200_when_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1096,7 +1072,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_products_with_category_id_filter() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1140,7 +1116,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_products_with_category_id_includes_products_in_child_categories() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let parent_id = insert_category(&state.pool, "Wine").await;
         let child_id = insert_category_with_parent(&state.pool, "Red wine", Some(parent_id)).await;
         let app = route().with_state(state);
@@ -1185,7 +1161,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_products_with_category_id_returns_404_when_category_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let nonexistent_id = Uuid::new_v4();
         let response = app
@@ -1202,7 +1178,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_products_with_q_search() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1246,7 +1222,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_products_with_q_search_by_category_name() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Beverages").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1290,7 +1266,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_product_persists_new_values() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({
@@ -1352,7 +1328,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_product_returns_404_when_product_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let patch_body = serde_json::json!({ "name": "New" });
@@ -1372,7 +1348,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_product_returns_200_when_no_change_does_not_persist() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1425,7 +1401,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_product_returns_404_when_category_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state);
         let body = serde_json::json!({
@@ -1471,7 +1447,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_product_returns_204_soft_delete() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({
@@ -1528,7 +1504,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_product_hard_remove_row() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({
@@ -1581,7 +1557,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_product_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let app = route().with_state(state);
         let id = Uuid::new_v4();
         let response = app
@@ -1599,7 +1575,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_product_returns_409_when_has_purchases() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let app = route().with_state(state.clone());
         let body = serde_json::json!({

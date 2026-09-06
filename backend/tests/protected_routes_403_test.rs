@@ -5,10 +5,11 @@ use axum::http::{Method, Request, StatusCode};
 use http_body_util::BodyExt;
 use pocketratings::api::{AppState, router};
 use pocketratings::auth::password;
-use pocketratings::config::Config;
 use pocketratings::db;
 use tower::ServiceExt;
 use uuid::Uuid;
+
+mod common;
 
 /// Placeholder UUID for path params (resource need not exist; we only assert 403).
 const PLACEHOLDER_ID: &str = "00000000-0000-0000-0000-000000000001";
@@ -64,17 +65,7 @@ async fn test_state_with_user() -> (AppState, String, tempfile::TempDir) {
     .execute(&pool)
     .await
     .expect("insert user");
-    let config = Config {
-        database_path: path_str,
-        jwt_secret: "test-secret".to_string(),
-        jwt_expiration_seconds: 3600,
-        jwt_refresh_threshold_seconds: 600,
-        bind: "127.0.0.1:0".to_string(),
-        pid_file: std::env::temp_dir()
-            .join("pocketratings-protected-403-test.pid")
-            .to_string_lossy()
-            .into_owned(),
-    };
+    let config = common::test_config(&path_str);
     let state = AppState {
         config: config.clone(),
         pool,

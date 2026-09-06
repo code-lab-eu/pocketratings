@@ -34,17 +34,7 @@ mod tests {
 
     fn test_state() -> AppState {
         AppState {
-            config: Config {
-                database_path: ":memory:".to_string(),
-                jwt_secret: "test".to_string(),
-                jwt_expiration_seconds: 3600,
-                jwt_refresh_threshold_seconds: 600,
-                bind: "127.0.0.1:3099".to_string(),
-                pid_file: std::env::temp_dir()
-                    .join("pocketratings-test.pid")
-                    .to_string_lossy()
-                    .into_owned(),
-            },
+            config: Config::for_tests(":memory:"),
             pool: SqlitePool::connect_lazy("sqlite::memory:").expect("in-memory pool"),
         }
     }

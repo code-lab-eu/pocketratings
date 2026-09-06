@@ -3,6 +3,7 @@
 use std::io::Cursor;
 use std::process::Stdio;
 use std::sync::Arc;
+use std::time::Duration;
 
 use nix::sys::signal::{Signal, kill};
 use nix::unistd::Pid;
@@ -11,6 +12,8 @@ use pocketratings::config::Config;
 use serial_test::serial;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::{Mutex, Notify};
+
+mod common;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,7 +59,26 @@ impl Drop for TestServer {
     }
 }
 
+/// How long to wait for the server to report that it is listening. Generous, because `cargo run`
+/// may still have to build the binary; the point is to fail with output instead of hanging.
+const STARTUP_TIMEOUT: Duration = Duration::from_secs(180);
+
 impl TestServer {
+    /// The server output collected so far, for a failure message.
+    async fn stderr_report(seen: &Arc<Mutex<Vec<String>>>) -> String {
+        // The reader task pushes lines as it gets them; give it a moment to drain what the
+        // server wrote just before exiting.
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        let output = {
+            let lines = seen.lock().await;
+            lines.join("\n")
+        };
+        if output.is_empty() {
+            return String::from("; the server wrote nothing to stderr");
+        }
+        format!("; server stderr:\n{output}")
+    }
+
     async fn start() -> Self {
         let dir = tempfile::tempdir().expect("temp dir");
         let db_path = dir.path().join("server_test.db");
@@ -65,6 +87,7 @@ impl TestServer {
             .args(["run", "--", "server", "start"])
             .env("DB_PATH", db_path.to_str().expect("path"))
             .env("JWT_SECRET", "test-secret")
+            .env("APP_BASE_URL", "http://localhost:5173")
             .env("BIND", "127.0.0.1:0")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -77,15 +100,37 @@ impl TestServer {
         let notify = Arc::new(Notify::new());
         let notify_clone = notify.clone();
         let lines_clone = Arc::clone(&stderr_lines);
+        let seen = Arc::new(Mutex::new(Vec::<String>::new()));
+        let seen_clone = Arc::clone(&seen);
         tokio::spawn(async move {
             while let Ok(Some(line)) = lines_clone.lock().await.next_line().await {
-                if line.contains("listening on") {
+                let listening = line.contains("listening on");
+                seen_clone.lock().await.push(line);
+                if listening {
                     notify_clone.notify_one();
                     break;
                 }
             }
         });
-        notify.notified().await;
+
+        // Fail with the server's own output rather than hanging: a server that cannot start (a
+        // missing required env var, say) never prints the startup line at all.
+        tokio::select! {
+            started = tokio::time::timeout(STARTUP_TIMEOUT, notify.notified()) => {
+                assert!(
+                    started.is_ok(),
+                    "server did not report listening within {}s{}",
+                    STARTUP_TIMEOUT.as_secs(),
+                    Self::stderr_report(&seen).await,
+                );
+            }
+            status = server.wait() => {
+                panic!(
+                    "server exited before it reported listening ({status:?}){}",
+                    Self::stderr_report(&seen).await,
+                );
+            }
+        }
 
         Self {
             _dir: dir,
@@ -133,12 +178,8 @@ async fn server_stop_no_pid_file_returns_error() {
     let dir = tempfile::tempdir().expect("temp dir");
     let pid_path = dir.path().join("nonexistent.pid");
     let config = Config {
-        database_path: "./pocketratings.db".to_string(),
-        jwt_secret: "test".to_string(),
-        jwt_expiration_seconds: 3600,
-        jwt_refresh_threshold_seconds: 600,
-        bind: "127.0.0.1:3099".to_string(),
         pid_file: pid_path.to_string_lossy().into_owned(),
+        ..common::test_config("./pocketratings.db")
     };
 
     let (result, _stdout, _stderr) = run_server_stop(Some(&config)).await;

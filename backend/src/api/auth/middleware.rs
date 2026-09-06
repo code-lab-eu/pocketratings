@@ -107,20 +107,6 @@ mod tests {
     use crate::db;
     use uuid::Uuid;
 
-    fn test_config(db_path: &str) -> Config {
-        Config {
-            database_path: db_path.to_string(),
-            jwt_secret: "test-secret".to_string(),
-            jwt_expiration_seconds: 3600,
-            jwt_refresh_threshold_seconds: 600,
-            bind: "127.0.0.1:3099".to_string(),
-            pid_file: std::env::temp_dir()
-                .join("pocketratings-me-test.pid")
-                .to_string_lossy()
-                .into_owned(),
-        }
-    }
-
     async fn test_pool_with_user(
         email: &str,
         password_plain: &str,
@@ -146,7 +132,7 @@ mod tests {
         .await
         .expect("insert user");
         let state = AppState {
-            config: test_config(&path_str),
+            config: Config::for_tests(&path_str),
             pool,
         };
         (state, id, dir)

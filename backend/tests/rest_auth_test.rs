@@ -5,10 +5,11 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use pocketratings::api::{AppState, router};
 use pocketratings::auth::password;
-use pocketratings::config::Config;
 use pocketratings::db;
 use tower::ServiceExt;
 use uuid::Uuid;
+
+mod common;
 
 async fn test_pool_with_user(
     email: &str,
@@ -34,17 +35,7 @@ async fn test_pool_with_user(
     .execute(&pool)
     .await
     .expect("insert user");
-    let config = Config {
-        database_path: path_str.clone(),
-        jwt_secret: "test-secret".to_string(),
-        jwt_expiration_seconds: 3600,
-        jwt_refresh_threshold_seconds: 600,
-        bind: "127.0.0.1:3099".to_string(),
-        pid_file: std::env::temp_dir()
-            .join("pocketratings-rest-auth-test.pid")
-            .to_string_lossy()
-            .into_owned(),
-    };
+    let config = common::test_config(&path_str);
     let state = AppState { config, pool };
     (state, id, dir)
 }

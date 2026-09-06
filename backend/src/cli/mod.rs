@@ -33,7 +33,7 @@ pub fn subcommand_needs_db(first: Option<&str>, second: Option<&str>) -> bool {
         (first, second),
         (
             Some("user"),
-            Some("register" | "list" | "delete" | "set-password")
+            Some("register" | "list" | "delete" | "set-password" | "reset-link")
         ) | (
             Some("category" | "location" | "product" | "purchase" | "review"),
             Some("create" | "list" | "show" | "update" | "delete")
@@ -89,7 +89,7 @@ pub struct ServerStartOpts {
 #[derive(clap::Args)]
 pub struct ServerStopOpts {}
 
-/// Manage user accounts: register, list, delete, and change passwords.
+/// Manage user accounts: register, list, delete, change passwords, and issue reset links.
 #[derive(clap::Args)]
 pub struct UserArgs {
     #[command(subcommand)]
@@ -103,6 +103,8 @@ pub enum UserCmd {
     Delete(DeleteOpts),
     /// Change a user's password (identified by email).
     SetPassword(SetPasswordOpts),
+    /// Print a one-time password reset link for a user (identified by email).
+    ResetLink(ResetLinkOpts),
 }
 
 /// Manage product categories: create, list, show, update, and delete.
@@ -455,6 +457,15 @@ pub struct SetPasswordOpts {
 }
 
 #[derive(clap::Args)]
+pub struct ResetLinkOpts {
+    /// Email of the user to create a reset link for.
+    #[arg(long)]
+    pub email: String,
+    #[arg(long, default_value = "human", value_parser = ["human", "json"])]
+    pub output: String,
+}
+
+#[derive(clap::Args)]
 pub struct ListOpts {
     #[arg(long, default_value = "human", value_parser = ["human", "json"])]
     pub output: String,
@@ -616,6 +627,23 @@ pub async fn run(
                     ))
                 })?;
                 user_cli::set_password(pool, &opts.email, &opts.password, stdout, stderr).await
+            }
+            UserCmd::ResetLink(opts) => {
+                let pool = pool.ok_or_else(|| {
+                    CliError::Other(anyhow::anyhow!(
+                        "database pool required for user reset-link"
+                    ))
+                })?;
+                let output_json = opts.output.as_str() == "json";
+                user_cli::reset_link(
+                    pool,
+                    config_override,
+                    &opts.email,
+                    output_json,
+                    stdout,
+                    stderr,
+                )
+                .await
             }
         },
         Some(Commands::Category(cat_args)) => match cat_args.command {
@@ -987,6 +1015,7 @@ mod tests {
         assert!(subcommand_needs_db(Some("user"), Some("register")));
         assert!(subcommand_needs_db(Some("user"), Some("list")));
         assert!(subcommand_needs_db(Some("user"), Some("set-password")));
+        assert!(subcommand_needs_db(Some("user"), Some("reset-link")));
         assert!(subcommand_needs_db(Some("category"), Some("create")));
         assert!(subcommand_needs_db(Some("product"), Some("list")));
         assert!(subcommand_needs_db(Some("product"), Some("variation-add")));

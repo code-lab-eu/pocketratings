@@ -19,13 +19,16 @@
   const appleTouchIconHref = `${base}/apple-touch-icon.png`.replace(/\/+/g, '/');
   const faviconIcoHref = `${base}/favicon.ico`.replace(/\/+/g, '/');
 
+  /** Pages reachable without a session: the reset link is its own credential. */
+  const AUTH_PAGES = ['/login', '/reset-password'];
+  const isAuthPage = $derived(AUTH_PAGES.includes($page.url.pathname));
+
   // Client-only: init theme from localStorage and sync token
   $effect(() => {
     if (typeof window === 'undefined') return;
     initTheme();
     getToken();
-    const path = $page.url.pathname;
-    if (path !== '/login' && !getToken()) {
+    if (!isAuthPage && !getToken()) {
       goto(resolve('/login'));
     }
   });
@@ -42,7 +45,7 @@
   <link rel="apple-touch-icon" href={appleTouchIconHref} />
 </svelte:head>
 
-{#if typeof window !== 'undefined' && $token && $page.url.pathname !== '/login'}
+{#if typeof window !== 'undefined' && $token && !isAuthPage}
   <header class="pr-header px-4 py-3">
     <div class="mx-auto flex max-w-2xl min-w-0 items-center justify-between">
       <div class="flex min-h-[44px] min-w-0 items-center gap-3">

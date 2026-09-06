@@ -55,7 +55,7 @@ async fn main() {
                     Err(e) => {
                         let _ = writeln!(
                             std::io::stderr(),
-                            "{}",
+                            "{:#}",
                             anyhow::anyhow!(e).context("failed to run database migrations")
                         );
                         std::process::exit(1);
@@ -64,14 +64,16 @@ async fn main() {
                 Err(e) => {
                     let _ = writeln!(
                         std::io::stderr(),
-                        "{}",
+                        "{:#}",
                         anyhow::anyhow!(e).context("failed to create database pool")
                     );
                     std::process::exit(1);
                 }
             },
             Err(e) => {
-                let _ = writeln!(std::io::stderr(), "{e}");
+                // `{:#}` appends the causes; plain `{}` would print "failed to load
+                // configuration" without naming the variable that is missing.
+                let _ = writeln!(std::io::stderr(), "{e:#}");
                 std::process::exit(1);
             }
         }

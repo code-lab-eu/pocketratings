@@ -325,9 +325,8 @@ mod tests {
 
     use super::*;
     use crate::api::auth::CurrentUserId;
-    use crate::config::Config;
     use crate::db;
-    use crate::test_helpers::{insert_category, insert_product, insert_user};
+    use crate::test_helpers::{api_test_state, insert_category, insert_product, insert_user};
 
     /// Build the review route with a fixed current user (no auth header needed). Same pattern as category/location/product tests.
     fn app_with_user(state: AppState, user_id: Uuid) -> axum::Router {
@@ -336,32 +335,9 @@ mod tests {
             .with_state(state)
     }
 
-    async fn test_pool() -> (AppState, tempfile::TempDir) {
-        let dir = tempfile::tempdir().expect("temp dir");
-        let db_path = dir.path().join("review_test.db");
-        let path_str = db_path.to_str().expect("path utf-8").to_string();
-        let pool = db::create_pool(&path_str).await.expect("pool");
-        db::run_migrations(&pool).await.expect("migrate");
-        let state = AppState {
-            config: Config {
-                database_path: path_str,
-                jwt_secret: "test".to_string(),
-                jwt_expiration_seconds: 3600,
-                jwt_refresh_threshold_seconds: 600,
-                bind: "127.0.0.1:0".to_string(),
-                pid_file: std::env::temp_dir()
-                    .join("pocketratings-review-test.pid")
-                    .to_string_lossy()
-                    .into_owned(),
-            },
-            pool,
-        };
-        (state, dir)
-    }
-
     #[tokio::test]
     async fn list_reviews_returns_empty_array_when_none() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "Alice", "a@example.com").await;
         let app = app_with_user(state, user_id);
         let response = app
@@ -387,7 +363,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_reviews_with_product_id_filter() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -442,7 +418,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_reviews_without_user_id_returns_all_users() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
         let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
@@ -500,7 +476,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_reviews_with_user_id_current_returns_only_that_users() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
         let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
@@ -544,7 +520,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_reviews_with_user_id_filters_by_that_user() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
         let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
@@ -595,7 +571,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_reviews_invalid_uuid_returns_400() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let app = app_with_user(state, user_id);
         let response = app
@@ -612,7 +588,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_review_returns_200_with_correct_body() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -670,7 +646,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_review_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let app = app_with_user(state, user_id);
         let id = Uuid::new_v4();
@@ -688,7 +664,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_review_returns_201_and_persists() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "Acme", "Widget").await;
@@ -751,7 +727,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_review_returns_404_when_product_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let app = app_with_user(state, user_id);
         let fake_product_id = Uuid::new_v4();
@@ -776,7 +752,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_review_returns_400_when_rating_out_of_range() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -809,7 +785,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_review_accepts_one_decimal_rating_3_8() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -857,7 +833,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_review_returns_200_and_persists() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -924,7 +900,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_review_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let app = app_with_user(state, user_id);
         let id = Uuid::new_v4();
@@ -945,7 +921,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_review_returns_403_when_not_owner() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
         let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
@@ -984,7 +960,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_review_returns_400_when_rating_out_of_range() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -1031,7 +1007,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_review_no_op_returns_200_without_db_update() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -1093,7 +1069,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_review_soft_sets_deleted_at_and_excludes_from_list() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -1155,7 +1131,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_review_force_removes_row() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;
         let product_id = insert_product(&state.pool, cat_id, "B", "P").await;
@@ -1205,7 +1181,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_review_returns_404_when_not_found() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_id = insert_user(&state.pool, "U", "u@ex.com").await;
         let app = app_with_user(state, user_id);
         let id = Uuid::new_v4();
@@ -1224,7 +1200,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_review_returns_403_when_not_owner() {
-        let (state, _dir) = test_pool().await;
+        let (state, _dir) = api_test_state().await;
         let user_a = insert_user(&state.pool, "A", "a@ex.com").await;
         let user_b = insert_user(&state.pool, "B", "b@ex.com").await;
         let cat_id = insert_category(&state.pool, "Cat").await;

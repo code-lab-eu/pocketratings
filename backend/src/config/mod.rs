@@ -17,6 +17,10 @@ pub struct Config {
     /// Secret used to sign and verify JWT tokens.
     pub jwt_secret: String,
 
+    /// Public base URL of the frontend, without a trailing slash (e.g. `https://example.com`).
+    /// Used to build links that are handed to users, such as password reset links.
+    pub app_base_url: String,
+
     /// Token expiration in seconds (default: 30 days).
     pub jwt_expiration_seconds: u64,
 
@@ -35,6 +39,7 @@ impl Config {
     ///
     /// - `DB_PATH` — database path (default: `./pocketratings.db`)
     /// - `JWT_SECRET` — JWT signing secret (**required**)
+    /// - `APP_BASE_URL` — public base URL of the frontend (**required**; trailing slash trimmed)
     /// - `JWT_EXPIRATION_SECONDS` — token expiration in seconds (default: 30 days)
     /// - `JWT_REFRESH_THRESHOLD_SECONDS` — issue new token if exp within this (default: 7 days)
     /// - `BIND` — server bind address (default: `127.0.0.1:3099`)
@@ -48,6 +53,11 @@ impl Config {
             env::var("DB_PATH").unwrap_or_else(|_| String::from("./pocketratings.db"));
 
         let jwt_secret = env::var("JWT_SECRET").map_err(|_| ConfigError::Missing("JWT_SECRET"))?;
+
+        let app_base_url = env::var("APP_BASE_URL")
+            .map_err(|_| ConfigError::Missing("APP_BASE_URL"))?
+            .trim_end_matches('/')
+            .to_string();
 
         let bind = env::var("BIND").unwrap_or_else(|_| String::from("127.0.0.1:3099"));
 
@@ -71,11 +81,34 @@ impl Config {
         Ok(Self {
             database_path,
             jwt_secret,
+            app_base_url,
             jwt_expiration_seconds,
             jwt_refresh_threshold_seconds,
             bind,
             pid_file,
         })
+    }
+
+    /// Build a configuration for tests, with fixed values for everything but the database path.
+    ///
+    /// Keeps the hand-built `Config { .. }` literals out of individual test modules so adding a
+    /// field only touches this constructor. Override a single field with struct update syntax,
+    /// e.g. `Config { pid_file, ..Config::for_tests(path) }`.
+    #[cfg(test)]
+    #[must_use]
+    pub fn for_tests(database_path: &str) -> Self {
+        Self {
+            database_path: database_path.to_string(),
+            jwt_secret: "test-secret".to_string(),
+            app_base_url: "http://localhost:5173".to_string(),
+            jwt_expiration_seconds: 3600,
+            jwt_refresh_threshold_seconds: 600,
+            bind: "127.0.0.1:0".to_string(),
+            pid_file: env::temp_dir()
+                .join("pocketratings-test.pid")
+                .to_string_lossy()
+                .into_owned(),
+        }
     }
 }
 
