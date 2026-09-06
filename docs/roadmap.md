@@ -138,7 +138,7 @@ invalidated the moment it is used.
   page (validation, mismatch, toggle). Update [spec.md](spec.md) with the new
   screen and flow.
 
-### 7. Update to Node 26 [FE]
+### 7. Update to Node 26 [FE] — DONE
 
 **1 sp.** The frontend currently pins Node.js 24 LTS. Move to Node 26 so
 development, CI, and the documented prerequisites all target the same,
