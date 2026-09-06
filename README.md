@@ -24,7 +24,7 @@ you paid.
 
 - **Rust** (stable, 1.85+)
 - **Bun** (latest)
-- **Node.js** 24 LTS
+- **Node.js** 26
 
 ## Configuration
 
