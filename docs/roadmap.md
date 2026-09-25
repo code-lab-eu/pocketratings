@@ -154,6 +154,25 @@ current LTS release.
 - Update the **Node.js** prerequisite in [README.md](../README.md).
 - Run frontend QC on Node 26 to confirm lint and tests pass.
 
+### 8. Default purchase date uses UTC instead of local time [FE]
+
+**1 sp.** `PurchaseForm.svelte` prefills the **Date** field with
+`new Date().toISOString().slice(0, 16)`, which is the current time in UTC.
+A `datetime-local` input expects local time, so outside UTC the default is
+off by the UTC offset (e.g. 3 hours in the past at UTC+3). This affects the
+manage add purchase page and the inline add purchase form on the product
+page. The edit page has the same issue when it converts `purchased_at` to
+the field value.
+
+**Tasks:**
+- Add a formatter in `lib/utils/formatters.ts` that turns a `Date` into a
+  local `YYYY-MM-DDTHH:mm` string, with a unit test that pins the timezone
+  (e.g. `TZ` in the test) and checks a non-UTC offset.
+- Use it for the default date in `PurchaseForm.svelte` and for the initial
+  value in `manage/purchases/[id]/+page.svelte`.
+- Submitting still converts the field value with `new Date(value)`, which
+  parses it as local time; confirm the round trip in a test.
+
 ---
 
 ## Distant future
