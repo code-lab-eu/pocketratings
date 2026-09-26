@@ -173,6 +173,48 @@ the field value.
 - Submitting still converts the field value with `new Date(value)`, which
   parses it as local time; confirm the round trip in a test.
 
+### 9. Use the Button component for delete buttons [FE]
+
+**1 sp.** Primary, secondary, and link-style buttons all use
+`lib/Button.svelte`, but the delete buttons are still raw `<button>`
+elements with `pr-btn-danger`, because `Button` has no danger variant and
+no way to set `title`. Affected:
+`manage/locations/[id]/+page.svelte` (delete location),
+`manage/categories/[id]/+page.svelte` (delete category), and
+`manage/products/[id]/+page.svelte` (delete product and delete variation;
+both set `disabled` and a `title` explaining why deletion is blocked).
+
+**Tasks:**
+- Agree the `Button` API change before implementing (see "Follow existing
+  patterns" in AGENTS.md): a `danger` variant mapping to `pr-btn-danger`,
+  and an explicit `title` prop or a pass-through of other attributes.
+- Replace all four buttons in the same change; document the variant in
+  `frontend/STYLES.md`.
+- Add tests for delete buttons that have none (e.g. the disabled state and
+  tooltip on the manage product page) before refactoring.
+
+### 10. Align icon-style buttons on one component [FE]
+
+**2 sp.** Five buttons are written by hand with their own classes and ARIA
+attributes: the theme toggle and **Log out** in `routes/+layout.svelte`,
+the show/hide toggle in `PasswordField.svelte`, the delete icon in
+`ManageListRow.svelte`, and the expand/collapse chevron in
+`CategoryLinkList.svelte`. The first four use `pr-btn-icon` with differing
+extra classes; the chevron uses neither `pr-btn-icon` nor the 44px tap
+target the others have.
+
+**Tasks:**
+- Propose the approach before implementing: an `icon` variant on `Button`
+  or a separate `IconButton` component. Either needs an accessible name
+  (`aria-label`), optional `aria-pressed` and `title`, and the 44px minimum
+  tap target.
+- Move all five buttons to the agreed component in the same change; decide
+  whether **Log out** (text, not an icon) belongs in it or uses
+  `variant="link"`.
+- Keep existing tests passing (`ManageListRow`, `password-field`,
+  `category-link-list`, layout) and add coverage where a button has none.
+  Document the result in `frontend/STYLES.md`.
+
 ---
 
 ## Distant future
