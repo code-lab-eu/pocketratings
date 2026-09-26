@@ -181,9 +181,9 @@
 
         {#if !inlineReviewOpen}
           <p class="mt-4">
-            <button type="button" class="pr-link-inline" onclick={openInlineReview}>
+            <Button variant="link" onclick={openInlineReview}>
               Add review
-            </button>
+            </Button>
           </p>
         {:else}
           <div
@@ -214,13 +214,9 @@
                 <Button type="submit" disabled={inlineSubmitting} variant="primary">
                   {inlineSubmitting ? 'Saving…' : 'Save'}
                 </Button>
-                <button
-                  type="button"
-                  class="pr-btn-secondary"
-                  onclick={closeInlineReview}
-                >
+                <Button variant="secondary" onclick={closeInlineReview}>
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           </div>

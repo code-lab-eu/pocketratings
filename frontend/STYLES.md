@@ -64,6 +64,7 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
     - `href` (optional): when provided, renders an `<a>`; otherwise renders a `<button>`.
     - `type`: `'button' | 'submit' | 'reset'` (default: `'button'`).
     - `disabled`: standard disabled flag for the `<button>` case.
+    - `onclick` (optional): click handler for the `<button>` case (e.g. Cancel on an inline form).
   - Applies:
     - `pr-btn-primary` for `variant="primary"`.
     - `pr-btn-secondary` for `variant="secondary"`.
@@ -93,7 +94,9 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
   - Use `.pr-text-muted` and `.pr-text-subtle` for secondary/tertiary text rather than raw `text-gray-*` classes.
 
 - **Buttons and links**
-  - Prefer `Button` for primary and secondary actions.
+  - Use `Button` for primary, secondary, and link-style actions, with `onclick` for actions on the
+    page and `href` for navigation. Do not write `pr-btn-primary`, `pr-btn-secondary`, or
+    `pr-link-inline` on a raw `<button>`.
   - Use `.pr-link-muted` for back-links in headers (e.g. "← Manage") and `.pr-link-inline` for inline links in text.
 
 - **Forms**
