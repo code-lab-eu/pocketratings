@@ -101,7 +101,7 @@ username/email) and update the stored hash.
 - Add a test covering the update path; document the command in README or dev
   docs.
 
-### 6. CLI command to generate a password reset link [FE+BE]
+### 6. CLI command to generate a password reset link [FE+BE] — DONE
 
 **4 sp.** Add a CLI command that generates a password reset link for a user.
 The operator sends the link to the user over a secure channel (e.g. email);
