@@ -34,6 +34,17 @@ pattern, the alternative, and every place that would change. Once a new
 approach is agreed, apply it to all existing occurrences in the same
 change. The codebase must never have two ways of doing the same thing.
 
+**Apply a change everywhere it applies.** A request usually names one place
+("label the price in the form"), but the concept it changes (a label, a term, a
+display format, a validation rule, a unit) usually appears in more. Before
+implementing, search the whole repository - frontend pages and components,
+backend API responses, CLI help and output, `docs/`, and `README.md` - list
+every occurrence, and apply the change to all of them in the same change. If it
+is unclear whether a place is in scope, show the list and ask before
+implementing. Never leave a known inconsistency unreported: when you notice one
+that you are not fixing, tell the user straight away and offer to add a roadmap
+task.
+
 **Review quality before running QC.** After implementing or refactoring,
 review every changed file for:
 
