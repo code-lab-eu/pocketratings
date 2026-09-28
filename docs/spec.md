@@ -43,17 +43,19 @@
 
 - Purchases are associated with a **product variation** (e.g. size or unit), not
   only the product. Price history is per variation (e.g. 500 g vs 1 L).
-- **Record**: User records a purchase: product, **variation** (default: product's
-  first variation), location, quantity, unit price (EUR), date. In v1 the current
-  user is always recorded as the purchaser.
+- **Record**: User records a purchase: product, **variation** (default:
+  product's first variation), location, quantity, unit price (EUR), date.
+  Everywhere a purchase price is entered or shown next to a quantity, it is the
+  price per item; the add and edit forms label the field "Price per item (EUR)".
+  In v1 the current user is always recorded as the purchaser.
 - **List**: User sees purchases (e.g. by product, by location, by date range,
   or "my purchases"); each purchase shows which variation was bought. The app
   requests "my purchases" by passing `user_id` (current user from GET
   /api/v1/me) to the list endpoint.
 
 - **Update / soft-delete**: User can edit a purchase (product, variation,
-  location, quantity, price, date) or soft-delete it. Edit and delete only for
-  their own purchases.
+  location, quantity, unit price, date) or soft-delete it. Edit and delete only
+  for their own purchases.
 
 **Reviews**
 
@@ -373,7 +375,11 @@ The CLI is the same binary as the backend (`pocketratings`). It operates on the 
 
 **Purchases**
 
-- `pocketratings purchase create --product-id <uuid> --location-id <uuid> --price <amount> [--user-id <uuid>] [--quantity <n>] [--at <iso-date>]` — Default quantity 1, `--at` default now. If `--user-id` omitted, require e.g. `--email` to identify the purchaser (v1: one user per family device or explicit flag).
+- `pocketratings purchase create --product-id <uuid> --location-id <uuid> --price <amount> [--user-id <uuid>] [--quantity <n>] [--at <iso-date>]`
+  — `--price` is the price per item in EUR. Default quantity 1, `--at` default
+  now. If `--user-id` omitted, require e.g. `--email` to identify the purchaser
+  (v1: one user per family device or explicit flag). Output shows
+  `qty: <n>, price per item: <amount>`.
 - `pocketratings purchase list [--user-id <uuid>] [--product-id <uuid>] [--location-id <uuid>] [--from <date>] [--to <date>]`
 - `pocketratings purchase show <id>`
 - `pocketratings purchase delete <id> [--force]` — Soft-delete by default; use `--force` to remove the row.

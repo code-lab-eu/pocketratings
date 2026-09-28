@@ -31,5 +31,6 @@ describe('Manage purchase edit page', () => {
     expect(screen.getByRole('heading', { name: /edit purchase/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/product/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+    expect(screen.getByLabelText('Price per item (EUR)')).toHaveValue('2.99');
   });
 });

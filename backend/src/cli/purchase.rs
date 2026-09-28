@@ -155,7 +155,7 @@ pub async fn create(
     } else {
         writeln!(
             stdout,
-            "Purchase created: {} (qty: {}, price: {})",
+            "Purchase created: {} (qty: {}, price per item: {})",
             purchase.id(),
             purchase.quantity(),
             purchase.price()

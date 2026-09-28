@@ -66,4 +66,18 @@ describe('Manage purchases list', () => {
     });
     expect(screen.getByText(/default/i)).toBeInTheDocument();
   });
+
+  it('shows the price per item followed by the quantity in purchase row', () => {
+    render(PurchasesPage, {
+      props: {
+        data: {
+          purchases: [{ ...purchase, quantity: 3 }],
+          error: null
+        }
+      }
+    });
+    const [row] = screen.getAllByRole('listitem');
+    expect(row.textContent?.replace(/\s+/g, ' ').trim()).toMatch(/· 2\.99 € ×3$/);
+    expect(screen.getByTitle('Quantity')).toHaveTextContent('×3');
+  });
 });

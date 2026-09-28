@@ -180,7 +180,7 @@
   />
   <InputField
     id="price"
-    label="Price (EUR)"
+    label="Price per item (EUR)"
     bind:value={price}
     placeholder="2.99"
     inputmode="decimal"

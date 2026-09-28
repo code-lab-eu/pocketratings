@@ -142,7 +142,7 @@ impl fmt::Display for Purchase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{} (product: {}, location: {}, qty: {}, price: {})",
+            "{} (product: {}, location: {}, qty: {}, price per item: {})",
             self.id(),
             self.product_id(),
             self.location_id(),

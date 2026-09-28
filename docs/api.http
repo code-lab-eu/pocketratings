@@ -301,7 +301,7 @@ Authorization: Bearer {{token}}
 
 ###
 
-# POST /api/v1/purchases — Body: { product_id, location_id, quantity?, price, purchased_at? }
+# POST /api/v1/purchases — Body: { product_id, location_id, quantity?, price, purchased_at? }. Price is per item.
 # Note: id, user_id, deleted_at are protected fields (cannot be set; user_id is set automatically)
 POST {{baseUrl}}/api/v1/purchases
 Authorization: Bearer {{token}}
@@ -317,7 +317,7 @@ Content-Type: application/json
 
 ###
 
-# PATCH /api/v1/purchases/:id — Body: { product_id?, location_id?, quantity?, price?, purchased_at? }. Only own purchase.
+# PATCH /api/v1/purchases/:id — Body: { product_id?, location_id?, quantity?, price?, purchased_at? }. Price is per item. Only own purchase.
 PATCH {{baseUrl}}/api/v1/purchases/{{purchaseId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json

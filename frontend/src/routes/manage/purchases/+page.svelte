@@ -70,7 +70,8 @@
         >
           <span class="pr-text-muted">
             — {formatVariationDisplay(purchase.variation)} · {purchase.location.name} ·
-            {formatDate(purchase.purchased_at)} · {purchase.price}€
+            {formatDate(purchase.purchased_at)} · {purchase.price} €
+            <span title="Quantity">×{purchase.quantity}</span>
           </span>
         </ManageListRow>
       {/each}
