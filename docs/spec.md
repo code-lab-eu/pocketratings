@@ -47,6 +47,7 @@
   product's first variation), location, quantity, unit price (EUR), date.
   Everywhere a purchase price is entered or shown next to a quantity, it is the
   price per item; the add and edit forms label the field "Price per item (EUR)".
+  The add and edit forms preselect the first variation and require a variation.
   In v1 the current user is always recorded as the purchaser.
 - **List**: User sees purchases (e.g. by product, by location, by date range,
   or "my purchases"); each purchase shows which variation was bought. The app

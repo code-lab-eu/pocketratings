@@ -161,6 +161,7 @@
       bind:value={variationId}
       placeholder={variationsLoading ? 'Loading...' : 'Select variation'}
       disabled={variationsLoading || variations.length === 0}
+      required
     />
   {/if}
   <Select
