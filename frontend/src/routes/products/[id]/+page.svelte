@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { createReview } from '$lib/api';
+  import { createPurchase, createReview } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import Button from '$lib/Button.svelte';
@@ -9,6 +9,7 @@
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import InlineFormToggle from '$lib/InlineFormToggle.svelte';
+  import PurchaseForm, { type PurchaseFormData } from '$lib/PurchaseForm.svelte';
   import StarRating from '$lib/StarRating.svelte';
   import StarRatingInput from '$lib/StarRatingInput.svelte';
   import TextareaField from '$lib/TextareaField.svelte';
@@ -27,10 +28,12 @@
   let inlineText = $state('');
   let inlineSubmitting = $state(false);
   let inlineError = $state<string | null>(null);
+  let inlinePurchaseOpen = $state(false);
 
   let product = $derived(data.product);
   let reviews = $derived(data.reviews);
   let purchases = $derived(data.purchases);
+  let locations = $derived(data.locations);
   let error = $derived(data.error);
   let notFound = $derived(data.notFound ?? false);
 
@@ -96,6 +99,11 @@
     }
   }
 
+  async function handleInlinePurchaseSubmit(formData: PurchaseFormData) {
+    await createPurchase(formData);
+    await invalidateAll();
+    inlinePurchaseOpen = false;
+  }
 </script>
 
 <svelte:head>
@@ -239,15 +247,21 @@
             </ul>
           {/each}
         {/if}
-      </section>
 
-      <section class="pr-divider pt-4" aria-label="Actions">
-        <p class="pr-text-muted">
-          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
-          <a href={`${resolve('/manage/purchases/add')}?product_id=${product.id}`} class="pr-link-inline">
-            Add purchase
-          </a>
-        </p>
+        <InlineFormToggle
+          label="Add purchase"
+          headingId="inline-purchase-form-heading"
+          bind:open={inlinePurchaseOpen}
+        >
+          <PurchaseForm
+            fixedProduct={product}
+            {locations}
+            onSubmit={handleInlinePurchaseSubmit}
+            submitLabel="Save"
+            onCancel={() => (inlinePurchaseOpen = false)}
+            labelledBy="inline-purchase-form-heading"
+          />
+        </InlineFormToggle>
       </section>
     </article>
   {/if}

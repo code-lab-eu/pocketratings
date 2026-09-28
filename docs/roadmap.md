@@ -23,7 +23,7 @@ handler errors are not logged.
 - Prefer one consistent approach (middleware vs. per-handler); document in
   README or dev docs how to enable debug logs if needed.
 
-### 2. Product detail page: inline add purchase [FE]
+### 2. Product detail page: inline add purchase [FE] — DONE
 
 **2 sp.** In the Purchase history section, keep **Add purchase** as a link
 (full manage add page remains available). Place the link at the bottom of
