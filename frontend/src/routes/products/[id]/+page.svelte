@@ -8,6 +8,7 @@
   import EditLink from '$lib/EditLink.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
+  import InlineFormToggle from '$lib/InlineFormToggle.svelte';
   import StarRating from '$lib/StarRating.svelte';
   import StarRatingInput from '$lib/StarRatingInput.svelte';
   import TextareaField from '$lib/TextareaField.svelte';
@@ -18,8 +19,6 @@
     formatVariationDisplay
   } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
-  import { inlineFormSlideParams } from '$lib/inlineFormMotion';
-  import { slide } from 'svelte/transition';
 
   let { data } = $props();
 
@@ -62,15 +61,6 @@
     }
     return groups;
   });
-
-  function openInlineReview() {
-    inlineReviewOpen = true;
-    inlineError = null;
-  }
-
-  function closeInlineReview() {
-    inlineReviewOpen = false;
-  }
 
   function handleInlineReviewOutroEnd() {
     inlineError = null;
@@ -186,48 +176,37 @@
           </ul>
         {/if}
 
-        {#if !inlineReviewOpen}
-          <p class="mt-4">
-            <Button variant="link" onclick={openInlineReview}>
-              Add review
-            </Button>
-          </p>
-        {:else}
-          <div
-            class="mt-4 pr-inline-form"
-            in:slide={inlineFormSlideParams()}
-            out:slide={inlineFormSlideParams()}
-            onoutroend={handleInlineReviewOutroEnd}
+        <InlineFormToggle
+          label="Add review"
+          headingId="inline-review-form-heading"
+          bind:open={inlineReviewOpen}
+          onoutroend={handleInlineReviewOutroEnd}
+        >
+          <form
+            class="space-y-4"
+            aria-labelledby="inline-review-form-heading"
+            aria-busy={inlineSubmitting}
+            onsubmit={handleInlineReviewSubmit}
           >
-            <h3 id="inline-review-form-heading" class="mb-3 text-base font-semibold pr-text-body">
-              Add review
-            </h3>
-            <form
-              class="space-y-4"
-              aria-labelledby="inline-review-form-heading"
-              aria-busy={inlineSubmitting}
-              onsubmit={handleInlineReviewSubmit}
-            >
-              <FormError message={inlineError} />
-              <StarRatingInput id="inline-review-rating" bind:value={inlineRating} />
-              <TextareaField
-                id="inline-review-text"
-                label="Review (optional)"
-                bind:value={inlineText}
-                rows={3}
-                placeholder="Your review…"
-              />
-              <div class="flex gap-2">
-                <Button type="submit" disabled={inlineSubmitting} variant="primary">
-                  {inlineSubmitting ? 'Saving…' : 'Save'}
-                </Button>
-                <Button variant="secondary" onclick={closeInlineReview}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </div>
-        {/if}
+            <FormError message={inlineError} />
+            <StarRatingInput id="inline-review-rating" bind:value={inlineRating} />
+            <TextareaField
+              id="inline-review-text"
+              label="Review (optional)"
+              bind:value={inlineText}
+              rows={3}
+              placeholder="Your review…"
+            />
+            <div class="flex gap-2">
+              <Button type="submit" disabled={inlineSubmitting} variant="primary">
+                {inlineSubmitting ? 'Saving…' : 'Save'}
+              </Button>
+              <Button variant="secondary" onclick={() => (inlineReviewOpen = false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </InlineFormToggle>
       </section>
 
       <section class="mb-6" aria-labelledby="purchase-history-heading">

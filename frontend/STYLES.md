@@ -76,6 +76,13 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
     accessible name "Edit {label}". Used for the edit action in `ManageListRow` and next to the
     product name on the product detail page.
 
+- `lib/InlineFormToggle.svelte`
+  - Props: `label`, `headingId`, `open` (bindable), `onoutroend` (optional); the form is the child
+    content.
+  - Closed: a `pr-link-inline` button showing `label`. Open: a `pr-inline-form` panel that slides in
+    and out (`inlineFormMotion`), headed by an `<h3 id={headingId}>` showing `label`. The child form
+    uses `headingId` for `aria-labelledby`; `onoutroend` runs after the panel has closed.
+
 - `lib/PageHeading.svelte`
   - Props:
     - `tag`: `'h1' | 'h2' | 'h3'` (default: `'h1'`).
