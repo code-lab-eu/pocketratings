@@ -270,6 +270,31 @@ is now wrong.
   request block created by `###` followed by `### Auth`.
 - Record the conventions in the api-documentation skill.
 
+### 13. Show edit and delete actions as icons everywhere [FE]
+
+**2 sp.** Edit and delete actions look different depending on the page. The
+manage lists (e.g. `/manage/products`) show them as pencil and trash icons
+(`ManageListRow.svelte`, with `EditLink.svelte` for edit), but the Variations
+list on the manage product page (`manage/products/[id]/+page.svelte`) shows text
+buttons: **Edit** (a secondary `Button` that opens the inline edit form) and
+**Delete** (`pr-btn-danger`, disabled with a tooltip when the variation cannot
+be deleted). Show these as icons too.
+
+**Tasks:**
+- Replace the Variations **Edit** and **Delete** text buttons with pencil and
+  trash icons. **Edit** opens a form on the same page, so it needs an icon
+  button rather than `EditLink`; use the shared icon button from task 10. Keep
+  the disabled state and tooltip on **Delete**.
+- Decide whether the **Delete** text buttons next to Save and Cancel on the
+  category, location, and product edit pages also become icons, or stay text
+  buttons because they are page-level actions in a form.
+- Task 9 turns the Variations **Delete** into a `Button` with a danger variant;
+  this task changes it to an icon instead, so do this after task 10 and align
+  task 9 with it.
+- Tests: accessible names ("Edit {variation}", "Delete {variation}"), the edit
+  icon opens the inline form, and the disabled delete keeps its tooltip. Update
+  [spec.md](spec.md) and `frontend/STYLES.md`.
+
 ---
 
 ## Distant future
