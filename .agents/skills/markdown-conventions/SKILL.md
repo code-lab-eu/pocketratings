@@ -18,6 +18,16 @@ one line; if it does not fit in the remaining space, move it to the next line. A
 line that consists of a single code span longer than 80 characters (e.g. a full
 CLI command) may stay long.
 
+Check the paragraphs changed on your branch, and rewrap the ones it reports:
+
+```bash
+./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"
+./scripts/markdown-wrap.py fix FILE LINE ...
+```
+
+The pre-push hook and CI run the same check against the upstream branch (or
+`origin/master`).
+
 **Code blocks** are exempt: a long command or URL may be split with a
 shell line continuation where that does not change behaviour, but leave it
 long if breaking would harm copy-paste.

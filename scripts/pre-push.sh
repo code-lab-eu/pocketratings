@@ -18,6 +18,11 @@ cd "$ROOT" || exit 1
 echo "=== ASCII punctuation check ==="
 ./scripts/ascii-punctuation.sh check
 
+# --- Markdown wrapping (paragraphs changed since the upstream branch) ---
+echo "=== Markdown wrap check ==="
+UPSTREAM="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo origin/master)"
+./scripts/markdown-wrap.py check --since "$(git merge-base "$UPSTREAM" HEAD)"
+
 # --- Backend ---
 echo "=== Backend: format check ==="
 (cd backend && cargo fmt --check) || {
