@@ -157,37 +157,35 @@ current LTS release.
 ### 8. Default purchase date uses UTC instead of local time [FE]
 
 **1 sp.** `PurchaseForm.svelte` prefills the **Date** field with
-`new Date().toISOString().slice(0, 16)`, which is the current time in UTC.
-A `datetime-local` input expects local time, so outside UTC the default is
-off by the UTC offset (e.g. 3 hours in the past at UTC+3). This affects the
-manage add purchase page and the inline add purchase form on the product
-page. The edit page has the same issue when it converts `purchased_at` to
-the field value.
+`new Date().toISOString().slice(0, 16)`, which is the current time in UTC. A
+`datetime-local` input expects local time, so outside UTC the default is off by
+the UTC offset (e.g. 3 hours in the past at UTC+3). This affects the manage add
+purchase page and the inline add purchase form on the product page. The edit
+page has the same issue when it converts `purchased_at` to the field value.
 
 **Tasks:**
-- Add a formatter in `lib/utils/formatters.ts` that turns a `Date` into a
-  local `YYYY-MM-DDTHH:mm` string, with a unit test that pins the timezone
-  (e.g. `TZ` in the test) and checks a non-UTC offset.
-- Use it for the default date in `PurchaseForm.svelte` and for the initial
-  value in `manage/purchases/[id]/+page.svelte`.
-- Submitting still converts the field value with `new Date(value)`, which
-  parses it as local time; confirm the round trip in a test.
+- Add a formatter in `lib/utils/formatters.ts` that turns a `Date` into a local
+  `YYYY-MM-DDTHH:mm` string, with a unit test that pins the timezone (e.g. `TZ`
+  in the test) and checks a non-UTC offset.
+- Use it for the default date in `PurchaseForm.svelte` and for the initial value
+  in `manage/purchases/[id]/+page.svelte`.
+- Submitting still converts the field value with `new Date(value)`, which parses
+  it as local time; confirm the round trip in a test.
 
 ### 9. Use the Button component for delete buttons [FE]
 
 **1 sp.** Primary, secondary, and link-style buttons all use
-`lib/Button.svelte`, but the delete buttons are still raw `<button>`
-elements with `pr-btn-danger`, because `Button` has no danger variant and
-no way to set `title`. Affected:
-`manage/locations/[id]/+page.svelte` (delete location),
+`lib/Button.svelte`, but the delete buttons are still raw `<button>` elements
+with `pr-btn-danger`, because `Button` has no danger variant and no way to set
+`title`. Affected: `manage/locations/[id]/+page.svelte` (delete location),
 `manage/categories/[id]/+page.svelte` (delete category), and
-`manage/products/[id]/+page.svelte` (delete product and delete variation;
-both set `disabled` and a `title` explaining why deletion is blocked).
+`manage/products/[id]/+page.svelte` (delete product and delete variation; both
+set `disabled` and a `title` explaining why deletion is blocked).
 
 **Tasks:**
 - Agree the `Button` API change before implementing (see "Follow existing
-  patterns" in AGENTS.md): a `danger` variant mapping to `pr-btn-danger`,
-  and an explicit `title` prop or a pass-through of other attributes.
+  patterns" in AGENTS.md): a `danger` variant mapping to `pr-btn-danger`, and an
+  explicit `title` prop or a pass-through of other attributes.
 - Replace all four buttons in the same change; document the variant in
   `frontend/STYLES.md`.
 - Add tests for delete buttons that have none (e.g. the disabled state and
@@ -196,18 +194,18 @@ both set `disabled` and a `title` explaining why deletion is blocked).
 ### 10. Align icon-style buttons on one component [FE]
 
 **2 sp.** Five buttons are written by hand with their own classes and ARIA
-attributes: the theme toggle and **Log out** in `routes/+layout.svelte`,
-the show/hide toggle in `PasswordField.svelte`, the delete icon in
+attributes: the theme toggle and **Log out** in `routes/+layout.svelte`, the
+show/hide toggle in `PasswordField.svelte`, the delete icon in
 `ManageListRow.svelte`, and the expand/collapse chevron in
-`CategoryLinkList.svelte`. The first four use `pr-btn-icon` with differing
-extra classes; the chevron uses neither `pr-btn-icon` nor the 44px tap
-target the others have.
+`CategoryLinkList.svelte`. The first four use `pr-btn-icon` with differing extra
+classes; the chevron uses neither `pr-btn-icon` nor the 44px tap target the
+others have.
 
 **Tasks:**
-- Propose the approach before implementing: an `icon` variant on `Button`
-  or a separate `IconButton` component. Either needs an accessible name
-  (`aria-label`), optional `aria-pressed` and `title`, and the 44px minimum
-  tap target.
+- Propose the approach before implementing: an `icon` variant on `Button` or a
+  separate `IconButton` component. Either needs an accessible name
+  (`aria-label`), optional `aria-pressed` and `title`, and the 44px minimum tap
+  target.
 - Move all five buttons to the agreed component in the same change; decide
   whether **Log out** (text, not an icon) belongs in it or uses
   `variant="link"`.
