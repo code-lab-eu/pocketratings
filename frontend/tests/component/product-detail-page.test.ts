@@ -81,6 +81,15 @@ describe('Product detail page', () => {
     expect(dairyLinks[0].getAttribute('href')).toContain('/categories/cat-1');
   });
 
+  it('shows an edit link to the manage product page next to the product name', () => {
+    render(ProductDetailPage, {
+      props: { data: defaultData }
+    });
+    const edit = screen.getByRole('link', { name: 'Edit Milk — Acme' });
+    expect(edit.getAttribute('href')).toContain('/manage/products/prod-1');
+    expect(edit.closest('header')).toContainElement(screen.getByRole('heading', { name: /milk/i }));
+  });
+
   it('shows breadcrumb with Home, category, and product name when product is loaded', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }

@@ -5,6 +5,7 @@
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import Button from '$lib/Button.svelte';
+  import EditLink from '$lib/EditLink.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
   import StarRating from '$lib/StarRating.svelte';
@@ -146,9 +147,15 @@
   {:else}
     <article class="min-w-0">
       <header class="mb-6">
-        <h1 class="pr-heading-page break-words">
-          {product.name}
-        </h1>
+        <div class="flex items-start justify-between gap-2">
+          <h1 class="pr-heading-page min-w-0 break-words">
+            {product.name}
+          </h1>
+          <EditLink
+            href={resolve('/manage/products/[id]', { id: product.id })}
+            label={formatProductDisplayName(product)}
+          />
+        </div>
         {#if product.brand}
           <p class="pr-product-brand">{product.brand}</p>
         {/if}

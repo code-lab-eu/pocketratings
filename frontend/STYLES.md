@@ -70,6 +70,12 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
     - `pr-btn-secondary` for `variant="secondary"`.
     - `pr-link-inline` for `variant="link"`.
 
+- `lib/EditLink.svelte`
+  - Props: `href` (already resolved by the caller), `label`.
+  - Icon link with the lucide `Pen` icon, `pr-link-muted`, a 44px minimum tap target, and the
+    accessible name "Edit {label}". Used for the edit action in `ManageListRow` and next to the
+    product name on the product detail page.
+
 - `lib/PageHeading.svelte`
   - Props:
     - `tag`: `'h1' | 'h2' | 'h3'` (default: `'h1'`).
