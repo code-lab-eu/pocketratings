@@ -239,6 +239,39 @@ Manage > Purchases page (`ManageListRow.svelte`): edit links to
   with confirm (confirmed and cancelled), and the return navigation from the
   edit page. Update [spec.md](spec.md).
 
+### 12. Overhaul docs/api.http: readable, runnable, no duplicated reference [BE]
+
+**4 sp.** `docs/api.http` is meant to hold runnable examples, but it is hard to
+read, it cannot be run without hand-editing, several examples cannot be run at
+all, and it repeats reference material from `docs/api.md` that has drifted and
+is now wrong.
+
+**Tasks:**
+- Replace the comment format. Today each request has one long line that puts the
+  HTTP method, the URI, the body fields, and a short description inline. Adopt a
+  structured, easy to read format instead (e.g. a title per request and short
+  separate lines for its purpose and notable responses), and do not repeat what
+  the request line and JSON body already show. Agree the format before
+  implementing.
+- Use REST Client request variables so the file runs top to bottom: name the
+  login request and read the token from its response instead of copying it into
+  `@token`, and take ids from the create responses instead of the all-zero
+  placeholder ids. Define `variationId`, which is used but never defined.
+- Uncomment the 11 commented-out requests, or state why one stays commented out
+  (e.g. hard deletes). `PATCH` and `DELETE /api/v1/variations/:id` currently
+  have no runnable example.
+- Remove reference material that belongs in `docs/api.md`: the status code list
+  (it says 403 for a missing token, which is 401, and 200 for DELETE, which is
+  204, and mentions PUT, which does not exist) and the protected fields notes
+  repeated in nine comments.
+- Fix the examples that contradict `docs/api.md`: `GET /api/v1/reviews` without
+  parameters returns all users' reviews, not "my reviews"; `?q=` also searches
+  category names; purchase responses also nest `variation`; the create purchase
+  example omits `variation_id`.
+- Use one separator style (`###`, blank line, comment) and remove the empty
+  request block created by `###` followed by `### Auth`.
+- Record the conventions in the api-documentation skill.
+
 ---
 
 ## Distant future
