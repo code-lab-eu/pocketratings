@@ -215,6 +215,30 @@ target the others have.
   `category-link-list`, layout) and add coverage where a button has none.
   Document the result in `frontend/STYLES.md`.
 
+### 11. Edit and delete icons in the product page purchase history [FE]
+
+**3 sp.** On the product detail page, purchase history rows show date, location,
+price per item, and quantity, but offer no way to change or remove a purchase.
+Add the same edit (pencil) and delete (trash) icons that each row has on the
+Manage > Purchases page (`ManageListRow.svelte`): edit links to
+`/manage/purchases/[id]`, delete asks for confirmation, calls
+`DELETE /api/v1/purchases/:id`, and refreshes the page data.
+
+**Tasks:**
+- Show the icons only on the current user's purchases. The history lists every
+  user's purchases for the product, and the API returns `403` when editing or
+  deleting another user's purchase.
+- Return to the product page after editing. The edit page currently goes to
+  `/manage/purchases` after Save, Cancel, and from its back link; agree how it
+  learns where to return to (e.g. a query parameter) before implementing.
+- Reuse the icons from `ManageListRow` rather than copying its markup: propose
+  how to share them (e.g. extract the edit and delete icons into a component
+  used by both) before implementing. Coordinate with task 10, which moves the
+  `ManageListRow` delete icon to a shared icon button.
+- Tests first: icons present only on own purchases, edit link target, delete
+  with confirm (confirmed and cancelled), and the return navigation from the
+  edit page. Update [spec.md](spec.md).
+
 ---
 
 ## Distant future
