@@ -244,8 +244,10 @@
                 <li class="pr-panel flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
                   <span>{formatDate(purchase.purchased_at)}</span>
                   <span>{purchase.location.name}</span>
-                  <span class="pr-text-muted" title="Quantity">×{purchase.quantity}</span>
-                  <span>{purchase.price} €</span>
+                  <span class="flex gap-x-1">
+                    <span>{purchase.price} €</span>
+                    <span class="pr-text-muted" title="Quantity">×{purchase.quantity}</span>
+                  </span>
                 </li>
               {/each}
             </ul>

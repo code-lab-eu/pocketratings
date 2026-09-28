@@ -174,6 +174,15 @@ describe('Product detail page', () => {
     expect(screen.getByText(/15 feb 2024/i)).toBeInTheDocument();
   });
 
+  it('shows the quantity to the right of the price in purchase history', () => {
+    render(ProductDetailPage, {
+      props: { data: { ...defaultData, purchases: [{ ...purchase, quantity: 3 }] } as PageData }
+    });
+    const history = screen.getByRole('region', { name: /^purchase history$/i });
+    const [row] = within(history).getAllByRole('listitem');
+    expect(row.textContent?.replace(/\s+/g, ' ')).toMatch(/Store A 2\.99 € ×3$/);
+  });
+
   it('shows quantity in purchase history when greater than one', () => {
     const purchaseQty2: Purchase = {
       ...purchase,
