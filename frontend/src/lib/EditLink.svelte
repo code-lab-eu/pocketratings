@@ -12,6 +12,6 @@
 </script>
 
 <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolved by the caller -->
-<a {href} class="flex min-h-[44px] min-w-[44px] items-center justify-center pr-link-muted" aria-label="Edit {label}">
+<a {href} class="pr-btn-icon flex min-h-[44px] min-w-[44px] items-center justify-center pr-link-muted" aria-label="Edit {label}">
   <Pen size={20} />
 </a>

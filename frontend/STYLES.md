@@ -38,8 +38,8 @@ Defined in `src/routes/layout.css`:
     mode). Has `cursor: pointer` and `:focus-visible`.
   - `.pr-btn-secondary`: secondary/outline button used for "Cancel" actions and similar. Has
     `cursor: pointer` and `:focus-visible`.
-  - `.pr-btn-icon`: icon-sized or header-style button (transparent background, hover tint).
-    Use for theme toggle, log out, edit/delete icons in list rows. Has `cursor: pointer` and
+  - `.pr-btn-icon`: icon-sized or header-style button or icon link (transparent background, hover
+    tint). Use for theme toggle, log out, edit/delete icons in list rows. Has `cursor: pointer` and
     `:focus-visible`. Combine with `.pr-link-muted` or semantic colour classes as needed.
   - All button classes use a short transition; motion is disabled when the user prefers
     reduced motion (`prefers-reduced-motion: reduce`).
@@ -72,9 +72,9 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
 
 - `lib/EditLink.svelte`
   - Props: `href` (already resolved by the caller), `label`.
-  - Icon link with the lucide `Pen` icon, `pr-link-muted`, a 44px minimum tap target, and the
-    accessible name "Edit {label}". Used for the edit action in `ManageListRow` and next to the
-    product name on the product detail page.
+  - Icon link with the lucide `Pen` icon, `pr-btn-icon` with `pr-link-muted`, a 44px minimum tap
+    target, and the accessible name "Edit {label}". Used for the edit action in `ManageListRow` and
+    next to the product name on the product detail page.
 
 - `lib/InlineFormToggle.svelte`
   - Props: `label`, `headingId`, `open` (bindable), `onoutroend` (optional); the form is the child
