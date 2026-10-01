@@ -577,7 +577,7 @@ async fn purchase_delete_force_removes_row() {
     let with_deleted = db::purchase::list(&pool, None, None, None, None, None, true)
         .await
         .expect("list");
-    assert!(with_deleted.is_empty());
+    assert_eq!(with_deleted, []);
 }
 
 #[tokio::test]

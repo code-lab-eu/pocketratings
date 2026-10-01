@@ -158,7 +158,7 @@ async fn location_hard_delete_removes_row() {
     let with_deleted = db::location::get_all(&pool, true)
         .await
         .expect("get_all(include_deleted: true)");
-    assert!(with_deleted.is_empty());
+    assert_eq!(with_deleted, []);
 }
 
 #[tokio::test]
@@ -387,7 +387,7 @@ async fn location_list_cache_invalidated_after_insert() {
     db::run_migrations(&pool).await.expect("migrations");
 
     let all = db::location::get_all(&pool, false).await.expect("get_all");
-    assert!(all.is_empty());
+    assert_eq!(all, []);
     db::location::set_location_list_cache_for_test(Some(vec![]));
     let all = db::location::get_all(&pool, false).await.expect("get_all");
     assert!(all.is_empty(), "cached empty");

@@ -53,7 +53,7 @@ async fn register_success_exit_0_and_stdout_contains_email() {
 
     assert!(result.is_ok(), "expected Ok, stderr: {stderr}");
     assert!(stdout.contains("registered") || stdout.contains("alice@example.com"));
-    assert!(stderr.is_empty());
+    assert_eq!(stderr, "");
 }
 
 #[tokio::test]
@@ -128,7 +128,7 @@ async fn output_json_produces_valid_json_with_id_and_email() {
         run_register(&pool, "Carol", "carol@example.com", "secret", true).await;
 
     assert!(result.is_ok(), "stderr: {stderr}");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr, "");
     let line = stdout.lines().next().expect("at least one line");
     let json: serde_json::Value = serde_json::from_str(line).expect("valid JSON");
     assert!(json.get("id").and_then(|v| v.as_str()).is_some());

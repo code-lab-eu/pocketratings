@@ -386,7 +386,7 @@ async fn review_hard_delete_removes_row() {
     let with_deleted = db::review::list(&pool, None, None, true)
         .await
         .expect("list");
-    assert!(with_deleted.is_empty());
+    assert_eq!(with_deleted, []);
 }
 
 // --- Review list cache tests (run serially; they enable the cache for the process) ---
