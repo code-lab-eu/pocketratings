@@ -239,9 +239,8 @@ is now wrong.
   (e.g. hard deletes). `PATCH` and `DELETE /api/v1/variations/:id` currently
   have no runnable example.
 - Remove reference material that belongs in `docs/api.md`: the status code list
-  (it says 403 for a missing token, which is 401, and 200 for DELETE, which is
-  204, and mentions PUT, which does not exist) and the protected fields notes
-  repeated in nine comments.
+  (it says 200 for DELETE, which is 204, and mentions PUT, which does not exist)
+  and the protected fields notes repeated in nine comments.
 - Fix the examples that contradict `docs/api.md`: `GET /api/v1/reviews` without
   parameters returns all users' reviews, not "my reviews"; `?q=` also searches
   category names; purchase responses also nest `variation`; the create purchase
@@ -306,6 +305,28 @@ done and only finds wrapping mistakes at push time.
 - Add the wrap check to both sections, next to the punctuation check, with the
   command that checks the paragraphs changed on the branch:
   `./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"`.
+
+### 15. Document 401 for a missing or invalid token [BE]
+
+**1 sp.** For a missing, invalid, or expired token the backend returns
+`401 Unauthorized` (`backend/src/api/auth/middleware.rs`), and the error code
+table in `docs/api.md` says so, but other places say `403 Forbidden`. `403` is
+only correct when an authenticated user is not allowed to do something, such as
+editing another user's review.
+
+**Tasks:**
+- `docs/api.md`: the "Unauthenticated access" rule and the errors of
+  `GET /api/v1/me` say 403; the HTTP status code list puts a missing or invalid
+  token and an authorization failure under one 403 entry. Change them to 401,
+  and give 401 its own entry in the status code list.
+- `docs/spec.md`: the Login flow says "all others return 403 if not
+  authenticated" and calls login the only unauthenticated endpoint, but the
+  password reset endpoints and `GET /api/v1/version` are unauthenticated too;
+  the backend crates table says the tower middleware "returns 403". Correct
+  both.
+- `docs/api.http`: the HTTP status code list in its header puts a missing or
+  invalid token and an authorization failure under one 403 entry. Fix it the
+  same way as the `docs/api.md` status code list.
 
 ---
 
