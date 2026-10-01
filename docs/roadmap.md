@@ -172,26 +172,7 @@ page has the same issue when it converts `purchased_at` to the field value.
 - Submitting still converts the field value with `new Date(value)`, which parses
   it as local time; confirm the round trip in a test.
 
-### 9. Use the Button component for delete buttons [FE]
-
-**1 sp.** Primary, secondary, and link-style buttons all use
-`lib/Button.svelte`, but the delete buttons are still raw `<button>` elements
-with `pr-btn-danger`, because `Button` has no danger variant and no way to set
-`title`. Affected: `manage/locations/[id]/+page.svelte` (delete location),
-`manage/categories/[id]/+page.svelte` (delete category), and
-`manage/products/[id]/+page.svelte` (delete product and delete variation; both
-set `disabled` and a `title` explaining why deletion is blocked).
-
-**Tasks:**
-- Agree the `Button` API change before implementing (see "Follow existing
-  patterns" in AGENTS.md): a `danger` variant mapping to `pr-btn-danger`, and an
-  explicit `title` prop or a pass-through of other attributes.
-- Replace all four buttons in the same change; document the variant in
-  `frontend/STYLES.md`.
-- Add tests for delete buttons that have none (e.g. the disabled state and
-  tooltip on the manage product page) before refactoring.
-
-### 10. Align icon-style buttons on one component [FE]
+### 9. Align icon-style buttons on one component [FE]
 
 **2 sp.** Five buttons are written by hand with their own classes and ARIA
 attributes: the theme toggle and **Log out** in `routes/+layout.svelte`, the
@@ -213,7 +194,7 @@ others have.
   `category-link-list`, layout) and add coverage where a button has none.
   Document the result in `frontend/STYLES.md`.
 
-### 11. Edit and delete icons in the product page purchase history [FE]
+### 10. Edit and delete icons in the product page purchase history [FE]
 
 **3 sp.** On the product detail page, purchase history rows show date, location,
 price per item, and quantity, but offer no way to change or remove a purchase.
@@ -231,13 +212,13 @@ Manage > Purchases page (`ManageListRow.svelte`): edit links to
   learns where to return to (e.g. a query parameter) before implementing.
 - Reuse the icons from `ManageListRow` rather than copying its markup: propose
   how to share them (e.g. extract the edit and delete icons into a component
-  used by both) before implementing. Coordinate with task 10, which moves the
+  used by both) before implementing. Coordinate with task 9, which moves the
   `ManageListRow` delete icon to a shared icon button.
 - Tests first: icons present only on own purchases, edit link target, delete
   with confirm (confirmed and cancelled), and the return navigation from the
   edit page. Update [spec.md](spec.md).
 
-### 12. Overhaul docs/api.http: readable, runnable, no duplicated reference [BE]
+### 11. Overhaul docs/api.http: readable, runnable, no duplicated reference [BE]
 
 **4 sp.** `docs/api.http` is meant to hold runnable examples, but it is hard to
 read, it cannot be run without hand-editing, several examples cannot be run at
@@ -270,30 +251,62 @@ is now wrong.
   request block created by `###` followed by `### Auth`.
 - Record the conventions in the api-documentation skill.
 
-### 13. Show edit and delete actions as icons everywhere [FE]
+### 12. Show edit and delete actions as icons everywhere [FE]
 
-**2 sp.** Edit and delete actions look different depending on the page. The
-manage lists (e.g. `/manage/products`) show them as pencil and trash icons
-(`ManageListRow.svelte`, with `EditLink.svelte` for edit), but the Variations
-list on the manage product page (`manage/products/[id]/+page.svelte`) shows text
-buttons: **Edit** (a secondary `Button` that opens the inline edit form) and
-**Delete** (`pr-btn-danger`, disabled with a tooltip when the variation cannot
-be deleted). Show these as icons too.
+**3 sp.** The manage lists (e.g. `/manage/products`) show edit and delete as
+pencil and trash icons (`ManageListRow.svelte`, with `EditLink.svelte` for
+edit). Elsewhere they are text buttons: the Variations list on the manage
+product page (`manage/products/[id]/+page.svelte`) has an **Edit** button (a
+secondary `Button` that opens the inline edit form) and a **Delete** button per
+variation, and the location, category, and product edit pages
+(`manage/locations/[id]`, `manage/categories/[id]`, `manage/products/[id]`) have
+a **Delete** button next to **Save** and **Cancel**. The four delete buttons are
+raw `<button>` elements with `pr-btn-danger`; the product and variation delete
+buttons are disabled with a tooltip (`title`) when deletion is not allowed. Show
+all of these as icons.
 
 **Tasks:**
-- Replace the Variations **Edit** and **Delete** text buttons with pencil and
-  trash icons. **Edit** opens a form on the same page, so it needs an icon
-  button rather than `EditLink`; use the shared icon button from task 10. Keep
-  the disabled state and tooltip on **Delete**.
-- Decide whether the **Delete** text buttons next to Save and Cancel on the
-  category, location, and product edit pages also become icons, or stay text
-  buttons because they are page-level actions in a form.
-- Task 9 turns the Variations **Delete** into a `Button` with a danger variant;
-  this task changes it to an icon instead, so do this after task 10 and align
-  task 9 with it.
-- Tests: accessible names ("Edit {variation}", "Delete {variation}"), the edit
-  icon opens the inline form, and the disabled delete keeps its tooltip. Update
-  [spec.md](spec.md) and `frontend/STYLES.md`.
+- Do this after task 9, which adds the shared icon button. The Variations
+  **Edit** opens a form on the same page, so it is an icon button rather than
+  `EditLink`; the delete icons are icon buttons too, styled like the delete icon
+  in `ManageListRow`.
+- Replace the Variations **Edit** and **Delete** buttons and the three edit-page
+  **Delete** buttons in the same change. Keep the disabled state and tooltip.
+- Remove the `.pr-btn-danger` class from `frontend/src/routes/layout.css`; these
+  four buttons are its only users.
+- Tests first: accessible names (e.g. "Edit {variation}", "Delete {variation}"),
+  the edit icon opens the inline form, delete asks for confirmation, and a
+  disabled delete keeps its tooltip; the manage product page has no tests for
+  these yet. Update [spec.md](spec.md) and `frontend/STYLES.md`.
+
+### 13. Use PageHeading for every page title [FE]
+
+**1 sp.** `frontend/STYLES.md` says page titles use the shared `PageHeading`
+component (`lib/PageHeading.svelte`) instead of a hand-written `<h1>`, and 17
+pages do. The login page (`routes/login/+page.svelte`), the category page
+(`routes/categories/[id]/+page.svelte`), and the product detail page
+(`routes/products/[id]/+page.svelte`) still write `<h1 class="pr-heading-page">`
+by hand.
+
+**Tasks:**
+- Switch all three to `PageHeading` in one change, passing their extra classes
+  through its `class` prop (`mb-6` on the login page; `min-w-0 break-words` on
+  the product page, where the heading sits next to the edit link). No visible
+  change.
+- Keep the existing login, category, and product page tests passing.
+
+### 14. List the markdown wrap check in AGENTS.md [FE+BE]
+
+**1 sp.** Pre-push and CI run `./scripts/markdown-wrap.py check` next to
+`./scripts/ascii-punctuation.sh check`, but AGENTS.md mentions only the
+punctuation check, in its "Completion gate" and "Markdown and punctuation"
+sections. An agent therefore does not run the wrap check before calling work
+done and only finds wrapping mistakes at push time.
+
+**Tasks:**
+- Add the wrap check to both sections, next to the punctuation check, with the
+  command that checks the paragraphs changed on the branch:
+  `./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"`.
 
 ---
 
