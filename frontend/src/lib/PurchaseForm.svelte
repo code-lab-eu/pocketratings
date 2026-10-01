@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getProductVariations } from '$lib/api';
-  import type { Location, Product, ProductVariation } from '$lib/types';
+  import type { Location, Product, ProductDetail, ProductVariation } from '$lib/types';
   import { errorMessage, formatProductDisplayName, formatVariationDisplay } from '$lib/utils/formatters';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
@@ -17,11 +17,18 @@
   }
 
   interface Props {
-    products: Product[];
+    /** Options for the product picker. Not used when `fixedProduct` is set. */
+    products?: Product[];
+    /** Record a purchase of this product: no picker, variations taken from the product. */
+    fixedProduct?: Pick<ProductDetail, 'id' | 'variations'>;
     locations: Location[];
     onSubmit: (data: PurchaseFormData) => Promise<void>;
     submitLabel: string;
-    cancelHref: string;
+    /** Cancel is a link to `cancelHref`, or a button that calls `onCancel`. */
+    cancelHref?: string;
+    onCancel?: () => void;
+    /** Id of the heading that names the form. */
+    labelledBy?: string;
     /** Pre-select product (add page with query param). */
     initialProductId?: string;
     /** Pre-fill all fields from existing purchase (edit mode). */
@@ -36,11 +43,14 @@
   }
 
   let {
-    products,
+    products = [],
+    fixedProduct,
     locations,
     onSubmit,
     submitLabel,
     cancelHref,
+    onCancel,
+    labelledBy,
     initialProductId = '',
     initialValues
   }: Props = $props();
@@ -53,7 +63,8 @@
   let purchasedAt = $state('');
   let submitting = $state(false);
   let error = $state<string | null>(null);
-  let variations = $state<ProductVariation[]>([]);
+  let fetchedVariations = $state<ProductVariation[]>([]);
+  let variations = $derived(fixedProduct?.variations ?? fetchedVariations);
   let variationsLoading = $state(false);
 
   $effect(() => {
@@ -65,7 +76,10 @@
       price = initialValues.price;
       purchasedAt = initialValues.purchasedAt;
     } else {
-      if (initialProductId && products.some((p) => p.id === initialProductId)) {
+      if (fixedProduct) {
+        productId = fixedProduct.id;
+        variationId = fixedProduct.variations[0]?.id ?? '';
+      } else if (initialProductId && products.some((p) => p.id === initialProductId)) {
         productId = initialProductId;
       }
       if (!purchasedAt) {
@@ -75,8 +89,9 @@
   });
 
   $effect(() => {
+    if (fixedProduct) return;
     if (!productId) {
-      variations = [];
+      fetchedVariations = [];
       if (!initialValues) variationId = '';
       return;
     }
@@ -85,7 +100,7 @@
     getProductVariations(productId)
       .then((list) => {
         if (cancelled) return;
-        variations = list;
+        fetchedVariations = list;
         if (initialValues) {
           const ids = new Set(list.map((v) => v.id));
           if (list.length && !ids.has(variationId)) variationId = list[0].id;
@@ -94,7 +109,7 @@
         }
       })
       .catch(() => {
-        if (!cancelled) variations = [];
+        if (!cancelled) fetchedVariations = [];
       })
       .finally(() => {
         if (!cancelled) variationsLoading = false;
@@ -140,19 +155,26 @@
   }
 </script>
 
-<form onsubmit={handleSubmit} class="space-y-4">
+<form
+  onsubmit={handleSubmit}
+  class="space-y-4"
+  aria-labelledby={labelledBy}
+  aria-busy={submitting}
+>
   <FormError message={error} />
-  <Select
-    id="product"
-    label="Product"
-    options={products.map((p) => ({
-      value: p.id,
-      label: formatProductDisplayName(p)
-    }))}
-    bind:value={productId}
-    placeholder="Select product"
-    required
-  />
+  {#if !fixedProduct}
+    <Select
+      id="product"
+      label="Product"
+      options={products.map((p) => ({
+        value: p.id,
+        label: formatProductDisplayName(p)
+      }))}
+      bind:value={productId}
+      placeholder="Select product"
+      required
+    />
+  {/if}
   {#if productId}
     <Select
       id="variation"
@@ -161,6 +183,7 @@
       bind:value={variationId}
       placeholder={variationsLoading ? 'Loading...' : 'Select variation'}
       disabled={variationsLoading || variations.length === 0}
+      required
     />
   {/if}
   <Select
@@ -180,7 +203,7 @@
   />
   <InputField
     id="price"
-    label="Price (EUR)"
+    label="Price per item (EUR)"
     bind:value={price}
     placeholder="2.99"
     inputmode="decimal"
@@ -195,7 +218,7 @@
     <Button type="submit" disabled={submitting} variant="primary">
       {submitting ? 'Saving...' : submitLabel}
     </Button>
-    <Button variant="secondary" href={cancelHref}>
+    <Button variant="secondary" href={cancelHref} onclick={onCancel}>
       Cancel
     </Button>
   </div>

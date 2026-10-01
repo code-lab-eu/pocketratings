@@ -9,6 +9,8 @@
     type?: 'button' | 'submit' | 'reset';
     disabled?: boolean;
     class?: string;
+    /** Click handler for the button form (ignored when href is set). */
+    onclick?: (e: MouseEvent) => void;
     children?: Snippet;
   }
 
@@ -18,6 +20,7 @@
     type = 'button',
     disabled = false,
     class: className = '',
+    onclick,
     children
   }: Props = $props();
 
@@ -38,7 +41,7 @@
     {@render children?.()}
   </a>
 {:else}
-  <button type={type} disabled={disabled} class={classes}>
+  <button type={type} disabled={disabled} class={classes} {onclick}>
     {@render children?.()}
   </button>
 {/if}

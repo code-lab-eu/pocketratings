@@ -1,11 +1,19 @@
 import type { PageLoad } from './$types';
-import { ApiClientError, isValidUuid, getProduct, listPurchases, listReviews } from '$lib/api';
+import {
+  ApiClientError,
+  isValidUuid,
+  getProduct,
+  listLocations,
+  listPurchases,
+  listReviews
+} from '$lib/api';
 import { errorMessage } from '$lib/utils/formatters';
 
 const empty = {
   product: null,
   reviews: [] as Awaited<ReturnType<typeof listReviews>>,
-  purchases: [] as Awaited<ReturnType<typeof listPurchases>>
+  purchases: [] as Awaited<ReturnType<typeof listPurchases>>,
+  locations: [] as Awaited<ReturnType<typeof listLocations>>
 };
 
 export const load: PageLoad = async ({ params }) => {
@@ -14,14 +22,15 @@ export const load: PageLoad = async ({ params }) => {
     return { ...empty, notFound: true, error: !id ? 'Missing product id' : null };
   }
   try {
-    const [product, reviews, purchases] = await Promise.all([
+    const [product, reviews, purchases, locations] = await Promise.all([
       getProduct(id),
       listReviews(id),
-      listPurchases({ product_id: id })
+      listPurchases({ product_id: id }),
+      listLocations()
     ]);
     // Sort reviews most recent first (updated_at descending)
     reviews.sort((a, b) => b.updated_at - a.updated_at);
-    return { product, reviews, purchases, notFound: false, error: null };
+    return { product, reviews, purchases, locations, notFound: false, error: null };
   } catch (e) {
     const notFound = e instanceof ApiClientError && e.status === 404;
     return {

@@ -23,24 +23,23 @@ handler errors are not logged.
 - Prefer one consistent approach (middleware vs. per-handler); document in
   README or dev docs how to enable debug logs if needed.
 
-### 2. Product detail page: inline add purchase [FE]
+### 2. Product detail page: inline add purchase [FE] — DONE
 
-**2 sp.** In the Purchase history section, keep **Add purchase** as a link
-(full manage add page remains available). Place the link at the bottom of
-the section. Same swap-to-inline pattern as inline add review. Reuse `POST
-/api/v1/purchases`; prefill product and default variation from the current
+**2 sp.** In the Purchase history section, **Add purchase** is a button that
+opens the purchase form in place; the product page no longer links to the manage
+add page, which stays available from Manage. Place the button at the bottom of
+the section. Same swap-to-inline pattern as inline add review. Reuse
+`POST /api/v1/purchases`; prefill product and default variation from the current
 page (e.g. extend `PurchaseForm.svelte` or equivalent). Load locations in
 `products/[id]` data when needed. Remove **Add purchase** from the footer;
-remove the footer/actions block entirely if it becomes empty. [spec.md](spec.md)
-still describes **Add purchase** in the actions area in places; update those
-rows when this ships.
+remove the footer/actions block entirely if it becomes empty.
 
 **Tasks:**
 - `listLocations()` in `products/[id]/+page.ts` alongside existing loads;
   handle errors consistently with the rest of the page.
 - Inline form: variation, location, quantity, price, date; validation aligned
   with manage add purchase; on success refresh (or append) and restore the
-  link.
+  button.
 - Reuse or extend `PurchaseForm.svelte` with props for fixed product and
   variations from `GET /api/v1/products/:id` where practical.
 
@@ -101,7 +100,7 @@ username/email) and update the stored hash.
 - Add a test covering the update path; document the command in README or dev
   docs.
 
-### 6. CLI command to generate a password reset link [FE+BE]
+### 6. CLI command to generate a password reset link [FE+BE] — DONE
 
 **4 sp.** Add a CLI command that generates a password reset link for a user.
 The operator sends the link to the user over a secure channel (e.g. email);
@@ -153,6 +152,202 @@ current LTS release.
   refresh `bun.lock`.
 - Update the **Node.js** prerequisite in [README.md](../README.md).
 - Run frontend QC on Node 26 to confirm lint and tests pass.
+
+### 8. Default purchase date uses UTC instead of local time [FE]
+
+**1 sp.** `PurchaseForm.svelte` prefills the **Date** field with
+`new Date().toISOString().slice(0, 16)`, which is the current time in UTC. A
+`datetime-local` input expects local time, so outside UTC the default is off by
+the UTC offset (e.g. 3 hours in the past at UTC+3). This affects the manage add
+purchase page and the inline add purchase form on the product page. The edit
+page has the same issue when it converts `purchased_at` to the field value.
+
+**Tasks:**
+- Add a formatter in `lib/utils/formatters.ts` that turns a `Date` into a local
+  `YYYY-MM-DDTHH:mm` string, with a unit test that pins the timezone (e.g. `TZ`
+  in the test) and checks a non-UTC offset.
+- Use it for the default date in `PurchaseForm.svelte` and for the initial value
+  in `manage/purchases/[id]/+page.svelte`.
+- Submitting still converts the field value with `new Date(value)`, which parses
+  it as local time; confirm the round trip in a test.
+
+### 9. Align icon-style buttons on one component [FE]
+
+**2 sp.** Five buttons are written by hand with their own classes and ARIA
+attributes: the theme toggle and **Log out** in `routes/+layout.svelte`, the
+show/hide toggle in `PasswordField.svelte`, the delete icon in
+`ManageListRow.svelte`, and the expand/collapse chevron in
+`CategoryLinkList.svelte`. The first four use `pr-btn-icon` with differing extra
+classes; the chevron uses neither `pr-btn-icon` nor the 44px tap target the
+others have.
+
+**Tasks:**
+- Propose the approach before implementing: an `icon` variant on `Button` or a
+  separate `IconButton` component. Either needs an accessible name
+  (`aria-label`), optional `aria-pressed` and `title`, and the 44px minimum tap
+  target.
+- Move all five buttons to the agreed component in the same change; decide
+  whether **Log out** (text, not an icon) belongs in it or uses
+  `variant="link"`.
+- Keep existing tests passing (`ManageListRow`, `password-field`,
+  `category-link-list`, layout) and add coverage where a button has none.
+  Document the result in `frontend/STYLES.md`.
+
+### 10. Edit and delete icons on purchases and reviews on the product page [FE]
+
+**4 sp.** On the product detail page, the Purchase history and Reviews sections
+list every family member's purchases and reviews of the product, but offer no
+way to change or remove one. Add the same edit (pencil) and delete (trash) icons
+that each row has on the management pages (`/manage/purchases` and
+`/manage/reviews`, both using `ManageListRow.svelte`): edit links to
+`/manage/purchases/[id]` or `/manage/reviews/[id]`; delete asks "Delete this
+purchase?" or "Delete this review?", calls `DELETE /api/v1/purchases/:id` or
+`DELETE /api/v1/reviews/:id`, and refreshes the page data.
+
+**Tasks:**
+- Show the icons only on the current user's purchases and reviews. The API
+  returns `403` when editing or deleting another user's purchase or review.
+- Return to the product page after editing, with one mechanism for both edit
+  pages; agree how they learn where to return to (e.g. a query parameter) before
+  implementing. The purchase edit page currently goes to `/manage/purchases`
+  after Save, Cancel, and from its back link; the review edit page already goes
+  to the product page after Save, but Cancel and its back link go to
+  `/manage/reviews`.
+- Reuse the icons from `ManageListRow` rather than copying its markup: propose
+  how to share them (e.g. extract the edit and delete icons into a component
+  used by `ManageListRow` and both product page lists) before implementing.
+  Coordinate with task 9, which moves the `ManageListRow` delete icon to a
+  shared icon button.
+- Tests first, for both lists: icons present only on own items, edit link
+  targets, delete with confirm (confirmed and cancelled), and the return
+  navigation from both edit pages. Update [spec.md](spec.md).
+
+### 11. Overhaul docs/api.http: readable, runnable, no duplicated reference [BE]
+
+**4 sp.** `docs/api.http` is meant to hold runnable examples, but it is hard to
+read, it cannot be run without hand-editing, several examples cannot be run at
+all, and it repeats reference material from `docs/api.md` that has drifted and
+is now wrong.
+
+**Tasks:**
+- Replace the comment format. Today each request has one long line that puts the
+  HTTP method, the URI, the body fields, and a short description inline. Adopt a
+  structured, easy to read format instead (e.g. a title per request and short
+  separate lines for its purpose and notable responses), and do not repeat what
+  the request line and JSON body already show. Agree the format before
+  implementing.
+- Use REST Client request variables so the file runs top to bottom: name the
+  login request and read the token from its response instead of copying it into
+  `@token`, and take ids from the create responses instead of the all-zero
+  placeholder ids. Define `variationId`, which is used but never defined.
+- Uncomment the 11 commented-out requests, or state why one stays commented out
+  (e.g. hard deletes). `PATCH` and `DELETE /api/v1/variations/:id` currently
+  have no runnable example.
+- Remove reference material that belongs in `docs/api.md`: the status code list
+  (it says 200 for DELETE, which is 204, and mentions PUT, which does not exist)
+  and the protected fields notes repeated in nine comments.
+- Fix the examples that contradict `docs/api.md`: `GET /api/v1/reviews` without
+  parameters returns all users' reviews, not "my reviews"; `?q=` also searches
+  category names; purchase responses also nest `variation`; the create purchase
+  example omits `variation_id`.
+- Use one separator style (`###`, blank line, comment) and remove the empty
+  request block created by `###` followed by `### Auth`.
+- Record the conventions in the api-documentation skill.
+
+### 12. Show edit and delete actions as icons everywhere [FE]
+
+**3 sp.** The manage lists (e.g. `/manage/products`) show edit and delete as
+pencil and trash icons (`ManageListRow.svelte`, with `EditLink.svelte` for
+edit). Elsewhere they are text buttons: the Variations list on the manage
+product page (`manage/products/[id]/+page.svelte`) has an **Edit** button (a
+secondary `Button` that opens the inline edit form) and a **Delete** button per
+variation, and the location, category, and product edit pages
+(`manage/locations/[id]`, `manage/categories/[id]`, `manage/products/[id]`) have
+a **Delete** button next to **Save** and **Cancel**. The four delete buttons are
+raw `<button>` elements with `pr-btn-danger`; the product and variation delete
+buttons are disabled with a tooltip (`title`) when deletion is not allowed. Show
+all of these as icons.
+
+**Tasks:**
+- Do this after task 9, which adds the shared icon button. The Variations
+  **Edit** opens a form on the same page, so it is an icon button rather than
+  `EditLink`; the delete icons are icon buttons too, styled like the delete icon
+  in `ManageListRow`.
+- Replace the Variations **Edit** and **Delete** buttons and the three edit-page
+  **Delete** buttons in the same change. Keep the disabled state and tooltip.
+- Remove the `.pr-btn-danger` class from `frontend/src/routes/layout.css`; these
+  four buttons are its only users.
+- Tests first: accessible names (e.g. "Edit {variation}", "Delete {variation}"),
+  the edit icon opens the inline form, delete asks for confirmation, and a
+  disabled delete keeps its tooltip; the manage product page has no tests for
+  these yet. Update [spec.md](spec.md) and `frontend/STYLES.md`.
+
+### 13. Use PageHeading for every page title [FE]
+
+**1 sp.** `frontend/STYLES.md` says page titles use the shared `PageHeading`
+component (`lib/PageHeading.svelte`) instead of a hand-written `<h1>`, and 17
+pages do. The login page (`routes/login/+page.svelte`), the category page
+(`routes/categories/[id]/+page.svelte`), and the product detail page
+(`routes/products/[id]/+page.svelte`) still write `<h1 class="pr-heading-page">`
+by hand.
+
+**Tasks:**
+- Switch all three to `PageHeading` in one change, passing their extra classes
+  through its `class` prop (`mb-6` on the login page; `min-w-0 break-words` on
+  the product page, where the heading sits next to the edit link). No visible
+  change.
+- Keep the existing login, category, and product page tests passing.
+
+### 14. List the markdown wrap check in AGENTS.md [FE+BE]
+
+**1 sp.** Pre-push and CI run `./scripts/markdown-wrap.py check` next to
+`./scripts/ascii-punctuation.sh check`, but AGENTS.md mentions only the
+punctuation check, in its "Completion gate" and "Markdown and punctuation"
+sections. An agent therefore does not run the wrap check before calling work
+done and only finds wrapping mistakes at push time.
+
+**Tasks:**
+- Add the wrap check to both sections, next to the punctuation check, with the
+  command that checks the paragraphs changed on the branch:
+  `./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"`.
+
+### 15. Document 401 for a missing or invalid token [BE]
+
+**1 sp.** For a missing, invalid, or expired token the backend returns
+`401 Unauthorized` (`backend/src/api/auth/middleware.rs`), and the error code
+table in `docs/api.md` says so, but other places say `403 Forbidden`. `403` is
+only correct when an authenticated user is not allowed to do something, such as
+editing another user's review.
+
+**Tasks:**
+- `docs/api.md`: the "Unauthenticated access" rule and the errors of
+  `GET /api/v1/me` say 403; the HTTP status code list puts a missing or invalid
+  token and an authorization failure under one 403 entry. Change them to 401,
+  and give 401 its own entry in the status code list.
+- `docs/spec.md`: the Login flow says "all others return 403 if not
+  authenticated" and calls login the only unauthenticated endpoint, but the
+  password reset endpoints and `GET /api/v1/version` are unauthenticated too;
+  the backend crates table says the tower middleware "returns 403". Correct
+  both.
+- `docs/api.http`: the HTTP status code list in its header puts a missing or
+  invalid token and an authorization failure under one 403 entry. Fix it the
+  same way as the `docs/api.md` status code list.
+
+### 16. Never start a wrapped markdown line with a marker [FE+BE]
+
+**1 sp.** When `./scripts/markdown-wrap.py fix` rewraps a paragraph, a line can
+start with a character that Markdown treats as a marker: `>`, `-`, `+`, `*`,
+`#`, or a number followed by `.` or `)` (e.g. `1.`). Markdown then renders that
+line as a quote, a list item, or a heading instead of as part of the paragraph.
+
+**Tasks:**
+- In `fix`, keep every line at 80 characters or less, and move the word before
+  the marker to the next line together with the marker, so the line before ends
+  one word earlier.
+- In `check`, accept that shorter line only when the next line would otherwise
+  start with a marker.
+- Write the failing tests first. The repository has no tests for its scripts
+  yet, so agree where they go and how they run before writing them.
 
 ---
 

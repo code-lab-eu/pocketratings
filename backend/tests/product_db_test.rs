@@ -239,7 +239,7 @@ async fn product_get_all_filtered() {
     let no_match = db::product::get_all_filtered(&pool, None, Some("nomatch"), false)
         .await
         .expect("get_all_filtered");
-    assert!(no_match.is_empty());
+    assert_eq!(no_match, []);
 
     let empty_q = db::product::get_all_filtered(&pool, None, Some("  "), false)
         .await
@@ -289,7 +289,7 @@ async fn product_get_all_with_deleted() {
         .expect("soft_delete");
 
     let active_after = db::product::get_all(&pool, false).await.expect("get_all");
-    assert!(active_after.is_empty());
+    assert_eq!(active_after, []);
 
     let with_deleted = db::product::get_all(&pool, true)
         .await
@@ -459,7 +459,7 @@ async fn product_hard_delete_removes_row() {
     let with_deleted = db::product::get_all(&pool, true)
         .await
         .expect("get_all(include_deleted: true)");
-    assert!(with_deleted.is_empty());
+    assert_eq!(with_deleted, []);
 }
 
 #[tokio::test]
@@ -657,7 +657,7 @@ async fn product_get_all_by_category_ids_empty_returns_empty() {
     let empty = db::product::get_all_by_category_ids(&pool, &[], false)
         .await
         .expect("get_all_by_category_ids");
-    assert!(empty.is_empty());
+    assert_eq!(empty, []);
 }
 
 #[tokio::test]
@@ -700,7 +700,7 @@ async fn product_get_all_by_category_ids_include_deleted() {
     let active_only = db::product::get_all_by_category_ids(&pool, &[cat_id], false)
         .await
         .expect("get_all_by_category_ids");
-    assert!(active_only.is_empty());
+    assert_eq!(active_only, []);
 
     let with_deleted = db::product::get_all_by_category_ids(&pool, &[cat_id], true)
         .await
@@ -1323,7 +1323,7 @@ async fn product_simple_list_cache_invalidated_after_insert() {
     db::category::insert(&pool, &cat).await.expect("insert");
 
     let all = db::product::get_all(&pool, false).await.expect("get_all");
-    assert!(all.is_empty());
+    assert_eq!(all, []);
     db::product::set_simple_product_list_cache_for_test(Some(vec![]));
     let all = db::product::get_all(&pool, false).await.expect("get_all");
     assert!(all.is_empty(), "cached empty");

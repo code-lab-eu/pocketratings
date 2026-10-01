@@ -5,19 +5,26 @@ import ProductDetailPage from '../../src/routes/products/[id]/+page.svelte';
 
 const mocks = vi.hoisted(() => ({
   createReview: vi.fn().mockResolvedValue({ id: 'new-rev' }),
+  createPurchase: vi.fn().mockResolvedValue({ id: 'new-pur' }),
+  getProductVariations: vi.fn().mockResolvedValue([]),
   invalidateAll: vi.fn().mockResolvedValue(undefined)
 }));
 
 vi.mock('$lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('$lib/api')>();
-  return { ...actual, createReview: mocks.createReview };
+  return {
+    ...actual,
+    createReview: mocks.createReview,
+    createPurchase: mocks.createPurchase,
+    getProductVariations: mocks.getProductVariations
+  };
 });
 
 vi.mock('$app/navigation', () => ({
   invalidateAll: mocks.invalidateAll
 }));
 import type { PageData } from '../../src/routes/products/[id]/$types';
-import type { ProductDetail, Purchase, Review } from '../../src/lib/types';
+import type { Location, ProductDetail, Purchase, Review } from '../../src/lib/types';
 
 const product: ProductDetail = {
   id: 'prod-1',
@@ -27,7 +34,16 @@ const product: ProductDetail = {
   created_at: 0,
   updated_at: 0,
   deleted_at: null,
-  variations: []
+  variations: [
+    { id: 'var-1', label: '', unit: 'none' },
+    { id: 'var-2', label: '1 l', unit: 'milliliters', quantity: 1000 }
+  ]
+};
+
+const location: Location = {
+  id: 'loc-1',
+  name: 'Store A',
+  deleted_at: null
 };
 
 const review: Review = {
@@ -57,14 +73,24 @@ const defaultData: PageData = {
   product,
   reviews: [review],
   purchases: [purchase],
+  locations: [location],
   notFound: false,
   error: null
 };
+
+/** Opens the inline add-purchase form and returns the purchase history region. */
+async function openInlinePurchase() {
+  render(ProductDetailPage, { props: { data: defaultData } });
+  const region = screen.getByRole('region', { name: /^purchase history$/i });
+  await userEvent.click(within(region).getByRole('button', { name: /add purchase/i }));
+  return region;
+}
 
 describe('Product detail page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createReview.mockResolvedValue({ id: 'new-rev' });
+    mocks.createPurchase.mockResolvedValue({ id: 'new-pur' });
     mocks.invalidateAll.mockResolvedValue(undefined);
   });
 
@@ -79,6 +105,15 @@ describe('Product detail page', () => {
     const dairyLinks = screen.getAllByRole('link', { name: /dairy/i });
     expect(dairyLinks).toHaveLength(1);
     expect(dairyLinks[0].getAttribute('href')).toContain('/categories/cat-1');
+  });
+
+  it('shows an edit link to the manage product page next to the product name', () => {
+    render(ProductDetailPage, {
+      props: { data: defaultData }
+    });
+    const edit = screen.getByRole('link', { name: 'Edit Milk — Acme' });
+    expect(edit.getAttribute('href')).toContain('/manage/products/prod-1');
+    expect(edit.closest('header')).toContainElement(screen.getByRole('heading', { name: /milk/i }));
   });
 
   it('shows breadcrumb with Home, category, and product name when product is loaded', () => {
@@ -174,6 +209,15 @@ describe('Product detail page', () => {
     expect(screen.getByText(/15 feb 2024/i)).toBeInTheDocument();
   });
 
+  it('shows the quantity to the right of the price in purchase history', () => {
+    render(ProductDetailPage, {
+      props: { data: { ...defaultData, purchases: [{ ...purchase, quantity: 3 }] } as PageData }
+    });
+    const history = screen.getByRole('region', { name: /^purchase history$/i });
+    const [row] = within(history).getAllByRole('listitem');
+    expect(row.textContent?.replace(/\s+/g, ' ')).toMatch(/Store A 2\.99 € ×3$/);
+  });
+
   it('shows quantity in purchase history when greater than one', () => {
     const purchaseQty2: Purchase = {
       ...purchase,
@@ -234,22 +278,130 @@ describe('Product detail page', () => {
     expect(screen.getByRole('heading', { name: /500 g/i, level: 3 })).toBeInTheDocument();
   });
 
-  it('shows Add review in reviews section and Add purchase only in actions', () => {
+  it('shows Add review in reviews section and Add purchase at the bottom of purchase history', () => {
     render(ProductDetailPage, {
       props: { data: defaultData }
     });
     const reviewsRegion = screen.getByRole('region', { name: /^reviews$/i });
-    const addReview = within(reviewsRegion).getByRole('button', { name: /add review/i });
-    expect(addReview).toBeInTheDocument();
+    expect(within(reviewsRegion).getByRole('button', { name: /add review/i })).toBeInTheDocument();
 
-    const actionsRegion = screen.getByRole('region', { name: /^actions$/i });
-    expect(within(actionsRegion).getByRole('link', { name: /add purchase/i })).toBeInTheDocument();
-    expect(within(actionsRegion).queryByRole('button', { name: /add review/i })).not.toBeInTheDocument();
-    expect(within(actionsRegion).queryByRole('link', { name: /add review/i })).not.toBeInTheDocument();
+    const historyRegion = screen.getByRole('region', { name: /^purchase history$/i });
+    const addPurchase = within(historyRegion).getByRole('button', { name: /add purchase/i });
+    const lastPurchase = within(historyRegion).getAllByRole('listitem').at(-1)!;
+    expect(
+      lastPurchase.compareDocumentPosition(addPurchase) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
 
-    const addPurchase = within(actionsRegion).getByRole('link', { name: /add purchase/i });
-    expect(addPurchase.getAttribute('href')).toContain('/manage/purchases/add');
-    expect(addPurchase.getAttribute('href')).toContain('product_id=prod-1');
+    expect(screen.queryByRole('region', { name: /^actions$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /add purchase/i })).not.toBeInTheDocument();
+  });
+
+  it('shows Add purchase when there are no purchases yet', () => {
+    render(ProductDetailPage, {
+      props: { data: { ...defaultData, purchases: [] } as PageData }
+    });
+    const historyRegion = screen.getByRole('region', { name: /^purchase history$/i });
+    expect(within(historyRegion).getByRole('button', { name: /add purchase/i })).toBeInTheDocument();
+  });
+
+  it('opens inline add-purchase form for this product with the default variation selected', async () => {
+    const region = await openInlinePurchase();
+
+    const form = within(region).getByRole('form', { name: /add purchase/i });
+    expect(within(form).queryByLabelText(/^product$/i)).not.toBeInTheDocument();
+    const variation = within(form).getByLabelText<HTMLSelectElement>(/variation/i);
+    expect(variation.value).toBe('var-1');
+    expect(within(variation).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Select variation',
+      'Default',
+      '1 l'
+    ]);
+    const locationSelect = within(form).getByLabelText<HTMLSelectElement>(/location/i);
+    expect(within(locationSelect).getByRole('option', { name: 'Store A' })).toBeInTheDocument();
+    expect(within(form).getByLabelText(/quantity/i)).toHaveValue(1);
+    expect(within(form).getByLabelText('Price per item (EUR)')).toHaveValue('');
+    expect(within(form).getByLabelText<HTMLInputElement>(/date/i).value).not.toBe('');
+    expect(within(region).queryByRole('button', { name: /add purchase/i })).not.toBeInTheDocument();
+    expect(mocks.getProductVariations).not.toHaveBeenCalled();
+  });
+
+  it('closes inline add-purchase form on Cancel without saving', async () => {
+    const region = await openInlinePurchase();
+
+    await userEvent.click(within(region).getByRole('button', { name: /^cancel$/i }));
+
+    expect(within(region).queryByRole('form', { name: /add purchase/i })).not.toBeInTheDocument();
+    expect(within(region).getByRole('button', { name: /add purchase/i })).toBeInTheDocument();
+    expect(mocks.createPurchase).not.toHaveBeenCalled();
+  });
+
+  it('submits inline purchase for this product then invalidates all and closes the form', async () => {
+    const region = await openInlinePurchase();
+    const form = within(region).getByRole('form', { name: /add purchase/i });
+
+    await userEvent.selectOptions(within(form).getByLabelText(/variation/i), 'var-2');
+    await userEvent.selectOptions(within(form).getByLabelText(/location/i), 'loc-1');
+    await userEvent.clear(within(form).getByLabelText(/quantity/i));
+    await userEvent.type(within(form).getByLabelText(/quantity/i), '2');
+    await userEvent.type(within(form).getByLabelText(/price/i), '3.49');
+    await userEvent.click(within(form).getByRole('button', { name: /^save$/i }));
+
+    expect(mocks.createPurchase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variation_id: 'var-2',
+        location_id: 'loc-1',
+        quantity: 2,
+        price: '3.49',
+        purchased_at: expect.any(String)
+      })
+    );
+    expect(mocks.createPurchase).toHaveBeenCalledBefore(mocks.invalidateAll);
+    expect(mocks.invalidateAll).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(within(region).getByRole('button', { name: /add purchase/i })).toBeInTheDocument();
+    });
+    expect(within(region).queryByRole('form', { name: /add purchase/i })).not.toBeInTheDocument();
+  });
+
+  it('requires a variation in the inline purchase form', async () => {
+    const region = await openInlinePurchase();
+    const form = within(region).getByRole('form', { name: /add purchase/i });
+    const variation = within(form).getByLabelText<HTMLSelectElement>(/variation/i);
+    expect(variation).toBeRequired();
+
+    await userEvent.selectOptions(variation, '');
+    await userEvent.selectOptions(within(form).getByLabelText(/location/i), 'loc-1');
+    await userEvent.type(within(form).getByLabelText(/price/i), '3.49');
+    await userEvent.click(within(form).getByRole('button', { name: /^save$/i }));
+
+    expect(variation.validity.valueMissing).toBe(true);
+    expect(mocks.createPurchase).not.toHaveBeenCalled();
+  });
+
+  it('keeps inline purchase form open with an error when price is missing', async () => {
+    const region = await openInlinePurchase();
+    const form = within(region).getByRole('form', { name: /add purchase/i });
+
+    await userEvent.selectOptions(within(form).getByLabelText(/location/i), 'loc-1');
+    await userEvent.click(within(form).getByRole('button', { name: /^save$/i }));
+
+    expect(within(form).getByText('Price is required.')).toBeInTheDocument();
+    expect(mocks.createPurchase).not.toHaveBeenCalled();
+  });
+
+  it('keeps inline purchase form open and shows the API error when saving fails', async () => {
+    mocks.createPurchase.mockRejectedValue(new Error('Location not found.'));
+    const region = await openInlinePurchase();
+    const form = within(region).getByRole('form', { name: /add purchase/i });
+
+    await userEvent.selectOptions(within(form).getByLabelText(/location/i), 'loc-1');
+    await userEvent.type(within(form).getByLabelText(/price/i), '3.49');
+    await userEvent.click(within(form).getByRole('button', { name: /^save$/i }));
+
+    expect(await within(form).findByText('Location not found.')).toBeInTheDocument();
+    expect(mocks.invalidateAll).not.toHaveBeenCalled();
+    expect(within(region).getByRole('form', { name: /add purchase/i })).toBeInTheDocument();
   });
 
   it('opens inline add-review form and closes on Cancel', async () => {

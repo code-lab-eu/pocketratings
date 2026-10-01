@@ -449,8 +449,7 @@ mod tests {
             .expect("body")
             .to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
-        assert!(json.is_array());
-        assert!(json.as_array().expect("array").is_empty());
+        assert_eq!(json, serde_json::json!([]));
     }
 
     #[tokio::test]
@@ -743,8 +742,7 @@ mod tests {
             .expect("body")
             .to_bytes();
         let json: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
-        let arr = json.as_array().expect("array");
-        assert!(arr.is_empty());
+        assert_eq!(json, serde_json::json!([]));
     }
 
     #[tokio::test]

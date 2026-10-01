@@ -38,8 +38,8 @@ Defined in `src/routes/layout.css`:
     mode). Has `cursor: pointer` and `:focus-visible`.
   - `.pr-btn-secondary`: secondary/outline button used for "Cancel" actions and similar. Has
     `cursor: pointer` and `:focus-visible`.
-  - `.pr-btn-icon`: icon-sized or header-style button (transparent background, hover tint).
-    Use for theme toggle, log out, edit/delete icons in list rows. Has `cursor: pointer` and
+  - `.pr-btn-icon`: icon-sized or header-style button or icon link (transparent background, hover
+    tint). Use for theme toggle, log out, edit/delete icons in list rows. Has `cursor: pointer` and
     `:focus-visible`. Combine with `.pr-link-muted` or semantic colour classes as needed.
   - All button classes use a short transition; motion is disabled when the user prefers
     reduced motion (`prefers-reduced-motion: reduce`).
@@ -64,10 +64,24 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
     - `href` (optional): when provided, renders an `<a>`; otherwise renders a `<button>`.
     - `type`: `'button' | 'submit' | 'reset'` (default: `'button'`).
     - `disabled`: standard disabled flag for the `<button>` case.
+    - `onclick` (optional): click handler for the `<button>` case (e.g. Cancel on an inline form).
   - Applies:
     - `pr-btn-primary` for `variant="primary"`.
     - `pr-btn-secondary` for `variant="secondary"`.
     - `pr-link-inline` for `variant="link"`.
+
+- `lib/EditLink.svelte`
+  - Props: `href` (already resolved by the caller), `label`.
+  - Icon link with the lucide `Pen` icon, `pr-btn-icon` with `pr-link-muted`, a 44px minimum tap
+    target, and the accessible name "Edit {label}". Used for the edit action in `ManageListRow` and
+    next to the product name on the product detail page.
+
+- `lib/InlineFormToggle.svelte`
+  - Props: `label`, `headingId`, `open` (bindable), `onoutroend` (optional); the form is the child
+    content.
+  - Closed: a `pr-link-inline` button showing `label`. Open: a `pr-inline-form` panel that slides in
+    and out (`inlineFormMotion`), headed by an `<h3 id={headingId}>` showing `label`. The child form
+    uses `headingId` for `aria-labelledby`; `onoutroend` runs after the panel has closed.
 
 - `lib/PageHeading.svelte`
   - Props:
@@ -93,7 +107,9 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
   - Use `.pr-text-muted` and `.pr-text-subtle` for secondary/tertiary text rather than raw `text-gray-*` classes.
 
 - **Buttons and links**
-  - Prefer `Button` for primary and secondary actions.
+  - Use `Button` for primary, secondary, and link-style actions, with `onclick` for actions on the
+    page and `href` for navigation. Do not write `pr-btn-primary`, `pr-btn-secondary`, or
+    `pr-link-inline` on a raw `<button>`.
   - Use `.pr-link-muted` for back-links in headers (e.g. "← Manage") and `.pr-link-inline` for inline links in text.
 
 - **Forms**

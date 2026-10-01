@@ -10,9 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so the markdown wrap check can find the merge base.
+          fetch-depth: 0
 
       - name: ASCII punctuation check
         run: ./scripts/ascii-punctuation.sh check
+
+      - name: Markdown wrap check
+        run: ./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable

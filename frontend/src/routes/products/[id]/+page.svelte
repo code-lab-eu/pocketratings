@@ -1,12 +1,15 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { createReview } from '$lib/api';
+  import { createPurchase, createReview } from '$lib/api';
   import BackLink from '$lib/BackLink.svelte';
   import Breadcrumb from '$lib/Breadcrumb.svelte';
   import Button from '$lib/Button.svelte';
+  import EditLink from '$lib/EditLink.svelte';
   import EmptyState from '$lib/EmptyState.svelte';
   import FormError from '$lib/FormError.svelte';
+  import InlineFormToggle from '$lib/InlineFormToggle.svelte';
+  import PurchaseForm, { type PurchaseFormData } from '$lib/PurchaseForm.svelte';
   import StarRating from '$lib/StarRating.svelte';
   import StarRatingInput from '$lib/StarRatingInput.svelte';
   import TextareaField from '$lib/TextareaField.svelte';
@@ -17,8 +20,6 @@
     formatVariationDisplay
   } from '$lib/utils/formatters';
   import NotFoundMessage from '$lib/NotFoundMessage.svelte';
-  import { inlineFormSlideParams } from '$lib/inlineFormMotion';
-  import { slide } from 'svelte/transition';
 
   let { data } = $props();
 
@@ -27,10 +28,12 @@
   let inlineText = $state('');
   let inlineSubmitting = $state(false);
   let inlineError = $state<string | null>(null);
+  let inlinePurchaseOpen = $state(false);
 
   let product = $derived(data.product);
   let reviews = $derived(data.reviews);
   let purchases = $derived(data.purchases);
+  let locations = $derived(data.locations);
   let error = $derived(data.error);
   let notFound = $derived(data.notFound ?? false);
 
@@ -61,15 +64,6 @@
     }
     return groups;
   });
-
-  function openInlineReview() {
-    inlineReviewOpen = true;
-    inlineError = null;
-  }
-
-  function closeInlineReview() {
-    inlineReviewOpen = false;
-  }
 
   function handleInlineReviewOutroEnd() {
     inlineError = null;
@@ -105,6 +99,11 @@
     }
   }
 
+  async function handleInlinePurchaseSubmit(formData: PurchaseFormData) {
+    await createPurchase(formData);
+    await invalidateAll();
+    inlinePurchaseOpen = false;
+  }
 </script>
 
 <svelte:head>
@@ -146,9 +145,15 @@
   {:else}
     <article class="min-w-0">
       <header class="mb-6">
-        <h1 class="pr-heading-page break-words">
-          {product.name}
-        </h1>
+        <div class="flex items-start justify-between gap-2">
+          <h1 class="pr-heading-page min-w-0 break-words">
+            {product.name}
+          </h1>
+          <EditLink
+            href={resolve('/manage/products/[id]', { id: product.id })}
+            label={formatProductDisplayName(product)}
+          />
+        </div>
         {#if product.brand}
           <p class="pr-product-brand">{product.brand}</p>
         {/if}
@@ -179,52 +184,37 @@
           </ul>
         {/if}
 
-        {#if !inlineReviewOpen}
-          <p class="mt-4">
-            <button type="button" class="pr-link-inline" onclick={openInlineReview}>
-              Add review
-            </button>
-          </p>
-        {:else}
-          <div
-            class="mt-4 pr-inline-form"
-            in:slide={inlineFormSlideParams()}
-            out:slide={inlineFormSlideParams()}
-            onoutroend={handleInlineReviewOutroEnd}
+        <InlineFormToggle
+          label="Add review"
+          headingId="inline-review-form-heading"
+          bind:open={inlineReviewOpen}
+          onoutroend={handleInlineReviewOutroEnd}
+        >
+          <form
+            class="space-y-4"
+            aria-labelledby="inline-review-form-heading"
+            aria-busy={inlineSubmitting}
+            onsubmit={handleInlineReviewSubmit}
           >
-            <h3 id="inline-review-form-heading" class="mb-3 text-base font-semibold pr-text-body">
-              Add review
-            </h3>
-            <form
-              class="space-y-4"
-              aria-labelledby="inline-review-form-heading"
-              aria-busy={inlineSubmitting}
-              onsubmit={handleInlineReviewSubmit}
-            >
-              <FormError message={inlineError} />
-              <StarRatingInput id="inline-review-rating" bind:value={inlineRating} />
-              <TextareaField
-                id="inline-review-text"
-                label="Review (optional)"
-                bind:value={inlineText}
-                rows={3}
-                placeholder="Your review…"
-              />
-              <div class="flex gap-2">
-                <Button type="submit" disabled={inlineSubmitting} variant="primary">
-                  {inlineSubmitting ? 'Saving…' : 'Save'}
-                </Button>
-                <button
-                  type="button"
-                  class="pr-btn-secondary"
-                  onclick={closeInlineReview}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        {/if}
+            <FormError message={inlineError} />
+            <StarRatingInput id="inline-review-rating" bind:value={inlineRating} />
+            <TextareaField
+              id="inline-review-text"
+              label="Review (optional)"
+              bind:value={inlineText}
+              rows={3}
+              placeholder="Your review…"
+            />
+            <div class="flex gap-2">
+              <Button type="submit" disabled={inlineSubmitting} variant="primary">
+                {inlineSubmitting ? 'Saving…' : 'Save'}
+              </Button>
+              <Button variant="secondary" onclick={() => (inlineReviewOpen = false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </InlineFormToggle>
       </section>
 
       <section class="mb-6" aria-labelledby="purchase-history-heading">
@@ -248,22 +238,30 @@
                 <li class="pr-panel flex flex-wrap gap-x-4 gap-y-1 pr-text-body">
                   <span>{formatDate(purchase.purchased_at)}</span>
                   <span>{purchase.location.name}</span>
-                  <span class="pr-text-muted" title="Quantity">×{purchase.quantity}</span>
-                  <span>{purchase.price} €</span>
+                  <span class="flex gap-x-1">
+                    <span>{purchase.price} €</span>
+                    <span class="pr-text-muted" title="Quantity">×{purchase.quantity}</span>
+                  </span>
                 </li>
               {/each}
             </ul>
           {/each}
         {/if}
-      </section>
 
-      <section class="pr-divider pt-4" aria-label="Actions">
-        <p class="pr-text-muted">
-          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href is resolve() + query string; rule only accepts direct resolve() -->
-          <a href={`${resolve('/manage/purchases/add')}?product_id=${product.id}`} class="pr-link-inline">
-            Add purchase
-          </a>
-        </p>
+        <InlineFormToggle
+          label="Add purchase"
+          headingId="inline-purchase-form-heading"
+          bind:open={inlinePurchaseOpen}
+        >
+          <PurchaseForm
+            fixedProduct={product}
+            {locations}
+            onSubmit={handleInlinePurchaseSubmit}
+            submitLabel="Save"
+            onCancel={() => (inlinePurchaseOpen = false)}
+            labelledBy="inline-purchase-form-heading"
+          />
+        </InlineFormToggle>
       </section>
     </article>
   {/if}

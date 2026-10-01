@@ -388,6 +388,7 @@ pub struct PurchaseCreateOpts {
     pub product_id: String,
     #[arg(long)]
     pub location_id: String,
+    /// Price per item in EUR; the total paid is price × quantity.
     #[arg(long)]
     pub price: String,
     #[arg(long)]

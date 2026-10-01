@@ -298,13 +298,9 @@
             >
               <span class="font-medium">{formatVariationDisplay(v)}</span>
               <div class="flex gap-2">
-                <button
-                  type="button"
-                  class="pr-btn-secondary !py-1.5"
-                  onclick={() => startEdit(v)}
-                >
+                <Button variant="secondary" class="!py-1.5" onclick={() => startEdit(v)}>
                   Edit
-                </button>
+                </Button>
                 <button
                   type="button"
                   title={deleteVariationTooltip(v)}
@@ -338,13 +334,9 @@
           />
         </div>
       {:else}
-        <button
-          type="button"
-          class="pr-btn-secondary mt-4"
-          onclick={openAddVariation}
-        >
+        <Button variant="secondary" class="mt-4" onclick={openAddVariation}>
           Add variation
-        </button>
+        </Button>
       {/if}
     </section>
   {/if}

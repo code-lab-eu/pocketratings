@@ -164,6 +164,39 @@ async fn purchase_create_and_show_roundtrip() {
         show_json.get("price").and_then(|v| v.as_str()),
         Some("9.99")
     );
+
+    // Human-readable output labels the price as the price per item.
+    let (show_result, show_stdout, show_stderr) =
+        run_purchase(&pool, &["purchase", "show", id]).await;
+    assert!(show_result.is_ok(), "stderr: {show_stderr}");
+    assert!(
+        show_stdout.contains("qty: 2, price per item: 9.99"),
+        "show output: {show_stdout}"
+    );
+
+    let (create_result, create_stdout, create_stderr) = run_purchase(
+        &pool,
+        &[
+            "purchase",
+            "create",
+            "--product-id",
+            &product_id,
+            "--location-id",
+            &location_id,
+            "--price",
+            "1.50",
+            "--email",
+            "alice@example.com",
+            "--quantity",
+            "3",
+        ],
+    )
+    .await;
+    assert!(create_result.is_ok(), "stderr: {create_stderr}");
+    assert!(
+        create_stdout.contains("(qty: 3, price per item: 1.50)"),
+        "create output: {create_stdout}"
+    );
 }
 
 #[tokio::test]
@@ -544,7 +577,7 @@ async fn purchase_delete_force_removes_row() {
     let with_deleted = db::purchase::list(&pool, None, None, None, None, None, true)
         .await
         .expect("list");
-    assert!(with_deleted.is_empty());
+    assert_eq!(with_deleted, []);
 }
 
 #[tokio::test]

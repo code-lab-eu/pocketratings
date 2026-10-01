@@ -1,7 +1,8 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve -- viewHref and editHref are pre-resolved by parent */
+  /* eslint-disable svelte/no-navigation-without-resolve -- viewHref is pre-resolved by parent */
   import type { Snippet } from 'svelte';
-  import { Pen, Trash2 } from 'lucide-svelte';
+  import { Trash2 } from 'lucide-svelte';
+  import EditLink from '$lib/EditLink.svelte';
 
   interface Props {
     /** Primary text for the row (e.g. entity name or "Name — Brand"). */
@@ -51,13 +52,7 @@
     {/if}
   </div>
   <div class="flex shrink-0 items-center gap-1">
-    <a
-      href={editHref}
-      class="flex min-h-[44px] min-w-[44px] items-center justify-center pr-link-muted"
-      aria-label="Edit {label}"
-    >
-      <Pen size={20} />
-    </a>
+    <EditLink href={editHref} {label} />
     <button
       type="button"
       onclick={onDelete}

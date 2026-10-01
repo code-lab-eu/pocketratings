@@ -26,6 +26,25 @@ and act only on the answer. Do not assume an earlier instruction overrides
 a plan, and do not silently drop part of a plan because of an earlier
 "don't do X" without confirming X is still out of scope.
 
+**Follow existing patterns.** Before writing new code, find how the codebase
+already solves the same problem (components, props, callbacks, naming, file
+layout) and do it the same way. If a different approach seems better, propose it
+before implementing: describe the current pattern, the alternative, and every
+place that would change. Once a new approach is agreed, apply it to all existing
+occurrences in the same change. The codebase must never have two ways of doing
+the same thing.
+
+**Apply a change everywhere it applies.** A request usually names one place
+("label the price in the form"), but the concept it changes (a label, a term, a
+display format, a validation rule, a unit) usually appears in more. Before
+implementing, search the whole repository - frontend pages and components,
+backend API responses, CLI help and output, `docs/`, and `README.md` - list
+every occurrence, and apply the change to all of them in the same change. If it
+is unclear whether a place is in scope, show the list and ask before
+implementing. Never leave a known inconsistency unreported: when you notice one
+that you are not fixing, tell the user straight away and offer to add a roadmap
+task.
+
 **Review quality before running QC.** After implementing or refactoring,
 review every changed file for:
 

@@ -373,7 +373,7 @@ async fn category_list_cache_invalidated_after_insert() {
     db::run_migrations(&pool).await.expect("migrations");
 
     let all = db::category::get_all(&pool, false).await.expect("get_all");
-    assert!(all.is_empty());
+    assert_eq!(all, []);
     db::category::set_category_list_cache_for_test(Some(vec![]));
     let all = db::category::get_all(&pool, false).await.expect("get_all");
     assert!(all.is_empty(), "cached empty");

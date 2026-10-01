@@ -42,7 +42,7 @@ async fn list_success_empty_when_no_users() {
     let (result, stdout, stderr) = run_list(&pool, false, false).await;
 
     assert!(result.is_ok(), "stderr: {stderr}");
-    assert!(stderr.is_empty());
+    assert_eq!(stderr, "");
     assert!(
         stdout.trim().is_empty(),
         "stdout should be empty: {stdout:?}",

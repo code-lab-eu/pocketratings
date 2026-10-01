@@ -10,10 +10,23 @@ Applies to `README.md`, files under `docs/` (including `docs/plans/`),
 
 ## Line width
 
-Wrap prose and list text to **80 characters** per line. Break a long
-sentence or list item onto the next line rather than exceeding 80
-characters. This keeps docs readable in narrow terminals and keeps diffs
-minimal.
+Wrap prose and list text to **80 characters** per line, and fill each line:
+break only where the next word would go past 80 (greedy wrapping), never
+earlier. When you edit any part of a paragraph or list item, rewrap the whole
+paragraph or item, not just the changed sentence. Keep an inline code span on
+one line; if it does not fit in the remaining space, move it to the next line. A
+line that consists of a single code span longer than 80 characters (e.g. a full
+CLI command) may stay long.
+
+Check the paragraphs changed on your branch, and rewrap the ones it reports:
+
+```bash
+./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"
+./scripts/markdown-wrap.py fix FILE LINE ...
+```
+
+The pre-push hook and CI run the same check against the upstream branch (or
+`origin/master`).
 
 **Code blocks** are exempt: a long command or URL may be split with a
 shell line continuation where that does not change behaviour, but leave it
@@ -27,6 +40,12 @@ tolerated (the check script ignores them), but curly quotes (U+2018,
 U+2019, U+201C, U+201D) are rejected by
 `./scripts/ascii-punctuation.sh check` on pre-push and in CI.
 
+## Sentences
+
+Start every sentence with a capital letter and end it with a period. A sentence
+may start with a code span (`` `price` is ... ``); keep the identifier's own
+case.
+
 ## Replace strategy
 
 Exact-string replace often fails in these files because existing text may
@@ -38,9 +57,10 @@ match.
    headings, list markers, or lines that are clearly ASCII (e.g.
    `### 1. Title` or `- Document in`). Keep the line containing the curly
    quote outside the matched span.
-2. **Replace minimally.** If you must change a line that has special
-   characters, match only an ASCII substring of it, or a unique block that
-   excludes the problematic character.
+2. **Replace minimally.** If you must change a line that has special characters,
+   match only an ASCII substring of it, or a unique block that excludes the
+   problematic character. This limits the text you match, not the text you
+   change: after the replace, rewrap the whole paragraph.
 3. **When a replace fails** (including a fuzzy match landing elsewhere),
    assume a Unicode or whitespace mismatch. Normalize, then retry the
    intended replace:

@@ -64,9 +64,9 @@
       The server could not be reached. Your link is still valid, so check your connection and try
       again.
     </p>
-    <button type="button" class="pr-btn-primary w-full" onclick={() => invalidateAll()}>
+    <Button variant="primary" class="w-full" onclick={() => invalidateAll()}>
       Try again
-    </button>
+    </Button>
   {:else}
     <p class="mb-6 pr-text-muted">Choose a new password for your account.</p>
 

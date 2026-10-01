@@ -61,7 +61,7 @@ impl Drop for TestServer {
 
 /// How long to wait for the server to report that it is listening. Generous, because `cargo run`
 /// may still have to build the binary; the point is to fail with output instead of hanging.
-const STARTUP_TIMEOUT: Duration = Duration::from_secs(180);
+const STARTUP_TIMEOUT: Duration = Duration::from_mins(3);
 
 impl TestServer {
     /// The server output collected so far, for a failure message.

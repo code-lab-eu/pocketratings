@@ -53,8 +53,8 @@
     <Button type="submit" disabled={submitting} variant="primary">
       {submitting ? submittingLabel : submitLabel}
     </Button>
-    <button type="button" class="pr-btn-secondary" onclick={onCancel}>
+    <Button variant="secondary" onclick={onCancel}>
       Cancel
-    </button>
+    </Button>
   </div>
 </form>

@@ -142,7 +142,7 @@ async fn product_variation_list_by_product_id_empty_then_with_variations() {
     let list = db::product_variation::list_by_product_id(&pool, product_id, false)
         .await
         .expect("list");
-    assert!(list.is_empty());
+    assert_eq!(list, []);
 
     let now = 1_000_i64;
     let var1_id = Uuid::new_v4();
@@ -329,7 +329,7 @@ async fn product_variation_soft_delete_then_excluded_from_get_and_list() {
     let list = db::product_variation::list_by_product_id(&pool, product_id, false)
         .await
         .expect("list");
-    assert!(list.is_empty());
+    assert_eq!(list, []);
 }
 
 #[tokio::test]
