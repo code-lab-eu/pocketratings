@@ -333,6 +333,22 @@ editing another user's review.
   invalid token and an authorization failure under one 403 entry. Fix it the
   same way as the `docs/api.md` status code list.
 
+### 16. Never start a wrapped markdown line with a marker [FE+BE]
+
+**1 sp.** When `./scripts/markdown-wrap.py fix` rewraps a paragraph, a line can
+start with a character that Markdown treats as a marker: `>`, `-`, `+`, `*`,
+`#`, or a number followed by `.` or `)` (e.g. `1.`). Markdown then renders that
+line as a quote, a list item, or a heading instead of as part of the paragraph.
+
+**Tasks:**
+- In `fix`, keep every line at 80 characters or less, and move the word before
+  the marker to the next line together with the marker, so the line before ends
+  one word earlier.
+- In `check`, accept that shorter line only when the next line would otherwise
+  start with a marker.
+- Write the failing tests first. The repository has no tests for its scripts
+  yet, so agree where they go and how they run before writing them.
+
 ---
 
 ## Distant future
