@@ -25,22 +25,21 @@ handler errors are not logged.
 
 ### 2. Product detail page: inline add purchase [FE] — DONE
 
-**2 sp.** In the Purchase history section, keep **Add purchase** as a link
-(full manage add page remains available). Place the link at the bottom of
-the section. Same swap-to-inline pattern as inline add review. Reuse `POST
-/api/v1/purchases`; prefill product and default variation from the current
+**2 sp.** In the Purchase history section, **Add purchase** is a button that
+opens the purchase form in place; the product page no longer links to the manage
+add page, which stays available from Manage. Place the button at the bottom of
+the section. Same swap-to-inline pattern as inline add review. Reuse
+`POST /api/v1/purchases`; prefill product and default variation from the current
 page (e.g. extend `PurchaseForm.svelte` or equivalent). Load locations in
 `products/[id]` data when needed. Remove **Add purchase** from the footer;
-remove the footer/actions block entirely if it becomes empty. [spec.md](spec.md)
-still describes **Add purchase** in the actions area in places; update those
-rows when this ships.
+remove the footer/actions block entirely if it becomes empty.
 
 **Tasks:**
 - `listLocations()` in `products/[id]/+page.ts` alongside existing loads;
   handle errors consistently with the rest of the page.
 - Inline form: variation, location, quantity, price, date; validation aligned
   with manage add purchase; on success refresh (or append) and restore the
-  link.
+  button.
 - Reuse or extend `PurchaseForm.svelte` with props for fixed product and
   variations from `GET /api/v1/products/:id` where practical.
 
