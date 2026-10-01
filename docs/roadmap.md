@@ -193,29 +193,34 @@ others have.
   `category-link-list`, layout) and add coverage where a button has none.
   Document the result in `frontend/STYLES.md`.
 
-### 10. Edit and delete icons in the product page purchase history [FE]
+### 10. Edit and delete icons on purchases and reviews on the product page [FE]
 
-**3 sp.** On the product detail page, purchase history rows show date, location,
-price per item, and quantity, but offer no way to change or remove a purchase.
-Add the same edit (pencil) and delete (trash) icons that each row has on the
-Manage > Purchases page (`ManageListRow.svelte`): edit links to
-`/manage/purchases/[id]`, delete asks for confirmation, calls
-`DELETE /api/v1/purchases/:id`, and refreshes the page data.
+**4 sp.** On the product detail page, the Purchase history and Reviews sections
+list every family member's purchases and reviews of the product, but offer no
+way to change or remove one. Add the same edit (pencil) and delete (trash) icons
+that each row has on the management pages (`/manage/purchases` and
+`/manage/reviews`, both using `ManageListRow.svelte`): edit links to
+`/manage/purchases/[id]` or `/manage/reviews/[id]`; delete asks "Delete this
+purchase?" or "Delete this review?", calls `DELETE /api/v1/purchases/:id` or
+`DELETE /api/v1/reviews/:id`, and refreshes the page data.
 
 **Tasks:**
-- Show the icons only on the current user's purchases. The history lists every
-  user's purchases for the product, and the API returns `403` when editing or
-  deleting another user's purchase.
-- Return to the product page after editing. The edit page currently goes to
-  `/manage/purchases` after Save, Cancel, and from its back link; agree how it
-  learns where to return to (e.g. a query parameter) before implementing.
+- Show the icons only on the current user's purchases and reviews. The API
+  returns `403` when editing or deleting another user's purchase or review.
+- Return to the product page after editing, with one mechanism for both edit
+  pages; agree how they learn where to return to (e.g. a query parameter) before
+  implementing. The purchase edit page currently goes to `/manage/purchases`
+  after Save, Cancel, and from its back link; the review edit page already goes
+  to the product page after Save, but Cancel and its back link go to
+  `/manage/reviews`.
 - Reuse the icons from `ManageListRow` rather than copying its markup: propose
   how to share them (e.g. extract the edit and delete icons into a component
-  used by both) before implementing. Coordinate with task 9, which moves the
-  `ManageListRow` delete icon to a shared icon button.
-- Tests first: icons present only on own purchases, edit link target, delete
-  with confirm (confirmed and cancelled), and the return navigation from the
-  edit page. Update [spec.md](spec.md).
+  used by `ManageListRow` and both product page lists) before implementing.
+  Coordinate with task 9, which moves the `ManageListRow` delete icon to a
+  shared icon button.
+- Tests first, for both lists: icons present only on own items, edit link
+  targets, delete with confirm (confirmed and cancelled), and the return
+  navigation from both edit pages. Update [spec.md](spec.md).
 
 ### 11. Overhaul docs/api.http: readable, runnable, no duplicated reference [BE]
 
