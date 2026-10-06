@@ -349,6 +349,22 @@ line as a quote, a list item, or a heading instead of as part of the paragraph.
 - Write the failing tests first. The repository has no tests for its scripts
   yet, so agree where they go and how they run before writing them.
 
+### 17. Higher quality favicons for modern mobile devices [FE]
+
+**2 sp.** The current favicon set does not provide higher-resolution icons for
+modern mobile home screens (e.g. iOS/Android add-to-home-screen), so saved
+shortcuts can look blurry or fall back to a generic icon.
+
+**Tasks:**
+- Generate a higher-resolution icon set (e.g. 180x180 `apple-touch-icon`,
+  192x192/512x512 PNGs for Android/maskable use) from the existing source
+  artwork.
+- Reference them from `app.html` (or the equivalent SvelteKit head markup) with
+  the correct `<link rel>` tags; add a web app manifest if one does not already
+  exist.
+- Verify on an iOS and an Android device (or emulator) that add-to-home-screen
+  shows the new icon.
+
 ---
 
 ## Distant future
