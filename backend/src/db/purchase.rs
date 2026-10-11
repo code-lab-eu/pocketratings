@@ -177,7 +177,8 @@ pub async fn list(
         "SELECT id, user_id, product_id, variation_id, location_id, quantity, price, purchased_at, deleted_at FROM purchases WHERE {where_clause} ORDER BY purchased_at DESC"
     );
 
-    let mut query = sqlx::query(&sql);
+    // Audited: the SQL contains only constants and `?` placeholders.
+    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
     for b in &binds {
         query = query.bind(b);
     }
@@ -318,7 +319,8 @@ pub async fn list_with_relations(
         "{PURCHASE_JOIN_SELECT} {PURCHASE_JOIN_FROM} WHERE {where_clause} ORDER BY p.purchased_at DESC"
     );
 
-    let mut query = sqlx::query(&sql);
+    // Audited: the SQL contains only constants and `?` placeholders.
+    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
     for b in &binds {
         query = query.bind(b);
     }
@@ -381,7 +383,11 @@ pub async fn get_by_id_with_relations(
             "{PURCHASE_JOIN_SELECT} {PURCHASE_JOIN_FROM} WHERE p.id = ? AND p.deleted_at IS NULL"
         )
     };
-    let row = sqlx::query(&sql).bind(&id_str).fetch_optional(pool).await?;
+    // Audited: the SQL contains only constants and `?` placeholders.
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql))
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?;
 
     let Some(row) = row else {
         return Ok(None);

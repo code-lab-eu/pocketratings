@@ -394,7 +394,8 @@ pub async fn get_all_by_category_ids(
             "SELECT id, category_id, brand, name, created_at, updated_at, deleted_at FROM products WHERE category_id IN ({placeholders}) AND deleted_at IS NULL"
         )
     };
-    let mut query = sqlx::query(&sql);
+    // Audited: the SQL contains only constants and `?` placeholders.
+    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
     for id in ids {
         query = query.bind(id.to_string());
     }

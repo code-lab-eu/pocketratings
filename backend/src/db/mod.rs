@@ -51,9 +51,10 @@ pub async fn create_pool(database_path: &str) -> Result<SqlitePool, DbError> {
 ///
 /// Returns [`DbError::Sqlx`] if the vacuum operation fails.
 pub async fn vacuum_into(pool: &SqlitePool, path: &str) -> Result<(), DbError> {
-    let escaped = path.replace('\'', "''");
-    let sql = format!("VACUUM INTO '{escaped}'");
-    sqlx::query(&sql).execute(pool).await?;
+    sqlx::query("VACUUM INTO ?")
+        .bind(path)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 

@@ -40,7 +40,7 @@ pub async fn backup(
     Ok(())
 }
 
-/// Reject paths that could escape the intended directory or inject SQL.
+/// Reject paths that could escape the intended directory.
 fn is_safe_backup_path(path: &str) -> bool {
     !path.contains("..") && !path.contains(|c: char| c.is_control() || c == '\0')
 }
