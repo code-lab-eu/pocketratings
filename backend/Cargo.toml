@@ -13,7 +13,7 @@ repository = "https://github.com/yourusername/pocketratings"
 axum = { version = "0.8", features = ["json"] }
 tower = "0.5"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "io-util", "process", "time"] }
-sqlx = { version = "0.9", features = ["runtime-tokio", "sqlite", "migrate"] }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "sqlite-bundled", "migrate", "macros"] }
 argon2 = "0.6"
 getrandom = "0.4"
 jsonwebtoken = "9"
