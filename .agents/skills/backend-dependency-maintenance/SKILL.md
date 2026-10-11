@@ -20,6 +20,10 @@ Inspect the working tree, manifest, lockfile, backend source and tests, build
 scripts, Dockerfile, and CI configuration. Preserve unrelated changes. Record
 resolved versions separately from manifest version requirements.
 
+Read `docs/backend-dependencies.md` first: it records deliberate version holds,
+retained duplicate versions, and upstream issues and pull requests already
+found. Re-check its linked tickets instead of repeating the search.
+
 Run Cargo commands from `backend/`. Start with:
 
 ```bash
@@ -148,6 +152,10 @@ coverage. Also run `cargo build --release --locked` from `backend/` and
 `./scripts/ascii-punctuation.sh check` from the repository root. Rebuild the
 backend container when changes affect native libraries or container build
 compatibility. A compile-only check is insufficient to complete an update.
+
+Update `docs/backend-dependencies.md` with every hold, retained duplicate, and
+upstream ticket this pass found or resolved, including the check date and the
+ticket status. Remove entries that no longer apply.
 
 Report updated versions, removed or relocated dependencies, feature reductions,
 duplicate versions resolved or retained with reasons, upstream contribution
