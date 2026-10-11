@@ -133,7 +133,7 @@ mod tests {
 
     /// Store a token for `user_id` that was created `age_seconds` ago, and return the raw token.
     async fn create_token(state: &AppState, user_id: Uuid, age_seconds: i64) -> String {
-        let token = reset_token::generate();
+        let token = reset_token::generate().expect("generate token");
         db::password_reset::create(
             &state.pool,
             user_id,
