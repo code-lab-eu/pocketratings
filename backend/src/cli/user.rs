@@ -85,7 +85,8 @@ pub async fn reset_link(
 
     let user = require_user_by_email(pool, email).await?;
 
-    let token = reset_token::generate();
+    let token = reset_token::generate()
+        .map_err(|e| CliError::Other(anyhow::anyhow!("token generation failed: {e}")))?;
     let now = Utc::now().timestamp();
     db::password_reset::create(pool, user.id(), &reset_token::hash(&token), now).await?;
 

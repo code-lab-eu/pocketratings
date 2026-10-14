@@ -306,7 +306,10 @@ async fn fetch_all_reviews_with_relations_raw(
     pool: &SqlitePool,
 ) -> Result<Vec<ReviewWithRelations>, crate::db::DbError> {
     let sql = format!("{REVIEW_JOIN_SELECT} {REVIEW_JOIN_FROM} ORDER BY r.updated_at DESC");
-    let rows = sqlx::query(&sql).fetch_all(pool).await?;
+    // Audited: the SQL contains only constants and `?` placeholders.
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql))
+        .fetch_all(pool)
+        .await?;
     let mut out = Vec::with_capacity(rows.len());
     for row in rows {
         out.push(row_to_review_with_relations(&row)?);
@@ -392,7 +395,11 @@ pub async fn get_by_id_with_relations(
     } else {
         format!("{REVIEW_JOIN_SELECT} {REVIEW_JOIN_FROM} WHERE r.id = ? AND r.deleted_at IS NULL")
     };
-    let row = sqlx::query(&sql).bind(&id_str).fetch_optional(pool).await?;
+    // Audited: the SQL contains only constants and `?` placeholders.
+    let row = sqlx::query(sqlx::AssertSqlSafe(sql))
+        .bind(&id_str)
+        .fetch_optional(pool)
+        .await?;
 
     let Some(row) = row else {
         return Ok(None);

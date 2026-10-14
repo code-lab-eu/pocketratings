@@ -4,7 +4,6 @@
 //! database cannot be turned back into working links. Argon2 (used for passwords) is unsuitable
 //! here because looking a token up requires a deterministic hash.
 
-use rand_core::{OsRng, RngCore};
 use sha2::{Digest, Sha256};
 
 /// How long a reset link stays valid: 12 hours, in seconds.
@@ -14,11 +13,14 @@ pub const TOKEN_TTL_SECONDS: i64 = 12 * 3600;
 const TOKEN_BYTES: usize = 32;
 
 /// Generate a new random reset token (hex-encoded, 64 characters).
-#[must_use]
-pub fn generate() -> String {
+///
+/// # Errors
+///
+/// Returns an error if the operating system's random number generator is unavailable.
+pub fn generate() -> Result<String, getrandom::Error> {
     let mut bytes = [0u8; TOKEN_BYTES];
-    OsRng.fill_bytes(&mut bytes);
-    hex::encode(bytes)
+    getrandom::fill(&mut bytes)?;
+    Ok(hex::encode(bytes))
 }
 
 /// Hash a raw token for storage and look-up (SHA-256, hex-encoded).
@@ -33,7 +35,7 @@ mod tests {
 
     #[test]
     fn generate_returns_64_hex_characters() {
-        let token = generate();
+        let token = generate().expect("generate");
         assert_eq!(token.len(), 64);
         assert!(
             token.chars().all(|c| c.is_ascii_hexdigit()),
@@ -43,16 +45,16 @@ mod tests {
 
     #[test]
     fn generate_returns_a_different_token_each_call() {
-        let first = generate();
-        let second = generate();
+        let first = generate().expect("generate");
+        let second = generate().expect("generate");
         assert_ne!(first, second);
     }
 
     #[test]
     fn hash_is_deterministic_and_differs_per_token() {
-        let token = generate();
+        let token = generate().expect("generate");
         assert_eq!(hash(&token), hash(&token));
-        assert_ne!(hash(&token), hash(&generate()));
+        assert_ne!(hash(&token), hash(&generate().expect("generate")));
     }
 
     #[test]
@@ -60,6 +62,14 @@ mod tests {
         let digest = hash("some-token");
         assert_eq!(digest.len(), 64);
         assert!(digest.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn hash_matches_known_sha256_vector() {
+        assert_eq!(
+            hash("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 
     #[test]

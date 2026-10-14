@@ -107,6 +107,26 @@ async fn db_backup_creates_file_with_explicit_output() {
     );
 }
 
+/// Backup to a path containing a single quote writes to that exact path.
+#[tokio::test]
+async fn db_backup_handles_single_quote_in_path() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let db_path = dir.path().join("quote.db");
+    let db_path_str = db_path.to_str().expect("path UTF-8");
+    let quoted_backup = dir.path().join("it's a backup.db");
+
+    let pool = db::create_pool(db_path_str).await.expect("create pool");
+    db::run_migrations(&pool).await.expect("migrations");
+
+    let quoted_str = quoted_backup.to_str().expect("path UTF-8");
+    let config = test_config(db_path_str);
+    let (result, _stdout, stderr) =
+        run_db_backup(&pool, Some(&config), &["--output", quoted_str]).await;
+
+    assert!(result.is_ok(), "stderr: {stderr}");
+    assert!(quoted_backup.exists(), "backup file should exist");
+}
+
 /// Backup with path containing `..` returns validation error.
 #[tokio::test]
 async fn db_backup_rejects_unsafe_path() {

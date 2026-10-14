@@ -2,10 +2,8 @@
 //!
 //! Produces and verifies PHC-format strings suitable for storage in [`User`](crate::domain::user::User).
 
-use argon2::password_hash::PasswordHash;
-use argon2::password_hash::SaltString;
+use argon2::password_hash::phc::PasswordHash;
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
-use rand_core::OsRng;
 
 /// Errors that can occur during password hashing or verification.
 #[derive(Debug, thiserror::Error)]
@@ -28,10 +26,8 @@ pub enum PasswordError {
 ///
 /// Returns [`PasswordError::Hashing`] if hashing fails (e.g. password too long).
 pub fn hash_password(plain: &str) -> Result<String, PasswordError> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-    let hash = argon2
-        .hash_password(plain.as_bytes(), &salt)
+    let hash = Argon2::default()
+        .hash_password(plain.as_bytes())
         .map_err(|_| PasswordError::Hashing)?;
     Ok(hash.to_string())
 }
@@ -68,6 +64,23 @@ mod tests {
     fn wrong_password_fails_verification() {
         let hash = hash_password("correct").expect("hash should succeed");
         assert!(!verify_password("wrong", &hash).expect("verify should not error"));
+    }
+
+    #[test]
+    fn verifies_hash_created_with_default_parameters_by_reference_implementation() {
+        // Created with the `argon2` CLI: m=19456, t=2, p=1, 32-byte output.
+        let stored = "$argon2id$v=19$m=19456,t=2,p=1$cG9ja2V0cmF0aW5ncy1zYWx0$mZT9YExG8IHicMThr4IzGCYW/AQCsH22rjuKFSVU2j8";
+        assert!(verify_password("correct horse", stored).expect("valid hash"));
+        assert!(!verify_password("wrong horse", stored).expect("valid hash"));
+    }
+
+    #[test]
+    fn new_hashes_use_default_parameters_of_stored_hashes() {
+        let hash = hash_password("pw").expect("hash");
+        assert!(
+            hash.starts_with("$argon2id$v=19$m=19456,t=2,p=1$"),
+            "{hash}"
+        );
     }
 
     #[test]

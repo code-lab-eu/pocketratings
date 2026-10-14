@@ -7,9 +7,10 @@ review what you buy, where you bought it, and what you paid.
 - `frontend/` - SvelteKit with Tailwind v4, built and run with bun.
 - Deployment - Docker Compose (`compose.yaml`) behind Caddy (`Caddyfile`).
 
-Reference docs: `docs/spec.md` (behaviour, screens, data flow),
-`docs/api.md` and `docs/api.http` (REST contract), `docs/roadmap.md`
-(planned work), `README.md` (setup and run).
+Reference docs: `docs/spec.md` (behaviour, screens, data flow), `docs/api.md`
+and `docs/api.http` (REST contract), `docs/roadmap.md` (planned work),
+`docs/backend-dependencies.md` (dependency holds and upstream tickets),
+`README.md` (setup and run).
 
 ## Skills
 
