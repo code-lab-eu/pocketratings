@@ -327,11 +327,13 @@ Runnable HTTP examples are available in [docs/api.http](api.http).
   (Svelte). Single entry point, same-origin, no CORS. For production, the
   Caddyfile can be set to a domain for automatic Let's Encrypt TLS.
 - **Container setups**: Two setups run the proxy, backend and frontend
-  containers, and read the same `Caddyfile` and root `.env`: Compose files
-  (`compose.yaml` on ports 80 and 443, `compose.bastion.yaml` on port 3080 for a
-  host behind a TLS-terminating proxy) and Podman Quadlet units in `quadlet/`
-  (rootless systemd user units, HTTP on port 3080; a host sets its own port and
-  environment in drop-in files). Both build the images from the repository.
+  containers, and read the same `Caddyfile`: Compose files (`compose.yaml` on
+  ports 80 and 443, `compose.bastion.yaml` on port 3080 for a host behind a
+  TLS-terminating proxy) and Podman Quadlet units in `quadlet/` (rootless
+  systemd user units, HTTP on port 3080). Compose takes the backend settings
+  from the root `.env`; the Quadlet units take them from drop-in files, with the
+  JWT secret as a podman secret, and a host sets its own port there too. Both
+  build the images from the repository.
 
 **Configuration**
 

@@ -4,9 +4,6 @@ Description=Pocket Ratings backend
 [Container]
 ContainerName=pocketratings-backend
 Image=pocketratings-backend.build
-# JWT_SECRET and APP_BASE_URL come from the .env file at the root of the
-# repository, the same file that compose.yaml reads.
-EnvironmentFile=../.env
 Environment=BIND=0.0.0.0:3099
 Environment=DB_PATH=/data/pocketratings.db
 Network=pocketratings.network

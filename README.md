@@ -128,7 +128,8 @@ You can run the full stack (Caddy reverse proxy, backend API, static frontend)
 with Docker or Podman Compose, or with Podman Quadlet as systemd user units. The
 proxy routes `/api/v1/` to the backend and everything else to the frontend; one
 entry point, no CORS. Both setups build the images from the repository and read
-the same `Caddyfile` and `.env` at the repo root.
+the same `Caddyfile` at the repo root. Compose takes the backend settings from
+`.env`, the Quadlet units from drop-in files.
 
 ### Compose
 
@@ -161,10 +162,20 @@ The unit files are in `quadlet/`. The proxy publishes HTTP on port 3080, which a
 rootless container can use; terminate TLS in front of it, or change the
 Caddyfile and the published ports as described below.
 
-1. Copy the root env example to `.env` and edit the values. Set `APP_BASE_URL`
-   to the address the app is served from, e.g. `http://localhost:3080`:
+1. Create the JWT signing secret as a podman secret, and the directory for the
+   settings of the backend:
    ```bash
-   cp .env.example .env
+   openssl rand -hex 32 | podman secret create pocketratings-jwt -
+   mkdir -p ~/.config/containers/systemd/pocketratings-backend.container.d
+   ```
+   Then create
+   `~/.config/containers/systemd/pocketratings-backend.container.d/settings.conf`
+   with the settings of the backend. Set `APP_BASE_URL` to the address the app
+   is served from:
+   ```ini
+   [Container]
+   Environment=APP_BASE_URL=http://localhost:3080
+   Secret=pocketratings-jwt,type=env,target=JWT_SECRET
    ```
 
 2. Link the unit directory into the Podman configuration of your user and load
@@ -175,9 +186,9 @@ Caddyfile and the published ports as described below.
    systemctl --user daemon-reload
    ```
    Quadlet follows the link and resolves the relative paths in the units
-   (`../backend`, `../frontend`, `../Caddyfile`, `../.env`) against the
-   repository. `podman quadlet install` copies the units without the repository,
-   so do not use it here.
+   (`../backend`, `../frontend`, `../Caddyfile`) against the repository.
+   `podman quadlet install` copies the units without the repository, so do not
+   use it here.
 
 3. Start the stack. The first start builds both images and takes several
    minutes:
@@ -203,9 +214,8 @@ PublishPort=
 PublishPort=127.0.0.1:3080:80
 ```
 
-An `Environment=` line in a backend drop-in takes precedence over the same
-variable in `.env`. Run `systemctl --user daemon-reload` after changing a
-drop-in, then restart its unit, e.g. `systemctl --user restart pocketratings`.
+Run `systemctl --user daemon-reload` after changing a drop-in, then restart its
+unit, e.g. `systemctl --user restart pocketratings`.
 
 **Update.** Fetch the new version and restart the backend and the frontend; each
 start of their units rebuilds the image from the repository:
