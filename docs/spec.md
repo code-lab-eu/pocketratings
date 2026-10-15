@@ -322,7 +322,16 @@ Runnable HTTP examples are available in [docs/api.http](api.http).
 ## Deployment
 
 - **Same domain**: Backend and frontend are served from the **same domain** (e.g. `https://pocketratings.example.com`). The API is under `/api/v1/`; all other paths are handled by the frontend (Svelte).
-- **Reverse proxy**: The monorepo includes a **Caddy** configuration and a Compose file (`compose.yaml`) that route `/api/v1/` to the backend (Rust API) and all other paths to the frontend (Svelte). Single entry point, same-origin, no CORS. For production, the Caddyfile can be set to a domain for automatic Let's Encrypt TLS.
+- **Reverse proxy**: The monorepo includes a **Caddy** configuration that routes
+  `/api/v1/` to the backend (Rust API) and all other paths to the frontend
+  (Svelte). Single entry point, same-origin, no CORS. For production, the
+  Caddyfile can be set to a domain for automatic Let's Encrypt TLS.
+- **Container setups**: Two setups run the proxy, backend and frontend
+  containers, and read the same `Caddyfile` and root `.env`: Compose files
+  (`compose.yaml` on ports 80 and 443, `compose.bastion.yaml` on port 3080 for a
+  host behind a TLS-terminating proxy) and Podman Quadlet units in `quadlet/`
+  (rootless systemd user units, HTTP on port 3080; a host sets its own port and
+  environment in drop-in files). Both build the images from the repository.
 
 **Configuration**
 
@@ -332,6 +341,13 @@ Runnable HTTP examples are available in [docs/api.http](api.http).
 
 - `DB_PATH` — Database path (default: `./pocketratings.db`)
 - `JWT_SECRET` — JWT signing secret (**required**)
+- `APP_BASE_URL` — Public base URL the app is served from, used to build links
+  handed to users such as password reset links (**required**; a trailing slash
+  is ignored)
+- `JWT_EXPIRATION_SECONDS` — Token lifetime in seconds (default: `2592000`, 30
+  days)
+- `JWT_REFRESH_THRESHOLD_SECONDS` — A new token is issued in `X-New-Token` when
+  the current one expires within this many seconds (default: `604800`, 7 days)
 - `BIND` — Server bind address (default: `127.0.0.1:3099`)
 - `PID_FILE` — Path to PID file for daemon mode (default: temporary directory, e.g., `/tmp/pocketratings.pid` on Unix, `%TEMP%\pocketratings.pid` on Windows)
 

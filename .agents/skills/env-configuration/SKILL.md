@@ -9,8 +9,8 @@ When you add or change an environment variable that the application reads
 (e.g. in `backend/src/config/`), update the corresponding `.env.example`
 in the same change:
 
-- `backend/.env.example` for backend config; the root `.env.example` for
-  Docker Compose and deployment variables.
+- `backend/.env.example` for backend config; the root `.env.example` for the
+  deployment variables that Docker Compose and the Podman Quadlet units read.
 - Add a line for the new variable with a comment describing it and its
   default, if any.
 - For optional variables with defaults, comment the line out and document

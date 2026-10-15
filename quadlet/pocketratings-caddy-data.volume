@@ -1,0 +1,5 @@
+[Unit]
+Description=Volume for the data of the Pocket Ratings proxy, such as certificates
+
+[Volume]
+VolumeName=pocketratings-caddy-data
