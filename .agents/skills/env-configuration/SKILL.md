@@ -11,6 +11,9 @@ in the same change:
 
 - `backend/.env.example` for backend config; the root `.env.example` for Docker
   Compose and deployment variables.
+- The Podman Quadlet units do not read `.env`. For a required backend variable,
+  also add an `Environment=` line to the backend drop-in example in step 1 of
+  "Podman Quadlet" in `README.md`.
 - Add a line for the new variable with a comment describing it and its
   default, if any.
 - For optional variables with defaults, comment the line out and document

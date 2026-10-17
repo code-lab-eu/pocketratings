@@ -25,8 +25,18 @@ Check the paragraphs changed on your branch, and rewrap the ones it reports:
 ./scripts/markdown-wrap.py fix FILE LINE ...
 ```
 
-The pre-push hook and CI run the same check against the upstream branch (or
-`origin/master`).
+CI runs the same check against `origin/master`. The pre-push hook runs it
+against the upstream branch when there is one (`origin/<branch>` on a pushed
+branch), which also covers paragraphs that a commit since the last push restored
+to the text of `master`. Before pushing a branch that is already pushed, run
+that form too:
+
+```bash
+./scripts/markdown-wrap.py check --since "$(git merge-base '@{upstream}' HEAD)"
+```
+
+`--since` skips untracked files; check a new file by name with
+`./scripts/markdown-wrap.py check FILE`.
 
 **Code blocks** are exempt: a long command or URL may be split with a
 shell line continuation where that does not change behaviour, but leave it
