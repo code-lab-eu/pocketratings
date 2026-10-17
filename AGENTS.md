@@ -5,7 +5,8 @@ review what you buy, where you bought it, and what you paid.
 
 - `backend/` - Rust (Axum REST API + CLI), SQLite.
 - `frontend/` - SvelteKit with Tailwind v4, built and run with bun.
-- Deployment - Docker Compose (`compose.yaml`) behind Caddy (`Caddyfile`).
+- Deployment - Docker Compose (`compose.yaml`, `compose.bastion.yaml`) or Podman
+  Quadlet units (`quadlet/`), both behind Caddy (`Caddyfile`).
 
 Reference docs: `docs/spec.md` (behaviour, screens, data flow), `docs/api.md`
 and `docs/api.http` (REST contract), `docs/roadmap.md` (planned work),

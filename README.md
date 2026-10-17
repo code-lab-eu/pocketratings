@@ -19,6 +19,7 @@ you paid.
 - `backend/` — Rust API and CLI
 - `frontend/` — Svelte app
 - `docs/` — Specification and API docs
+- `quadlet/` — Podman Quadlet units for running the stack as systemd user units
 
 ## Prerequisites
 
@@ -123,9 +124,14 @@ Backend coverage (run by the pre-push script) requires
 
 ## Running with Docker / Podman
 
-You can run the full stack (Caddy reverse proxy, backend API, static
-frontend) with Docker or Podman Compose. The proxy routes `/api/v1/` to
-the backend and everything else to the frontend; one entry point, no CORS.
+You can run the full stack (Caddy reverse proxy, backend API, static frontend)
+with Docker or Podman Compose, or with Podman Quadlet as systemd user units. The
+proxy routes `/api/v1/` to the backend and everything else to the frontend; one
+entry point, no CORS. Both setups build the images from the repository and read
+the same `Caddyfile` at the repo root. Compose takes the backend settings from
+`.env`, the Quadlet units from drop-in files.
+
+### Compose
 
 **Prerequisites:** Docker with Compose, or Podman with Compose (e.g.
 `podman-compose`).
@@ -144,9 +150,83 @@ the backend and everything else to the frontend; one entry point, no CORS.
 3. Open the app at **http://localhost** (or https://yourdomain.com if you
    configured the Caddyfile with a domain for Let's Encrypt).
 
-For production HTTPS, edit the **Caddyfile** at the repo root: replace
-`http://localhost` with your domain (e.g. `https://pocketratings.example.com`).
-Caddy will obtain and renew a certificate automatically.
+For production HTTPS, edit the **Caddyfile** at the repo root: replace the site
+address `:80` with your domain (e.g. `https://pocketratings.example.com`). Caddy
+will obtain and renew a certificate automatically.
+
+### Podman Quadlet
+
+**Prerequisites:** Linux with systemd and Podman 6.1 or newer.
+
+The unit files are in `quadlet/`. The proxy publishes HTTP on port 3080, which a
+rootless container can use; terminate TLS in front of it, or change the
+Caddyfile and the published ports as described below.
+
+1. Create the JWT signing secret as a podman secret, and the directory for the
+   settings of the backend:
+   ```bash
+   openssl rand -hex 32 | podman secret create pocketratings-jwt -
+   mkdir -p ~/.config/containers/systemd/pocketratings-backend.container.d
+   ```
+   Then create
+   `~/.config/containers/systemd/pocketratings-backend.container.d/settings.conf`
+   with the settings of the backend. Set `APP_BASE_URL` to the address the app
+   is served from:
+   ```ini
+   [Container]
+   Environment=APP_BASE_URL=http://localhost:3080
+   Secret=pocketratings-jwt,type=env,target=JWT_SECRET
+   ```
+
+2. Link the unit directory into the Podman configuration of your user and load
+   the units:
+   ```bash
+   mkdir -p ~/.config/containers/systemd
+   ln -s "$PWD/quadlet" ~/.config/containers/systemd/pocketratings
+   systemctl --user daemon-reload
+   ```
+   Quadlet follows the link and resolves the relative paths in the units
+   (`../backend`, `../frontend`, `../Caddyfile`) against the repository.
+   `podman quadlet install` copies the units without the repository, so do not
+   use it here.
+
+3. Start the stack. The first start builds both images and takes several
+   minutes:
+   ```bash
+   systemctl --user start pocketratings
+   ```
+
+4. Open the app at **http://localhost:3080**.
+
+The stack starts at boot when systemd starts your user instance at boot:
+`loginctl enable-linger "$USER"`.
+
+**Settings of the host.** Put host-specific settings in drop-in files instead of
+editing the units. A drop-in for the proxy goes in
+`~/.config/containers/systemd/pocketratings.container.d/` and one for the
+backend in `pocketratings-backend.container.d/` next to it; the file name must
+end in `.conf`. An empty `PublishPort=` line removes the default port, for
+example to listen on localhost only:
+
+```ini
+[Container]
+PublishPort=
+PublishPort=127.0.0.1:3080:80
+```
+
+Run `systemctl --user daemon-reload` after changing a drop-in, then restart its
+unit, e.g. `systemctl --user restart pocketratings`.
+
+**Update.** Fetch the new version and restart the backend and the frontend; each
+start of their units rebuilds the image from the repository:
+
+```bash
+git pull
+systemctl --user daemon-reload
+systemctl --user restart pocketratings-backend pocketratings-frontend
+```
+
+Stop the stack with `systemctl --user stop 'pocketratings*'`.
 
 ### Running backend CLI commands
 
@@ -156,9 +236,11 @@ Run CLI commands in that container so they use the same database:
 ```bash
 docker compose exec backend /app/pocketratings <command> [options]
 # or: podman-compose -f compose.yaml exec -T backend /app/pocketratings <command> [options]
+# or (Quadlet): podman exec pocketratings-backend /app/pocketratings <command> [options]
 ```
 
-Examples (registration is CLI-only in v1):
+Examples (registration is CLI-only in v1); with Quadlet, replace
+`docker compose exec backend` with `podman exec pocketratings-backend`:
 
 ```bash
 docker compose exec backend /app/pocketratings user register \
@@ -182,9 +264,9 @@ there; see **Configuration** and **Development** above.
 
 ### Backup and restore
 
-The database is stored in a named volume `pocketratings_db`, mounted at
-`/data` in the backend container. The database file is
-`/data/pocketratings.db`.
+The database is stored in a named volume, `pocketratings_pocketratings_db` with
+Compose and `pocketratings-db` with Quadlet, mounted at `/data` in the backend
+container. The database file is `/data/pocketratings.db`.
 
 **Back up the database**
 
@@ -195,11 +277,12 @@ From the repo root, with the stack running:
 ```bash
 docker compose exec backend /app/pocketratings database backup
 # or: podman-compose -f compose.yaml exec -T backend /app/pocketratings database backup
+# or (Quadlet): podman exec pocketratings-backend /app/pocketratings database backup
 ```
 
-This writes a snapshot to `/data/pocketratings.db.backup` inside the
-container. Copy it out (replace `CONTAINER_ID` with the backend container
-ID or name):
+This writes a snapshot to `/data/pocketratings.db.backup` inside the container.
+Copy it out (replace `CONTAINER_ID` with the backend container ID or name; with
+Quadlet the name is `pocketratings-backend`):
 
 ```bash
 docker cp CONTAINER_ID:/data/pocketratings.db.backup backup-$(date +%Y%m%d-%H%M%S).db
@@ -214,6 +297,8 @@ docker compose exec backend cat /data/pocketratings.db \
   > backup-$(date +%Y%m%d-%H%M%S).db
 # or: podman-compose -f compose.yaml exec -T backend cat /data/pocketratings.db \
 #     > backup-$(date +%Y%m%d-%H%M%S).db
+# or (Quadlet): podman exec pocketratings-backend cat /data/pocketratings.db \
+#     > backup-$(date +%Y%m%d-%H%M%S).db
 ```
 
 **Restore the database**
@@ -222,6 +307,7 @@ docker compose exec backend cat /data/pocketratings.db \
    ```bash
    docker compose stop backend
    # or: podman-compose -f compose.yaml stop backend
+   # or (Quadlet, also stops the proxy): systemctl --user stop pocketratings-backend
    ```
 
 2. Replace the database in the volume (use the backup file path you have):
@@ -229,15 +315,18 @@ docker compose exec backend cat /data/pocketratings.db \
    docker run --rm \
      -v pocketratings_pocketratings_db:/data -v "$(pwd)":/backup \
      alpine sh -c "cp /backup/backup-YYYYMMDD-HHMMSS.db /data/pocketratings.db \
-       && chown 1000:1000 /data/pocketratings.db"
+       && chown 999:999 /data/pocketratings.db"
    ```
-For Podman use `podman run`. Replace `backup-YYYYMMDD-HHMMSS.db` with
-your backup filename. The volume name is `pocketratings_pocketratings_db`.
+UID and GID 999 belong to the user `app` that runs the backend. For Podman use
+`podman run`. Replace `backup-YYYYMMDD-HHMMSS.db` with your backup filename. The
+volume name is `pocketratings_pocketratings_db`, or `pocketratings-db` with
+Quadlet.
 
 3. Start the backend again:
    ```bash
    docker compose start backend
    # or: podman-compose -f compose.yaml start backend
+   # or (Quadlet): systemctl --user start pocketratings
    ```
 
 ## License

@@ -1,0 +1,13 @@
+[Unit]
+Description=Pocket Ratings frontend
+
+[Container]
+ContainerName=pocketratings-frontend
+Image=pocketratings-frontend.build
+Network=pocketratings.network
+# The Caddyfile forwards everything except the API to the host name
+# "frontend".
+NetworkAlias=frontend
+
+[Service]
+Restart=always

@@ -1,0 +1,22 @@
+[Unit]
+Description=Pocket Ratings
+Requires=pocketratings-backend.container pocketratings-frontend.container
+After=pocketratings-backend.container pocketratings-frontend.container
+
+[Container]
+ContainerName=pocketratings
+Image=docker.io/library/caddy:2-alpine
+# The Caddyfile at the root of the repository, the same file that compose.yaml
+# mounts.
+Volume=../Caddyfile:/etc/caddy/Caddyfile:ro
+Volume=pocketratings-caddy-data.volume:/data
+# HTTP only, on a port that a rootless container can publish, as in
+# compose.bastion.yaml. A host sets its own port in a drop-in file.
+PublishPort=3080:80
+Network=pocketratings.network
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
