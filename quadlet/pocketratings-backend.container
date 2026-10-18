@@ -1,0 +1,15 @@
+[Unit]
+Description=Pocket Ratings backend
+
+[Container]
+ContainerName=pocketratings-backend
+Image=pocketratings-backend.build
+Environment=BIND=0.0.0.0:3099
+Environment=DB_PATH=/data/pocketratings.db
+Network=pocketratings.network
+# The Caddyfile forwards the API to the host name "backend".
+NetworkAlias=backend
+Volume=pocketratings-db.volume:/data
+
+[Service]
+Restart=always

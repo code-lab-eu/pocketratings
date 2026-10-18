@@ -1,6 +1,6 @@
 # Single-file compose for running behind a bastion with SSL termination. Exposes
 # HTTP only and avoids the use of port 80 so it can run rootless with Podman.
-# Run: podman-compose -f compose.bastion.yml up -d
+# Run: podman-compose -f compose.bastion.yaml up -d
 
 services:
   proxy:

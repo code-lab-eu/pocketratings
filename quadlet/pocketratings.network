@@ -1,0 +1,5 @@
+[Unit]
+Description=Network of the Pocket Ratings containers
+
+[Network]
+NetworkName=pocketratings

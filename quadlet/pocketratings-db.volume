@@ -1,0 +1,5 @@
+[Unit]
+Description=Volume for the database of Pocket Ratings
+
+[Volume]
+VolumeName=pocketratings-db
