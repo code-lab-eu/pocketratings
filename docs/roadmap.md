@@ -171,7 +171,7 @@ page has the same issue when it converts `purchased_at` to the field value.
 - Submitting still converts the field value with `new Date(value)`, which parses
   it as local time; confirm the round trip in a test.
 
-### 9. Align icon-style buttons on one component [FE]
+### 9. Align icon-style buttons on one component [FE] — DONE
 
 **2 sp.** Five buttons are written by hand with their own classes and ARIA
 attributes: the theme toggle and **Log out** in `routes/+layout.svelte`, the
@@ -364,6 +364,26 @@ shortcuts can look blurry or fall back to a generic icon.
   exist.
 - Verify on an iOS and an Android device (or emulator) that add-to-home-screen
   shows the new icon.
+
+### 18. Move the category chevron out of the card link [FE]
+
+**2 sp.** In the expandable category tree (`CategoryLinkList.svelte`, the
+`treeCategoryLink` snippet), the expand/collapse chevron `<button>` sits inside
+the card `<a>`. Interactive content inside a link is invalid HTML: screen
+readers announce the button as part of the link, and the click handler has to
+call `preventDefault` and `stopPropagation` to keep the link from navigating.
+
+**Tasks:**
+- Do this after task 9, which moves the chevron to `IconButton`.
+- Make the card a container with the chevron `IconButton` and the category link
+  as siblings; the link fills the rest of the card so the whole row outside the
+  chevron stays clickable. Remove the `preventDefault` and `stopPropagation`
+  from `handleChevronClick`.
+- Keep the visual layout, indentation, and the `chevron-spacer` alignment
+  unchanged.
+- Tests first: replace the "chevron button is inside the card link container"
+  test in `category-link-list.test.ts` with one asserting the button is not
+  inside the link; the expand and collapse tests keep passing.
 
 ---
 

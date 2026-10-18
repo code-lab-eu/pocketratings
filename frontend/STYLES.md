@@ -39,8 +39,10 @@ Defined in `src/routes/layout.css`:
   - `.pr-btn-secondary`: secondary/outline button used for "Cancel" actions and similar. Has
     `cursor: pointer` and `:focus-visible`.
   - `.pr-btn-icon`: icon-sized or header-style button or icon link (transparent background, hover
-    tint). Use for theme toggle, log out, edit/delete icons in list rows. Has `cursor: pointer` and
-    `:focus-visible`. Combine with `.pr-link-muted` or semantic colour classes as needed.
+    tint). Has a 44px minimum height and width (minimum touch target size, WCAG 2.5.5), `cursor:
+    pointer`, and `:focus-visible`. Combine with `.pr-link-muted` or semantic colour classes as
+    needed. Icon buttons get it from `IconButton`; icon links (the header Menu link, `EditLink`)
+    use it directly.
   - All button classes use a short transition; motion is disabled when the user prefers
     reduced motion (`prefers-reduced-motion: reduce`).
 
@@ -72,9 +74,23 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
 
 - `lib/EditLink.svelte`
   - Props: `href` (already resolved by the caller), `label`.
-  - Icon link with the lucide `Pen` icon, `pr-btn-icon` with `pr-link-muted`, a 44px minimum tap
-    target, and the accessible name "Edit {label}". Used for the edit action in `ManageListRow` and
-    next to the product name on the product detail page.
+  - Icon link with the lucide `Pen` icon, `pr-btn-icon` with `pr-link-muted` (which supplies the
+    44px minimum tap target), and the accessible name "Edit {label}". Used for the edit action in
+    `ManageListRow` and next to the product name on the product detail page.
+
+- `lib/IconButton.svelte`
+  - Props:
+    - `label` (required): the accessible name (`aria-label`).
+    - `onclick`, `title`, `disabled`.
+    - `pressed` and `expanded` (optional): `aria-pressed` and `aria-expanded`; each attribute is
+      omitted when the prop is undefined.
+    - `tone`: `'muted' | 'danger'` (default: `'muted'`). `muted` uses `pr-link-muted`; `danger` is
+      the red text for destructive actions such as delete.
+    - `class` (optional): positioning only (absolute placement, margins).
+    - `children`: the icon.
+  - Always renders a `<button type="button">` with `pr-btn-icon`, so it has the 44px minimum tap
+    target. Used for the theme toggle and Log out in the header, the `PasswordField` toggle, the
+    delete action in `ManageListRow`, and the expand/collapse chevron in `CategoryLinkList`.
 
 - `lib/InlineFormToggle.svelte`
   - Props: `label`, `headingId`, `open` (bindable), `onoutroend` (optional); the form is the child
@@ -91,9 +107,9 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
 
 - `lib/PasswordField.svelte`
   - Props: `id`, `label`, `value` (bindable), `required`, `autocomplete`.
-  - Password input (`.pr-input`) with a `.pr-btn-icon` show/hide toggle inside the field: lucide
-    `Eye`/`EyeOff`, 44px minimum tap target, `aria-pressed`, and an accessible name that flips
-    between "Show password" and "Hide password".
+  - Password input (`.pr-input`) with an `IconButton` show/hide toggle inside the field: lucide
+    `Eye`/`EyeOff`, `pressed` (`aria-pressed`), and an accessible name that flips between "Show
+    password" and "Hide password".
 
 - `lib/SectionHeading.svelte`
   - Props:
@@ -110,6 +126,8 @@ Layout-related utilities (spacing, flex, grid, widths) stay inline in components
   - Use `Button` for primary, secondary, and link-style actions, with `onclick` for actions on the
     page and `href` for navigation. Do not write `pr-btn-primary`, `pr-btn-secondary`, or
     `pr-link-inline` on a raw `<button>`.
+  - Use `IconButton` for every icon-only button. Use `.pr-btn-icon` directly only on icon links,
+    with `EditLink` for edit; never put `.pr-btn-icon` on a raw `<button>`.
   - Use `.pr-link-muted` for back-links in headers (e.g. "← Manage") and `.pr-link-inline` for inline links in text.
 
 - **Forms**

@@ -172,6 +172,29 @@ describe('CategoryLinkList', () => {
       expect(screen.queryByRole('link', { name: 'Dairy' })).not.toBeInTheDocument();
     });
 
+    it('chevron button reports its state through aria-expanded', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(CategoryLinkList, {
+        props: {
+          tree: [food],
+          hrefFor: testHref,
+          expandedIds: new Set<string>(),
+          onToggle: (category: Category) => rerender({ expandedIds: new Set([category.id]) })
+        }
+      });
+      expect(screen.getByRole('button', { name: /expand food/i })).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+      await user.click(screen.getByRole('button', { name: /expand food/i }));
+
+      expect(screen.getByRole('button', { name: /collapse food/i })).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+    });
+
     it('chevron button is inside the card link container', () => {
       const onToggle = vi.fn();
       render(CategoryLinkList, {

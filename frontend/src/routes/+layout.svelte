@@ -10,9 +10,10 @@
   import { page } from '$app/stores';
   import favicon from '$lib/assets/favicon.svg';
   import { clearToken, getToken, token } from '$lib/auth';
+  import IconButton from '$lib/IconButton.svelte';
   import ThemeToggleIcon from '$lib/ThemeToggleIcon.svelte';
   import { initTheme, dark, toggleDark } from '$lib/theme';
-  import { Menu } from 'lucide-svelte';
+  import { LogOut, Menu } from 'lucide-svelte';
 
   let { children } = $props();
 
@@ -51,7 +52,7 @@
       <div class="flex min-h-[44px] min-w-0 items-center gap-3">
         <a
           href={resolve('/manage')}
-          class="flex min-h-[44px] min-w-[44px] items-center justify-center pr-link-muted"
+          class="pr-btn-icon pr-link-muted"
           aria-label="Menu"
         >
           <Menu size={22} aria-hidden="true" />
@@ -63,22 +64,16 @@
         >
       </div>
       <div class="flex items-center gap-2">
-        <button
-          type="button"
+        <IconButton
           onclick={toggleDark}
-          class="pr-btn-icon min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
-          aria-label={$dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          label={$dark ? 'Switch to light mode' : 'Switch to dark mode'}
           title={$dark ? 'Light mode' : 'Dark mode'}
         >
           <ThemeToggleIcon dark={$dark} />
-        </button>
-        <button
-          type="button"
-          onclick={handleLogout}
-          class="pr-btn-icon min-h-[44px] min-w-[44px] px-2 text-sm pr-link-muted"
-        >
-          Log out
-        </button>
+        </IconButton>
+        <IconButton onclick={handleLogout} label="Log out" title="Log out">
+          <LogOut size={20} aria-hidden="true" />
+        </IconButton>
       </div>
     </div>
   </header>

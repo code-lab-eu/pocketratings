@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
   import { Eye, EyeOff } from 'lucide-svelte';
+  import IconButton from '$lib/IconButton.svelte';
 
   interface Props {
     id: string;
@@ -40,18 +41,17 @@
       autocomplete={autocompleteValue}
       class="pr-input pe-12"
     />
-    <button
-      type="button"
+    <IconButton
       onclick={() => (visible = !visible)}
-      aria-pressed={visible}
-      aria-label={visible ? 'Hide password' : 'Show password'}
-      class="pr-btn-icon absolute inset-y-0 right-0 min-h-[44px] min-w-[44px] rounded-r-lg pr-link-muted"
+      pressed={visible}
+      label={visible ? 'Hide password' : 'Show password'}
+      class="absolute inset-y-0 right-0 rounded-r-lg"
     >
       {#if visible}
         <EyeOff size={20} aria-hidden="true" />
       {:else}
         <Eye size={20} aria-hidden="true" />
       {/if}
-    </button>
+    </IconButton>
   </div>
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ChevronDown, ChevronRight } from 'lucide-svelte';
   import { slide } from 'svelte/transition';
+  import IconButton from '$lib/IconButton.svelte';
   import type { Category } from '$lib/types';
 
   interface Props {
@@ -41,10 +42,11 @@
     style="padding-left: calc(0.75rem + {depth} * 1.25rem)"
   >
     {#if hasChildren(cat)}
-      <button
-        type="button"
-        class="inline-flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-black/5 dark:hover:bg-white/10"
-        aria-label={isExpanded(cat.id) ? `Collapse ${cat.name}` : `Expand ${cat.name}`}
+      <!-- Negative margins cancel the 44px minimum so rows with a chevron have the same height and name position as rows with the spacer. -->
+      <IconButton
+        class="-mx-3 -my-2.5 shrink-0"
+        label={isExpanded(cat.id) ? `Collapse ${cat.name}` : `Expand ${cat.name}`}
+        expanded={isExpanded(cat.id)}
         onclick={(e: MouseEvent) => handleChevronClick(e, cat)}
       >
         {#if isExpanded(cat.id)}
@@ -52,7 +54,7 @@
         {:else}
           <ChevronRight size={16} aria-hidden="true" />
         {/if}
-      </button>
+      </IconButton>
     {:else}
       <span class="inline-block w-5 shrink-0" data-testid="chevron-spacer"></span>
     {/if}

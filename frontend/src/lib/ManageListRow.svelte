@@ -3,6 +3,7 @@
   import type { Snippet } from 'svelte';
   import { Trash2 } from 'lucide-svelte';
   import EditLink from '$lib/EditLink.svelte';
+  import IconButton from '$lib/IconButton.svelte';
 
   interface Props {
     /** Primary text for the row (e.g. entity name or "Name — Brand"). */
@@ -53,18 +54,17 @@
   </div>
   <div class="flex shrink-0 items-center gap-1">
     <EditLink href={editHref} {label} />
-    <button
-      type="button"
+    <IconButton
+      tone="danger"
       onclick={onDelete}
       disabled={deleting}
-      class="pr-btn-icon flex min-h-[44px] min-w-[44px] items-center justify-center text-red-600 hover:text-red-800 disabled:opacity-50 dark:text-red-300 dark:hover:text-red-200"
-      aria-label="Delete {deleteLabel}"
+      label="Delete {deleteLabel}"
     >
       {#if deleting}
         <span class="text-sm">…</span>
       {:else}
         <Trash2 size={20} />
       {/if}
-    </button>
+    </IconButton>
   </div>
 </li>
