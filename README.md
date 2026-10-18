@@ -91,7 +91,7 @@ bun install
 bun run dev
 ```
 
-The dev server will start at `http://localhost:3000`.
+The dev server will start at `http://localhost:5173`.
 
 ## Lint
 
