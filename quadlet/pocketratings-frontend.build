@@ -3,6 +3,9 @@ Description=Image of the Pocket Ratings frontend
 
 [Build]
 ImageTag=localhost/pocketratings-frontend:latest
+# Fetch a base image again when its digest changed, so that each build gets
+# its security fixes. Without network access the local image is used.
+Pull=newer
 # The build context is the directory frontend/ of the repository. Quadlet resolves
 # a relative path against the directory of this file, also when it is reached
 # through a symbolic link.

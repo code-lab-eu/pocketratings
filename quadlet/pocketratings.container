@@ -6,6 +6,9 @@ After=pocketratings-backend.container pocketratings-frontend.container
 [Container]
 ContainerName=pocketratings
 Image=docker.io/library/caddy:2-alpine
+# Fetch the image again when its digest changed, so that each start gets its
+# security fixes. Without network access the local image is used.
+Pull=newer
 # The Caddyfile at the root of the repository, the same file that compose.yaml
 # mounts.
 Volume=../Caddyfile:/etc/caddy/Caddyfile:ro
