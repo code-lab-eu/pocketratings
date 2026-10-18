@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { pinTimezone } from '../../../tests/timezone';
 import {
   errorMessage,
   formatDate,
+  formatDateTimeLocal,
   formatProductDisplayName,
   formatRating,
   formatVariationDisplay
@@ -84,5 +86,19 @@ describe('formatDate', () => {
     const long = formatDate(ts, { year: 'numeric', month: 'long', day: 'numeric' });
     expect(typeof long).toBe('string');
     expect(long.length).toBeGreaterThanOrEqual(short.length);
+  });
+});
+
+describe('formatDateTimeLocal', () => {
+  // UTC+2 in winter and UTC+3 in summer, so a UTC-based value would be off.
+  pinTimezone('Europe/Helsinki');
+
+  it('formats the date in local time as YYYY-MM-DDTHH:mm', () => {
+    expect(formatDateTimeLocal(new Date('2024-06-15T09:30:45Z'))).toBe('2024-06-15T12:30');
+  });
+
+  it('round trips through new Date(), which parses the value as local time', () => {
+    const date = new Date('2024-01-05T23:07:00Z');
+    expect(new Date(formatDateTimeLocal(date)).getTime()).toBe(date.getTime());
   });
 });

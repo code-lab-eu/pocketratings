@@ -1,7 +1,12 @@
 <script lang="ts">
   import { getProductVariations } from '$lib/api';
   import type { Location, Product, ProductDetail, ProductVariation } from '$lib/types';
-  import { errorMessage, formatProductDisplayName, formatVariationDisplay } from '$lib/utils/formatters';
+  import {
+    errorMessage,
+    formatDateTimeLocal,
+    formatProductDisplayName,
+    formatVariationDisplay
+  } from '$lib/utils/formatters';
   import FormError from '$lib/FormError.svelte';
   import InputField from '$lib/InputField.svelte';
   import Select from '$lib/Select.svelte';
@@ -83,7 +88,7 @@
         productId = initialProductId;
       }
       if (!purchasedAt) {
-        purchasedAt = new Date().toISOString().slice(0, 16);
+        purchasedAt = formatDateTimeLocal(new Date());
       }
     }
   });

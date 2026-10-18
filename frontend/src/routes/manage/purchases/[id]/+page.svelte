@@ -7,6 +7,7 @@
   import FormError from '$lib/FormError.svelte';
   import PageHeading from '$lib/PageHeading.svelte';
   import PurchaseForm from '$lib/PurchaseForm.svelte';
+  import { formatDateTimeLocal } from '$lib/utils/formatters';
 
   let { data } = $props();
   let purchase = $derived(data.purchase);
@@ -22,7 +23,7 @@
       locationId: purchase.location.id,
       quantity: purchase.quantity,
       price: purchase.price,
-      purchasedAt: new Date(purchase.purchased_at * 1000).toISOString().slice(0, 16)
+      purchasedAt: formatDateTimeLocal(new Date(purchase.purchased_at * 1000))
     };
   });
 

@@ -153,7 +153,7 @@ current LTS release.
 - Update the **Node.js** prerequisite in [README.md](../README.md).
 - Run frontend QC on Node 26 to confirm lint and tests pass.
 
-### 8. Default purchase date uses UTC instead of local time [FE]
+### 8. Default purchase date uses UTC instead of local time [FE] — DONE
 
 **1 sp.** `PurchaseForm.svelte` prefills the **Date** field with
 `new Date().toISOString().slice(0, 16)`, which is the current time in UTC. A
