@@ -298,7 +298,7 @@ by hand.
   change.
 - Keep the existing login, category, and product page tests passing.
 
-### 14. List the markdown wrap check in AGENTS.md [FE+BE]
+### 14. List the markdown wrap check in AGENTS.md [FE+BE] — DONE
 
 **1 sp.** Pre-push and CI run `./scripts/markdown-wrap.py check` next to
 `./scripts/ascii-punctuation.sh check`, but AGENTS.md mentions only the

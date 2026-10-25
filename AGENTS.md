@@ -93,7 +93,12 @@ coverage - does not count.
   pedantic Clippy, tests, coverage). All four must pass.
 - **Frontend:** use the **frontend-quality-control** skill (lint, test).
   Both must pass.
-- **Always:** `./scripts/ascii-punctuation.sh check` from the repo root.
+- **Always**, from the repo root:
+
+  ```bash
+  ./scripts/ascii-punctuation.sh check
+  ./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"
+  ```
 
 This applies whenever a skill or instruction says to "run QC" or check
 "before marking work done".
@@ -112,8 +117,15 @@ leaves duplicate or placeholder text is worse than no edit. Fix the whole
 span in one go, or read the section and write it back.
 
 Wrap prose in `README.md`, `docs/`, `AGENTS.md`, and skill files to 80
-characters. The **markdown-conventions** skill has the full replace
-strategy and the wrap rules.
+characters. The wrap check runs on pre-push and in CI; run it on the paragraphs
+changed on the branch:
+
+```bash
+./scripts/markdown-wrap.py check --since "$(git merge-base origin/master HEAD)"
+```
+
+The **markdown-conventions** skill has the full replace strategy and the wrap
+rules.
 
 ## Keeping docs in sync
 
